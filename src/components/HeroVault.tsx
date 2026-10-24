@@ -1,11 +1,11 @@
 /* HeroVault.tsx — canvas frame 1 of the vault sequence plus a hotspot overlay
    that uses the exact drawn image rect. Exposes an imperative FX API used by the
-   CTA buttons (wheel spin, keypad cascade, door-seam light, hinge glint). */
+   CTA buttons (keypad cascade, door-seam light, hinge glint). The Sign up vault
+   reaction is the wheel clip, which draws on its own canvas here. */
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import gsap from "gsap";
 import type { ClipRect } from "../lib/clipPlayer";
-import { FX } from "../config/fx";
 
 export interface ClipLayer {
   canvas: HTMLCanvasElement | null;
@@ -14,7 +14,6 @@ export interface ClipLayer {
 
 export interface VaultFx {
   signUpHover: (on: boolean) => void;
-  signUpClick: () => void;
   signInHover: (on: boolean) => void;
   signInClick: () => void;
   /* the clip canvas lives inside the float + parallax wrapper; the drawn rect
@@ -44,7 +43,6 @@ export interface HeroVaultProps {
 /* measured on f_001.webp (1920x1080) */
 const WHEEL_X = 53.54;
 const WHEEL_Y = 49.72;
-const WHEEL_D = 7.08; // crop diameter as % of image width
 
 const KEYPAD = { x: 59.6, y: 50.0, w: 3.2, h: 6.5 };
 const SEAM =
@@ -57,17 +55,14 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const stageRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rectRef = useRef<HTMLDivElement | null>(null);
-  const wheelRef = useRef<HTMLImageElement | null>(null);
   const hingeRefs = useRef<(HTMLDivElement | null)[]>([]);
   const keyRefs = useRef<(HTMLDivElement | null)[]>([]);
   const ledRef = useRef<HTMLDivElement | null>(null);
   const seamRef = useRef<SVGPathElement | null>(null);
   const connectorRef = useRef<SVGPathElement | null>(null);
-  const spin = useRef(0);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const clipRef = useRef<HTMLCanvasElement | null>(null);
   const lastRect = useRef<ClipRect | null>(null);
-  const clipOn = useRef(false);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -148,8 +143,6 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       getRect: () => lastRect.current,
     }),
     setClipActive(on: boolean) {
-      clipOn.current = on;
-      if (wheelRef.current) wheelRef.current.style.visibility = on ? "hidden" : "";
       if (seamRef.current) {
         if (on) seamRef.current.style.visibility = "hidden";
         else {
@@ -158,18 +151,9 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         }
       }
     },
-    /* with wheelClip on, the cropped-wheel spin and gold seam never play: the
-       clip is the only Sign up vault reaction. FX.wheelClip = false restores v1. */
+    /* the clip owns the wheel and the gold seam now; Sign up only runs the
+       hinge glint on the vault itself */
     signUpHover(on) {
-      if (wheelRef.current && !FX.wheelClip) {
-        spin.current += on ? 55 : -spin.current % 360 === 0 ? 0 : -55;
-        gsap.to(wheelRef.current, {
-          rotation: on ? spin.current : Math.round(spin.current / 360) * 360,
-          duration: 0.618,
-          ease: "power2.out",
-          overwrite: "auto",
-        });
-      }
       hingeRefs.current.forEach((bar) => {
         if (!bar) return;
         gsap.fromTo(
@@ -179,40 +163,6 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         );
         gsap.to(bar, { opacity: on ? 1 : 0, duration: on ? 0.236 : 0.382, ease: "power2.out" });
       });
-      if (seamRef.current && !FX.wheelClip) {
-        gsap.to(seamRef.current, {
-          stroke: on ? "rgba(226,184,103,0.55)" : "rgba(226,184,103,0)",
-          strokeWidth: on ? 3 : 2,
-          duration: on ? 0.618 : 0.382,
-          ease: "power2.out",
-          overwrite: "auto",
-        });
-      }
-    },
-    signUpClick() {
-      if (wheelRef.current && !FX.wheelClip) {
-        spin.current += 360;
-        gsap.to(wheelRef.current, {
-          rotation: spin.current,
-          duration: 1,
-          ease: "power3.inOut",
-          overwrite: "auto",
-        });
-      }
-      if (seamRef.current && !FX.wheelClip) {
-        gsap.fromTo(
-          seamRef.current,
-          { stroke: "rgba(226,184,103,0.15)" },
-          {
-            stroke: "rgba(226,184,103,0.9)",
-            duration: 0.5,
-            ease: "power2.out",
-            yoyo: true,
-            repeat: 1,
-            overwrite: "auto",
-          }
-        );
-      }
     },
     signInHover(on) {
       if (glowRef?.current) {
@@ -320,15 +270,6 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       <canvas ref={clipRef} className="hero-canvas hero-clip" data-testid="wheel-clip" />
       <div className="hero-rim" ref={rimRef} />
       <div className="hero-rect" ref={rectRef}>
-        <img
-          className="hero-wheel"
-          ref={wheelRef}
-          src="/vault-frames/wheel.png"
-          alt=""
-          draggable={false}
-          style={{ width: `${WHEEL_D}%` }}
-        />
-
         <div
           className="hero-keypad"
           style={{

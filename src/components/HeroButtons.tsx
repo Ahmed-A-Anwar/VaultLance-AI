@@ -153,8 +153,6 @@ export default function HeroButtons({
         return;
       }
       requestClip();
-      /* no legacy wheel spin: with wheelClip on the only vault reaction is the clip */
-      if (!FX.wheelClip) fx.current?.signUpClick();
       depart(signupHref);
     };
     const clickIn = (e: MouseEvent) => {

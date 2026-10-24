@@ -1,5 +1,6 @@
-/* fx.ts — feature flags for hero effects. Flipping wheelClip to false restores
-   exact v1 behavior (cropped wheel rotation and the gold seam rectangle). */
+/* fx.ts — feature flags for hero effects. wheelClip false switches the Sign up
+   vault clip off; the button then keeps the static vault (the old cropped-wheel
+   spin and gold seam are no longer in the code). */
 
 export const FX = {
   wheelClip: true,
