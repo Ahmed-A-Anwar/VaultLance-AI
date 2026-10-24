@@ -1,16 +1,18 @@
 /* Signup.tsx — "/signup": the account form card in the left column, beside the
-   vault that VaultLayout keeps mounted. The card joins the running transition
-   when it is entered from the hero, and simply renders final on a direct load.
+   vault that VaultLayout keeps mounted, with the role's path drawn in the strip
+   to its left. The card joins the running transition when it is entered from the
+   hero, and simply renders final on a direct load.
 
    Two steps: role, then details. Submit is local only — no network calls. */
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import gsap from "gsap";
 import { Link } from "react-router-dom";
 import { useVaultScene } from "../lib/vaultScene";
+import { SignupStepper, type Phase } from "../components/signup/SignupStepper";
+import { ROLE_NAME, type Role } from "../components/signup/stepper-content";
 
-type Role = "freelancer" | "client";
 type Step = 1 | 2 | 3;
 
 interface Values {
@@ -29,6 +31,31 @@ const CHECK = (
   </svg>
 );
 
+const ARROW = (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 12H5M11 5l-7 7 7 7" />
+  </svg>
+);
+
+/* line icons: an upload arrow for the freelancer, a magnifier for the client */
+const ROLE_ICON: Record<Role, React.ReactNode> = {
+  freelancer: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 16V4M6.5 9.5 12 4l5.5 5.5" />
+      <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    </svg>
+  ),
+  client: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5 21 21" />
+    </svg>
+  ),
+};
+
 export default function Signup() {
   const { enterSignupCard, registerSignupCard, reduced } = useVaultScene();
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -37,10 +64,13 @@ export default function Signup() {
   const doneRef = useRef<HTMLHeadingElement | null>(null);
 
   const [step, setStep] = useState<Step>(1);
-  const [role, setRole] = useState<Role>("freelancer");
+  const [role, setRole] = useState<Role | null>(null);
+  const [preview, setPreview] = useState<Role | null>(null);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({});
   const moving = useRef(false);
+  const advance = useRef<number | null>(null);
 
   /* the card hands itself to the transition, and keeps its rect for the way back */
   useLayoutEffect(() => {
@@ -52,6 +82,13 @@ export default function Signup() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [enterSignupCard, registerSignupCard]);
+
+  useEffect(
+    () => () => {
+      if (advance.current) window.clearTimeout(advance.current);
+    },
+    []
+  );
 
   /* one step per screen: the outgoing panel leaves left, the next arrives from
      the right, 0.382s each */
@@ -94,9 +131,16 @@ export default function Signup() {
     });
   };
 
+  /* selecting a role locks the path, then steps forward on the next beat */
   const pickRole = (next: Role) => {
     setRole(next);
-    move(2, 1);
+    setPreview(null);
+    if (advance.current) window.clearTimeout(advance.current);
+    if (reduced) {
+      move(2, 1);
+      return;
+    }
+    advance.current = window.setTimeout(() => move(2, 1), 236);
   };
 
   const set = (key: keyof Values) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +170,8 @@ export default function Signup() {
     e.preventDefault();
     if (step !== 2 || !validate()) return;
     console.info("[signup] submit", { role, ...values });
-    move(3, 1);
+    /* the path lights first; the success card follows it */
+    setPhase("done");
   };
 
   const field = (
@@ -165,26 +210,58 @@ export default function Signup() {
 
   return (
     <main id="main" className="signup-layout">
+      <div className="signup-brand">
+        <span className="signup-wordmark">VaultPay AI</span>
+        <Link className="signup-home" to="/" data-testid="signup-back">
+          {ARROW}
+          Back
+        </Link>
+      </div>
+
+      <div className="signup-rail">
+        <SignupStepper
+          variant="vertical"
+          role={role}
+          preview={preview}
+          phase={phase}
+          reduced={reduced}
+          onDone={() => move(3, 1)}
+        />
+      </div>
+
       <div className="signup-card" data-testid="signup-card" ref={cardRef}>
         <div className="signup-head">
-          {/* a plain route link, so it works from a cold load too; the layout runs
-              the reverse transition for any /signup -> / change. The ready state
-              has its own "Back to the vault", so this steps aside there. */}
-          {step !== 3 && (
-            <Link className="signup-home" to="/" data-reveal data-testid="signup-back">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M19 12H5M11 5l-7 7 7 7" />
-              </svg>
-              Back
-            </Link>
-          )}
           <h1 className="signup-h1" data-reveal>
             Open your vault.
           </h1>
-          <p className="signup-sub" data-reveal>
-            Pick your role. Create your account.
-          </p>
+
+          <div className="signup-subrow" data-reveal>
+            <p className="signup-sub">
+              {step === 1 ? "Pick your role. Create your account." : role ? `${ROLE_NAME[role]} account` : ""}
+            </p>
+            {step === 2 && (
+              <button
+                type="button"
+                className="signup-chip"
+                onClick={() => move(1, -1)}
+                data-testid="signup-change-role"
+              >
+                Change role
+              </button>
+            )}
+          </div>
+
+          {/* the compact path lives in the card under the heading, under 1100px */}
+          <div className="signup-stepper-compact" data-reveal>
+            <SignupStepper
+              variant="compact"
+              role={role}
+              preview={preview}
+              phase={phase}
+              reduced={reduced}
+              onDone={() => move(3, 1)}
+            />
+          </div>
         </div>
 
         <p className="sr-only" role="status">
@@ -194,38 +271,34 @@ export default function Signup() {
         <div className="signup-panel" ref={panelRef} data-reveal>
           {step === 1 && (
             <div className="signup-roles" role="group" aria-label="Your role">
-              <button
-                type="button"
-                className="role-btn"
-                aria-pressed={role === "freelancer"}
-                onClick={() => pickRole("freelancer")}
-                data-testid="role-freelancer"
-              >
-                <span className="role-name">Freelancer:</span>
-                <span className="role-line">I deliver work and get paid.</span>
-                {CHECK}
-              </button>
-              <button
-                type="button"
-                className="role-btn"
-                aria-pressed={role === "client"}
-                onClick={() => pickRole("client")}
-                data-testid="role-client"
-              >
-                <span className="role-name">Client:</span>
-                <span className="role-line">I test work before I pay.</span>
-                {CHECK}
-              </button>
+              {(["freelancer", "client"] as Role[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className="role-btn"
+                  aria-pressed={role === r}
+                  onClick={() => pickRole(r)}
+                  onMouseEnter={() => setPreview(r)}
+                  onMouseLeave={() => setPreview((v) => (v === r ? null : v))}
+                  onFocus={() => setPreview(r)}
+                  onBlur={() => setPreview((v) => (v === r ? null : v))}
+                  data-testid={`role-${r}`}
+                >
+                  <span className="role-title">{ROLE_NAME[r]}</span>
+                  <span className="role-line">
+                    {r === "freelancer" ? "I deliver work and get paid." : "I test work before I pay."}
+                  </span>
+                  <span className="role-icon" aria-hidden="true">
+                    {ROLE_ICON[r]}
+                  </span>
+                  {CHECK}
+                </button>
+              ))}
             </div>
           )}
 
           {step === 2 && (
             <form className="signup-form" onSubmit={submit} noValidate>
-              {/* a step, not a page: the arrow stays on the card's Back */}
-              <button type="button" className="signup-back" onClick={() => move(1, -1)}>
-                Change role
-              </button>
-
               {field("name", "Full name", "text", { autoComplete: "name", ref: nameRef })}
               {field("email", "Email", "email", { autoComplete: "email" })}
               {field("password", "Password", "password", { autoComplete: "new-password" })}

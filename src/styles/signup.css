@@ -1,45 +1,39 @@
-/* Signup — the form card in the left column, inside the persistent vault layout.
-   Hero tokens only: no new colours, faces or radii. */
+/* Signup — the form card on the 38.2% line, the role's path in the strip to its
+   left, and the brand block in the top corner. Hero tokens only. */
 
 .signup-layout {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
   min-height: 100svh;
-  display: grid;
-  align-content: center;
-  padding-block: var(--hero-s-34);
   pointer-events: none;
 }
 .signup-layout > * {
   pointer-events: auto;
 }
 
-/* centred on the 38.2% line, shrinking so it never reaches the vault */
-.signup-card {
-  --card-w: min(440px, calc(38.2vw - 89px));
-  width: var(--card-w);
-  margin-left: calc(38.2vw - var(--card-w) / 2);
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--hero-steel);
-  border-radius: 13px;
-  padding: 34px;
-  box-shadow: 0 24px 64px rgba(14, 21, 32, 0.12);
+/* ---- brand: wordmark and the way back ---- */
+.signup-brand {
+  position: absolute;
+  left: 55px;
+  top: 55px;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
 }
-
-/* a route that has just unmounted, parked exactly where it was so its exit can
-   keep playing (VaultLayout's exit timeline) */
-.scene-ghost {
-  will-change: transform, opacity;
+.signup-wordmark {
+  font-family: var(--hero-font-display);
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--hero-ink);
 }
-
-/* the way back to the hero, above the heading */
 .signup-home {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: var(--hero-s-21);
   color: var(--hero-slate);
   font-family: var(--hero-font-body);
   font-size: 13px;
@@ -60,6 +54,43 @@
   border-radius: 4px;
 }
 
+/* ---- the path, in the strip left of the card (0..23.6vw) ---- */
+.signup-rail {
+  position: absolute;
+  left: 55px;
+  top: 50%;
+  transform: translateY(-50%);
+  /* whatever the card leaves of the strip; 233px where there is room */
+  width: min(233px, calc(38.2vw - 302.5px));
+}
+
+/* ---- card ---- */
+.signup-card {
+  width: 453px;
+  margin-left: calc(38.2vw - 226.5px);
+  max-height: calc(100svh - 55px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  padding: 34px;
+  box-shadow: 0 24px 64px rgba(14, 21, 32, 0.12);
+}
+
+/* a route that has just unmounted, parked exactly where it was so its exit can
+   keep playing (VaultLayout's exit timeline) */
+.scene-ghost {
+  will-change: transform, opacity;
+}
+
+.signup-head {
+  display: grid;
+}
 .signup-h1 {
   margin: 0;
   font-family: var(--hero-font-display);
@@ -69,16 +100,53 @@
   letter-spacing: -0.02em;
   color: var(--hero-ink);
 }
+.signup-subrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  margin-top: 13px;
+  min-height: 21px;
+}
 .signup-sub {
-  margin: 13px 0 0;
+  margin: 0;
   font-family: var(--hero-font-body);
   font-size: 16px;
   line-height: 1.618;
   color: var(--hero-slate);
 }
+/* the step control, beside the heading rather than on a row of its own */
+.signup-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--hero-d-236) ease, border-color var(--hero-d-236) ease;
+}
+.signup-chip:hover {
+  color: var(--hero-ink);
+  border-color: var(--hero-ink);
+}
+.signup-chip:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 2px;
+}
+
+/* the path in the card: only where the strip is gone */
+.signup-stepper-compact {
+  display: none;
+}
 
 .signup-panel {
-  margin-top: var(--hero-s-34);
+  margin-top: 13px;
 }
 
 /* ---- step 1: role ---- */
@@ -92,10 +160,10 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
   height: 89px;
-  padding: 0 13px;
+  padding: 13px;
   text-align: left;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.55);
@@ -119,19 +187,35 @@
   outline: 3px solid var(--hero-teal);
   outline-offset: 2px;
 }
-.role-name {
+.role-title {
   font-weight: 600;
+  padding-right: 21px;
 }
 .role-line {
   color: var(--hero-slate);
 }
+.role-icon,
 .role-check {
   position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 13px;
-  height: 13px;
+  top: 13px;
+  right: 13px;
+  width: 16px;
+  height: 16px;
+  transition: opacity var(--hero-d-236) ease;
+}
+.role-icon {
+  color: var(--hero-steel);
+}
+.role-icon svg,
+.role-check {
+  width: 16px;
+  height: 16px;
+}
+.role-check {
   color: var(--hero-brass);
+  opacity: 0;
+}
+.role-btn[aria-pressed="true"] .role-icon {
   opacity: 0;
 }
 .role-btn[aria-pressed="true"] .role-check {
@@ -143,41 +227,15 @@
   display: grid;
   gap: 13px;
 }
-.signup-back {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  margin-bottom: 5px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  color: var(--hero-slate);
-  font-family: var(--hero-font-body);
-  font-size: 13px;
-  /* a text action beside the icon-led Back at the top of the card */
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-}
-.signup-back:hover {
-  color: var(--hero-ink);
-}
-.signup-back:focus-visible {
-  outline: 3px solid var(--hero-teal);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
 .signup-field {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 .signup-label {
   font-family: var(--hero-font-body);
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.15;
   color: var(--hero-ink);
 }
 .signup-input {
@@ -208,8 +266,8 @@
 }
 .signup-help {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.35;
   color: var(--hero-slate);
 }
 .signup-err {
@@ -221,10 +279,10 @@
 
 .signup-submit {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 0;
 }
 .signup-note {
-  margin: 0;
+  margin: -3px 0 0;
   text-align: center;
   font-family: var(--hero-font-mono);
   font-size: 12px;
@@ -285,37 +343,52 @@
 }
 
 .signup-foot {
-  margin: var(--hero-s-21) 0 0;
+  margin: 13px 0 0;
   font-family: var(--hero-font-body);
   font-size: 13px;
   color: var(--hero-slate);
 }
 
+/* ---- under 1100px: the rail becomes a row inside the card ---- */
+@media (max-width: 1099px) {
+  .signup-rail {
+    display: none;
+  }
+  .signup-stepper-compact {
+    display: block;
+    margin-top: 21px;
+  }
+}
+
 /* ---- stacked layout under the vault ---- */
 @media (max-width: 1023px) {
   .signup-layout {
+    display: block;
     min-height: 0;
     flex: 1 0 auto;
-    align-content: start;
     padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
   }
+  .signup-brand {
+    position: static;
+    margin-bottom: 21px;
+  }
   .signup-card {
-    --card-w: 100%;
+    width: 100%;
     margin-left: 0;
+    max-height: none;
     padding: 21px;
   }
   .signup-h1 {
     font-size: 34px;
   }
   .signup-panel {
-    margin-top: var(--hero-s-21);
+    margin-top: 21px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .role-btn {
-    transition: none;
-  }
+  .role-btn,
+  .signup-chip,
   .signup-home svg {
     transition: none;
   }
