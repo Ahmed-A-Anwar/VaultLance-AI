@@ -130,6 +130,9 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
+    /* the canvas starts the photo's left fade at the drawn edge, not at the
+       canvas edge, so the frame's cut never shows as a vertical band */
+    canvas.style.setProperty("--draw-left", `${dx.toFixed(1)}px`);
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
