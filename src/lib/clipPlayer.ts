@@ -24,6 +24,8 @@ export interface ClipPlayer {
   playTo: (frame: number) => void;
   reverseTo: (frame: number) => void;
   stop: () => void;
+  /* cut to hidden with no fade — used when the other clip takes over */
+  hideNow: () => void;
   dispose: () => void;
   ready: () => boolean;
   index: () => number;
@@ -312,6 +314,17 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
 
   const stop = () => stopLoop();
 
+  const hideNow = () => {
+    stopLoop();
+    if (!visible) return;
+    visible = false;
+    dir = 0;
+    gsap.killTweensOf(canvas);
+    canvas.style.opacity = "0";
+    clear();
+    onHidden?.();
+  };
+
   const dispose = () => {
     disposed = true;
     stopLoop();
@@ -331,6 +344,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
     playTo,
     reverseTo,
     stop,
+    hideNow,
     dispose,
     ready: () => loaded,
     index: () => Math.round(current),

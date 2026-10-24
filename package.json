@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "gen:clips": "node scripts/gen-clip-manifest.mjs",
+    "predev": "npm run gen:clips",
     "dev": "vite",
+    "prebuild": "npm run gen:clips",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
