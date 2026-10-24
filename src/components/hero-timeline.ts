@@ -1,5 +1,6 @@
-/* hero-timeline.ts — entrance timeline, idle loops, pointer parallax and the
-   scroll handoff for the VaultPay AI hero. Timings come from the spec only. */
+/* hero-timeline.ts — entrance timeline, idle loops and pointer parallax for the
+   VaultPay AI hero. Timings come from the spec only. The hero is the whole page,
+   so the copy never fades or leaves on scroll. */
 
 import gsap from "gsap";
 
@@ -127,8 +128,8 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
       state.ry += (-state.ny * 3.82 - state.ry) * 0.08;
       el.style.transform = `perspective(1400px) rotateY(${state.rx.toFixed(2)}deg) rotateX(${state.ry.toFixed(2)}deg)`;
       if (copy) {
-        copy.style.setProperty("--hero-par-x", `${(-state.nx * 8).toFixed(2)}px`);
-        copy.style.setProperty("--hero-par-y", `${(state.ny * 8).toFixed(2)}px`);
+        // headline drifts against the pointer by up to 8px
+        copy.style.transform = `translate3d(${(-state.nx * 8).toFixed(2)}px, ${(state.ny * 8).toFixed(2)}px, 0)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -138,29 +139,9 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
       window.removeEventListener("pointermove", onMove);
       if (raf) cancelAnimationFrame(raf);
       el.style.transform = "";
-      copy?.style.removeProperty("--hero-par-x");
-      copy?.style.removeProperty("--hero-par-y");
+      if (copy) copy.style.transform = "";
     };
   }
-
-  let parallaxOn = false;
-  const onScroll = () => {
-    if (!copy) return;
-    const span = Math.max(1, window.innerHeight * 0.06);
-    const p = Math.min(1, window.scrollY / span);
-    copy.style.opacity = String(1 - p);
-    copy.style.transform = `translate3d(var(--hero-par-x, 0px), calc(var(--hero-par-y, 0px) - ${(21 * p).toFixed(2)}px), 0)`;
-    copy.style.pointerEvents = p > 0.98 ? "none" : "";
-    /* unpin pointer parallax while the hero is scrolling away, re-arm at the top */
-    if (p > 0.06 && parallaxOn) {
-      detach?.();
-      detach = null;
-      parallaxOn = false;
-    } else if (p <= 0.001 && !parallaxOn && parallax) {
-      attachParallax();
-      parallaxOn = true;
-    }
-  };
 
   const play = () => {
     if (reducedMotion) {
@@ -169,11 +150,7 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
       return;
     }
     startIntro();
-    if (parallax) {
-      attachParallax();
-      parallaxOn = true;
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
+    if (parallax) attachParallax();
     document.addEventListener("visibilitychange", onVisibility);
   };
 
@@ -181,7 +158,6 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     intro?.kill();
     idle?.kill();
     detach?.();
-    window.removeEventListener("scroll", onScroll);
     document.removeEventListener("visibilitychange", onVisibility);
     if (raf) cancelAnimationFrame(raf);
     if (headRaf) cancelAnimationFrame(headRaf);
