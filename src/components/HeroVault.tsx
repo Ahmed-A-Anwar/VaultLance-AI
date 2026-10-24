@@ -22,6 +22,9 @@ export interface VaultFx {
   getKeypadLayer: () => ClipLayer;
   setClipActive: (on: boolean) => void;
   setKeypadClipActive: (on: boolean) => void;
+  /* paint a still frame as the vault itself — the wheel's last frame becomes the
+     resting photo once the turn has landed — or null to put f_001 back */
+  holdFrame: (url: string | null) => Promise<void>;
 }
 
 interface Rect {
@@ -78,11 +81,13 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const imageRef = useRef<HTMLImageElement | null>(null);
   const clipRef = useRef<HTMLCanvasElement | null>(null);
   const lastRect = useRef<ClipRect | null>(null);
+  /* the frame the base canvas is painted with: f_001, or the landed wheel */
+  const heldRef = useRef<HTMLImageElement | null>(null);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
-    const img = imageRef.current;
+    const img = heldRef.current ?? imageRef.current;
     if (!canvas || !stage || !img) return;
     const w = stage.clientWidth;
     const h = stage.clientHeight;
@@ -189,6 +194,27 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
           gsap.set(seamRef.current, { stroke: "rgba(226,184,103,0)", strokeWidth: 2 });
         }
       }
+    },
+    holdFrame(url) {
+      return new Promise<void>((resolve) => {
+        if (!url) {
+          heldRef.current = null;
+          paint();
+          resolve();
+          return;
+        }
+        const img = new Image();
+        img.decoding = "async";
+        img.onerror = () => resolve();
+        const settle = () => {
+          heldRef.current = img;
+          paint();
+          resolve();
+        };
+        img.src = url;
+        if (typeof img.decode === "function") img.decode().then(settle, () => resolve());
+        else img.onload = settle;
+      });
     },
     setKeypadClipActive(on: boolean) {
       if (keypadElRef.current) keypadElRef.current.style.visibility = on ? "hidden" : "";

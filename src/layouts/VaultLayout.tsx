@@ -209,6 +209,11 @@ export default function VaultLayout() {
       ghostRef.current = null;
     }
 
+    /* the signup page shows the landed wheel as the vault's own frame; home puts
+       f_001 back and gives the seam overlay to the Sign in hover again */
+    void fx.current?.holdFrame(null);
+    fx.current?.setClipActive(false);
+
     const card = cardRef.current;
     const rect = cardRect.current;
 
@@ -270,6 +275,9 @@ export default function VaultLayout() {
     const w = window as Window & { __vaultCanvas?: Element | null };
     w.__vaultCanvas = wrapRef.current?.querySelector(".hero-canvas") ?? null;
     console.info("[vault] layout mounted");
+    /* /signup is a lazy route: warm its module here so the change of route costs
+       nothing at the moment the wheel lands */
+    void import("../pages/Signup");
   }, []);
 
   /* only the nodes this layout parked itself; the card belongs to React while

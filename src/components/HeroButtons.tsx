@@ -78,6 +78,8 @@ export default function HeroButtons({
     /* ---------- clips ---------- */
     let wheel: ClipPlayer | null = null;
     let pad: ClipPlayer | null = null;
+    /* the wheel's frame urls: its last one is what the signup page keeps */
+    let wheelUrls: string[] = [];
     let wheelLoading = false;
     let padLoading = false;
     let wheelNav = false;
@@ -103,7 +105,7 @@ export default function HeroButtons({
           settle?.();
           if (!wheelNav) return;
           wheelNav = false;
-          onSignup();
+          landWheel();
         },
         onHidden: () => fx.current?.setClipActive(false),
       });
@@ -139,6 +141,16 @@ export default function HeroButtons({
       fx.current?.setClipActive(true);
       wheel.playTo(wheel.last());
     };
+
+    /* Sign up leaves on the landed wheel, not on a timer: its last frame is
+       painted into the vault itself, so /signup opens with the turn finished
+       and the clip canvas can be cleared without the still underneath changing. */
+    const landWheel = () => {
+      const url = wheelUrls[wheelUrls.length - 1];
+      const hold = url ? fx.current?.holdFrame(url) : undefined;
+      if (hold) void hold.then(onSignup);
+      else onSignup();
+    };
     const startPad = (to: number) => {
       if (!pad?.ready()) return;
       wheel?.hideNow();
@@ -151,7 +163,10 @@ export default function HeroButtons({
       const p = wheel;
       wheelLoading = true;
       discoverFrames(CLIPS.wheel.dir)
-        .then((urls) => p.load(urls))
+        .then((urls) => {
+          wheelUrls = urls;
+          return p.load(urls);
+        })
         .then((ok) => {
           wheelLoading = false;
           if (!ok) {
@@ -238,15 +253,18 @@ export default function HeroButtons({
         const atEnd = wheel.index() >= wheel.last();
         startWheel();
         if (atEnd) {
-          departUp();
+          landWheel();
           return;
         }
         wheelNav = true;
+        /* the clip reports its landing; this only catches a frame loop that
+           never got there (a tab held in the background through the turn) */
+        const turn = ((wheel.last() + 1) / CLIPS.wheel.fps) * 1000;
         later(() => {
           if (!wheelNav) return;
           wheelNav = false;
-          onSignup();
-        }, 2618);
+          landWheel();
+        }, turn + 2618);
         return;
       }
       requestWheel();
