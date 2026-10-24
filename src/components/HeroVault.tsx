@@ -4,12 +4,22 @@
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import gsap from "gsap";
+import type { ClipRect } from "../lib/clipPlayer";
+
+export interface ClipLayer {
+  canvas: HTMLCanvasElement | null;
+  getRect: () => ClipRect | null;
+}
 
 export interface VaultFx {
   signUpHover: (on: boolean) => void;
   signUpClick: () => void;
   signInHover: (on: boolean) => void;
   signInClick: () => void;
+  /* the clip canvas lives inside the float + parallax wrapper; the drawn rect
+     is the same box the static frame was painted into */
+  getClipLayer: () => ClipLayer;
+  setClipActive: (on: boolean) => void;
 }
 
 interface Rect {
@@ -54,6 +64,9 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const connectorRef = useRef<SVGPathElement | null>(null);
   const spin = useRef(0);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const clipRef = useRef<HTMLCanvasElement | null>(null);
+  const lastRect = useRef<ClipRect | null>(null);
+  const clipOn = useRef(false);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -97,6 +110,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       rect.style.height = `${dh}px`;
     }
     const next: Rect = { dx, dy, dw, dh, w, h };
+    lastRect.current = { dx, dy, dw, dh };
     if (rect) {
       rect.dataset.rect = JSON.stringify(next);
       rect.dataset.painted = "1";
@@ -128,8 +142,23 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   }, [frameSrc, paint, onReady]);
 
   useImperativeHandle(ref, () => ({
+    getClipLayer: () => ({
+      canvas: clipRef.current,
+      getRect: () => lastRect.current,
+    }),
+    setClipActive(on: boolean) {
+      clipOn.current = on;
+      if (wheelRef.current) wheelRef.current.style.visibility = on ? "hidden" : "";
+      if (seamRef.current) {
+        if (on) seamRef.current.style.visibility = "hidden";
+        else {
+          seamRef.current.style.visibility = "";
+          gsap.set(seamRef.current, { stroke: "rgba(226,184,103,0)", strokeWidth: 2 });
+        }
+      }
+    },
     signUpHover(on) {
-      if (wheelRef.current) {
+      if (wheelRef.current && !clipOn.current) {
         spin.current += on ? 55 : -spin.current % 360 === 0 ? 0 : -55;
         gsap.to(wheelRef.current, {
           rotation: on ? spin.current : Math.round(spin.current / 360) * 360,
@@ -147,7 +176,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         );
         gsap.to(bar, { opacity: on ? 1 : 0, duration: on ? 0.236 : 0.382, ease: "power2.out" });
       });
-      if (seamRef.current) {
+      if (seamRef.current && !clipOn.current) {
         gsap.to(seamRef.current, {
           stroke: on ? "rgba(226,184,103,0.55)" : "rgba(226,184,103,0)",
           strokeWidth: on ? 3 : 2,
@@ -158,7 +187,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       }
     },
     signUpClick() {
-      if (wheelRef.current) {
+      if (wheelRef.current && !clipOn.current) {
         spin.current += 360;
         gsap.to(wheelRef.current, {
           rotation: spin.current,
@@ -167,7 +196,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
           overwrite: "auto",
         });
       }
-      if (seamRef.current) {
+      if (seamRef.current && !clipOn.current) {
         gsap.fromTo(
           seamRef.current,
           { stroke: "rgba(226,184,103,0.15)" },
@@ -285,6 +314,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   return (
     <div className="hero-stage" ref={stageRef} aria-hidden="true">
       <canvas ref={canvasRef} className="hero-canvas" />
+      <canvas ref={clipRef} className="hero-canvas hero-clip" data-testid="wheel-clip" />
       <div className="hero-rim" ref={rimRef} />
       <div className="hero-rect" ref={rectRef}>
         <img
