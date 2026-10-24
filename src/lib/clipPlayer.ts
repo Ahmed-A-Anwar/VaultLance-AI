@@ -35,10 +35,12 @@ const LOAD_BUDGET = 4000;
 const BATCH = 10;
 const FADE = 0.236;
 
+/* a dev server answers unknown paths with index.html, so ok alone is not enough */
 const probe = async (url: string) => {
   try {
     const res = await fetch(url, { method: "HEAD" });
-    return res.ok;
+    if (!res.ok) return false;
+    return (res.headers.get("content-type") ?? "").startsWith("image/");
   } catch {
     return false;
   }
@@ -86,6 +88,11 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
 
   canvas.style.opacity = "0";
   canvas.style.pointerEvents = "none";
+  /* an absolutely positioned canvas keeps its intrinsic 300x150 unless sized */
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.left = "0";
+  canvas.style.top = "0";
 
   const warnOnce = () => {
     if (warned) return;
