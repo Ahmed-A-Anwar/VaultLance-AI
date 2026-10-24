@@ -46,6 +46,17 @@ export interface HeroVaultProps {
 const WHEEL_X = 53.54;
 const WHEEL_Y = 49.72;
 
+/* vault body inside f_001.webp, as a fraction of the frame: the solid shell
+   spans x 655-1244 and y 221-848 on the 1920x1080 frame (threshold cut 120 of
+   255 on a 198.7 backdrop, which drops the contact shadow) */
+const FRAME_ASPECT = 16 / 9;
+const VAULT_FW = 0.3073;
+const VAULT_FH = 0.5815;
+const VAULT_CX = 0.4945;
+const VAULT_CY = 0.4950;
+/* the phone breakpoint, kept in step with the max-width: 767px block in hero.css */
+const PHONE_MAX = 767;
+
 const KEYPAD = { x: 59.6, y: 50.0, w: 3.2, h: 6.5 };
 const SEAM =
   "M 447 255 H 585 A 30 30 0 0 1 615 285 V 700 A 30 30 0 0 1 585 730 H 447 A 30 30 0 0 1 417 700 V 285 A 30 30 0 0 1 447 255 Z";
@@ -76,18 +87,38 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     const w = stage.clientWidth;
     const h = stage.clientHeight;
     if (w <= 0 || h <= 0) return;
-    let scale = Math.max(w / img.width, h / img.height);
-    /* cap the drawn width so the vault never reaches into the 38.2% text column */
-    const maxDrawnW = window.innerWidth * 1.12;
-    if (img.width * scale > maxDrawnW) scale = maxDrawnW / img.width;
-    const dw = img.width * scale;
-    const dh = img.height * scale;
-    let dx = (w - dw) / 2;
-    let dy = (h - dh) / 2;
-    if (anchor && window.innerWidth >= 1024) {
-      // pin the wheel to the golden point: x 61.8% of viewport, y 50%
-      dx += window.innerWidth * 0.618 - (dx + dw * (WHEEL_X / 100));
-      dy += window.innerHeight * 0.5 - (dy + dh * (WHEEL_Y / 100));
+    let dw: number;
+    let dh: number;
+    let dx: number;
+    let dy: number;
+    if (window.innerWidth <= PHONE_MAX) {
+      /* phones: the vault zone is a short band, so fit the body into it instead
+         of covering the stage. The drawn body is 80% of the zone height until
+         the 61.8% viewport-width cap takes over; either way the body is centred
+         and the frame is cropped by the zone, with no width cap on top. */
+      dh = (0.8 * h) / VAULT_FH;
+      dw = dh * FRAME_ASPECT;
+      const maxBodyW = window.innerWidth * 0.618;
+      if (dw * VAULT_FW > maxBodyW) {
+        dw = maxBodyW / VAULT_FW;
+        dh = dw / FRAME_ASPECT;
+      }
+      dx = w / 2 - dw * VAULT_CX;
+      dy = h / 2 - dh * VAULT_CY;
+    } else {
+      let scale = Math.max(w / img.width, h / img.height);
+      /* cap the drawn width so the vault never reaches into the 38.2% text column */
+      const maxDrawnW = window.innerWidth * 1.12;
+      if (img.width * scale > maxDrawnW) scale = maxDrawnW / img.width;
+      dw = img.width * scale;
+      dh = img.height * scale;
+      dx = (w - dw) / 2;
+      dy = (h - dh) / 2;
+      if (anchor && window.innerWidth >= 1024) {
+        // pin the wheel to the golden point: x 61.8% of viewport, y 50%
+        dx += window.innerWidth * 0.618 - (dx + dw * (WHEEL_X / 100));
+        dy += window.innerHeight * 0.5 - (dy + dh * (WHEEL_Y / 100));
+      }
     }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(w * dpr);
