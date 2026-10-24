@@ -161,10 +161,21 @@
   padding: 55px 34px 55px 89px;
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  /* no gap: each adjacency carries its own margin so the six zones can be
+     spaced independently on mobile without a gap fighting the margins */
+  gap: 0;
   min-height: 100svh;
   will-change: transform, opacity;
 }
+/* reading order on desktop: eyebrow, headline, body, buttons, note, chips.
+   The DOM keeps the CTAs before the note and the body so the mobile column can
+   seat them directly under the headline without moving any copy. */
+.hero-eyebrow { order: 1; margin: 0; }
+.hero-h1 { order: 2; }
+.hero-body { order: 3; margin: 0; }
+.hero-cta-block { order: 4; }
+.hero-micro { order: 5; }
+.hero-chips { order: 6; }
 .hero-eyebrow,
 .hero-micro,
 .hero-chip {
@@ -184,7 +195,7 @@
   color: var(--hero-ink);
   font-optical-sizing: auto;
   text-wrap: balance;
-  margin-block: 8px;
+  margin: 21px 0;
 }
 .hero-h1 .word {
   display: inline-block;
@@ -209,7 +220,7 @@
    the golden-line placement only held while the copy stayed short */
 .hero-cta-block {
   position: static;
-  margin-top: 21px;
+  margin-top: 34px;
   display: grid;
   gap: 13px;
   justify-items: start;
@@ -221,7 +232,7 @@
   gap: 21px;
 }
 .hero-micro {
-  margin-top: 8px;
+  margin-top: 21px;
 }
 .hero-chips {
   display: flex;
@@ -229,6 +240,15 @@
   gap: 13px;
   list-style: none;
   padding: 0;
+  margin-top: 13px;
+}
+/* on the desktop column the note and the chips only take the width they need,
+   which is how they were sized inside the old CTA grid */
+@media (min-width: 1024px) {
+  .hero-micro,
+  .hero-chips {
+    width: fit-content;
+  }
 }
 .hero-chip {
   border: 1px solid var(--hero-steel);
@@ -334,10 +354,14 @@
   .hero-copy {
     padding: 21px;
     min-height: 0;
-    gap: 21px;
+  }
+  /* the old 13px block gap plus the 21px column gap, kept as explicit margins */
+  .hero-h1 {
+    margin: 29px 0;
   }
   .hero-cta-block {
     position: static;
+    margin-top: 42px;
     justify-items: stretch;
   }
   .hero-cta-row {

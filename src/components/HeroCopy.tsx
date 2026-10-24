@@ -1,6 +1,10 @@
 /* HeroCopy.tsx — eyebrow, split headline, body, CTAs, micro-note and chips.
    Copy is spec-exact. The headline is one h1: the split spans are aria-hidden
-   and the full sentence lives in a visually hidden span. */
+   and the full sentence lives in a visually hidden span.
+
+   DOM order is buttons, note, body, chips; CSS `order` puts them in reading
+   order on desktop (body before the buttons) and on mobile (buttons before the
+   note, note before the body). */
 
 import { forwardRef } from "react";
 import type { RefObject } from "react";
@@ -54,12 +58,6 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
         ))}
       </h1>
 
-      <p className="hero-body" ref={bodyRef}>
-        VaultPay AI is an escrow agent that securely hosts freelance digital deliverables from web apps to brand design assets, 
-        allowing clients to interrogate the work through live staging tests and visual AI analysis,
-         giving them the confidence to authorize the PayPal payment that instantly unlocks their files.
-      </p>
-
       <div className="hero-cta-block" ref={ctaBlockRef}>
         <div className="hero-cta-row" ref={buttonsRef}>
           <a
@@ -91,17 +89,21 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
             <span className="hero-btn-label">Sign in</span>
           </a>
         </div>
-
-        <p className="hero-micro" ref={microRef}>
-          SANDBOX DEMO · NO REAL MONEY
-        </p>
-
-        <ul className="hero-chips" ref={chipsRef}>
-          <li className="hero-chip">FUNDS HELD, NOT SPENT</li>
-          <li className="hero-chip">REAL CHECKS, NOT CLAIMS</li>
-          <li className="hero-chip">FILES UNLOCK ON CAPTURE</li>
-        </ul>
       </div>
+
+      <p className="hero-micro" ref={microRef}>
+        SANDBOX DEMO · NO REAL MONEY
+      </p>
+
+      <p className="hero-body" ref={bodyRef}>
+        {"VaultPay AI is an escrow agent that securely hosts freelance digital deliverables from web apps to brand design assets, allowing clients to interrogate the work through live staging tests and visual AI analysis, giving them the confidence to authorize the PayPal payment that instantly unlocks their files."}
+      </p>
+
+      <ul className="hero-chips" ref={chipsRef}>
+        <li className="hero-chip">FUNDS HELD, NOT SPENT</li>
+        <li className="hero-chip">REAL CHECKS, NOT CLAIMS</li>
+        <li className="hero-chip">FILES UNLOCK ON CAPTURE</li>
+      </ul>
     </div>
   );
 });
