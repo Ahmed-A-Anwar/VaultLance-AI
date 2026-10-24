@@ -380,6 +380,88 @@
   }
 }
 
+/* ---- phones: vault zone on top, text zone filling the rest of 100svh ---- */
+@media (max-width: 767px) {
+  .hero-shell {
+    min-height: 100svh;
+  }
+  /* 38.2% of the screen for the vault, never smaller than 260px */
+  .hero-stage-wrap {
+    height: 38.2svh;
+    min-height: 260px;
+    flex: none;
+    overflow: hidden;
+  }
+  .hero-layout {
+    flex: 1 0 auto;
+  }
+  .hero-copy {
+    padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
+  }
+  /* reading order: eyebrow, headline, buttons, note, body, chips */
+  .hero-eyebrow {
+    order: 1;
+    margin: 0;
+  }
+  .hero-h1 {
+    order: 2;
+    margin: 13px 0 0;
+    font-size: 42px;
+    line-height: 1.05;
+  }
+  .hero-cta-block {
+    order: 3;
+    margin-top: 21px;
+  }
+  .hero-micro {
+    order: 4;
+    margin-top: 13px;
+  }
+  .hero-body {
+    order: 5;
+    margin-top: 34px;
+    font-size: 16px;
+    line-height: 1.618;
+  }
+  .hero-chips {
+    order: 6;
+    margin-top: 34px;
+  }
+  .hero-eyebrow {
+    font-size: 12px;
+  }
+  /* the frame is drawn past every edge on phones; fade the crop instead of
+     letting the top and bottom of the image register as a rectangle */
+  .hero-canvas {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 21px,
+      #000 calc(100% - 21px),
+      transparent 100%
+    );
+  }
+  /* chips scroll as one row instead of stacking */
+  .hero-chips {
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hero-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .hero-chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-shimmer {
     display: none;
