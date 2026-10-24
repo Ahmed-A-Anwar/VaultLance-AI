@@ -7,6 +7,7 @@
   min-height: 100svh;
   display: grid;
   align-content: center;
+  padding-block: var(--hero-s-34);
   pointer-events: none;
 }
 .signup-layout > * {
@@ -50,6 +51,216 @@
   color: var(--hero-slate);
 }
 
+.signup-panel {
+  margin-top: var(--hero-s-34);
+}
+
+/* ---- step 1: role ---- */
+.signup-roles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.role-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  height: 89px;
+  padding: 0 13px;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  line-height: 1.4;
+  transition: background-color var(--hero-d-382) ease, border-color var(--hero-d-382) ease;
+}
+.role-btn:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+.role-btn[aria-pressed="true"] {
+  background: rgba(226, 184, 103, 0.16);
+  outline: 2px solid var(--hero-brass);
+  outline-offset: -2px;
+}
+.role-btn:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 2px;
+}
+.role-name {
+  font-weight: 600;
+}
+.role-line {
+  color: var(--hero-slate);
+}
+.role-check {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 13px;
+  height: 13px;
+  color: var(--hero-brass);
+  opacity: 0;
+}
+.role-btn[aria-pressed="true"] .role-check {
+  opacity: 1;
+}
+
+/* ---- step 2: details ---- */
+.signup-form {
+  display: grid;
+  gap: 13px;
+}
+.signup-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  margin-bottom: 5px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+}
+.signup-back:hover {
+  color: var(--hero-ink);
+}
+.signup-back:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.signup-field {
+  display: grid;
+  gap: 5px;
+}
+.signup-label {
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hero-ink);
+}
+.signup-input {
+  height: 55px;
+  padding: 0 13px;
+  border-radius: 13px;
+  border: 1px solid var(--hero-steel);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 16px;
+  transition: border-color var(--hero-d-236) ease, box-shadow var(--hero-d-236) ease;
+}
+.signup-input::placeholder {
+  color: var(--hero-slate);
+}
+.signup-input:hover {
+  border-color: var(--hero-ink);
+}
+.signup-input:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 1px;
+  border-color: var(--hero-teal);
+}
+.signup-input[aria-invalid="true"] {
+  border-color: var(--failed);
+  box-shadow: inset 0 0 0 1px var(--failed);
+}
+.signup-help {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--hero-slate);
+}
+.signup-err {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--failed);
+}
+
+.signup-submit {
+  width: 100%;
+  margin-top: 8px;
+}
+.signup-note {
+  margin: 0;
+  text-align: center;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--hero-slate);
+}
+
+/* ---- step 3: placeholder success ---- */
+.signup-done {
+  display: grid;
+  gap: 13px;
+  justify-items: start;
+}
+.signup-done-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: rgba(18, 165, 181, 0.12);
+  color: var(--hero-teal);
+}
+.signup-done-mark .role-check {
+  position: static;
+  width: 21px;
+  height: 21px;
+  opacity: 1;
+  color: var(--hero-teal);
+}
+.signup-done-h {
+  margin: 0;
+  font-family: var(--hero-font-display);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--hero-ink);
+}
+.signup-done-h:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+}
+.signup-done-p {
+  margin: 0;
+  font-family: var(--hero-font-body);
+  font-size: 16px;
+  line-height: 1.618;
+  color: var(--hero-slate);
+}
+
+.signup-link {
+  color: var(--hero-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.signup-link:hover {
+  color: var(--hero-teal);
+}
+
+.signup-foot {
+  margin: var(--hero-s-21) 0 0;
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  color: var(--hero-slate);
+}
+
 /* ---- stacked layout under the vault ---- */
 @media (max-width: 1023px) {
   .signup-layout {
@@ -65,5 +276,14 @@
   }
   .signup-h1 {
     font-size: 34px;
+  }
+  .signup-panel {
+    margin-top: var(--hero-s-21);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-btn {
+    transition: none;
   }
 }
