@@ -15,6 +15,8 @@ export interface ClipPlayerOptions {
   canvas: HTMLCanvasElement;
   fps: number;
   getRect: () => ClipRect | null;
+  /* console line used when the frames cannot be loaded */
+  warning?: string;
   onArrive?: (frame: number) => void;
   onHidden?: () => void;
 }
@@ -69,7 +71,16 @@ export async function discoverFrames(dir: string): Promise<string[]> {
   return out;
 }
 
-export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: ClipPlayerOptions): ClipPlayer {
+const WHEEL_WARNING = "[fx] wheel clip unavailable — Sign up keeps the static vault";
+
+export function createClipPlayer({
+  canvas,
+  fps,
+  getRect,
+  warning = WHEEL_WARNING,
+  onArrive,
+  onHidden,
+}: ClipPlayerOptions): ClipPlayer {
   const ctx = canvas.getContext("2d");
   const frameDur = 1000 / fps;
 
@@ -103,7 +114,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   const warnOnce = () => {
     if (warned) return;
     warned = true;
-    console.warn("[fx] wheel clip unavailable — Sign up keeps the static vault");
+    console.warn(warning);
   };
 
   const draw = () => {

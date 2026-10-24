@@ -30,6 +30,23 @@ const routes: RouteObject[] = [
   { path: "/v/:token/files", element: <ClientFiles /> },
   { path: "/console", element: <Console /> },
   { path: "/demo", element: <Demo /> },
+  /* placeholders so the hero CTAs land somewhere real; the forms come later */
+  {
+    path: "/signup",
+    element: (
+      <p className="wrap" style={{ paddingBlock: "var(--s-20)" }} data-testid="signup-placeholder">
+        Sign up. The account form is not built yet.
+      </p>
+    ),
+  },
+  {
+    path: "/signin",
+    element: (
+      <p className="wrap" style={{ paddingBlock: "var(--s-20)" }} data-testid="signin-placeholder">
+        Sign in. The login form is not built yet.
+      </p>
+    ),
+  },
   { path: "*", element: <p className="wrap" style={{ paddingBlock: "var(--s-20)" }}>Nothing here. <a href="/">The instrument is over here.</a></p> },
 ];
 

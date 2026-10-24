@@ -1,6 +1,7 @@
 /* HeroButtons.tsx — wires the two hero CTAs to vault reactions, press states,
-   tap behavior and routing. Hover reactions are desktop-only. The Sign up
-   button also drives the wheel image-sequence clip when FX.wheelClip is on. */
+   tap behavior and routing. Hover reactions are desktop-only. Sign up drives the
+   wheel image-sequence clip and Sign in drives the keypad clip; only one of the
+   two clips is ever on screen. */
 
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,7 @@ import gsap from "gsap";
 import type { RefObject } from "react";
 import type { VaultFx } from "./HeroVault";
 import { CLIPS, FX } from "../config/fx";
+import keypadManifest from "../config/keypad-manifest.json";
 import { createClipPlayer, discoverFrames, type ClipPlayer } from "../lib/clipPlayer";
 
 export interface HeroButtonsProps {
@@ -19,9 +21,19 @@ export interface HeroButtonsProps {
   signinHref: string;
 }
 
+const KEYPAD_FRAMES: string[] = keypadManifest;
+const KEYPAD_COUNT = KEYPAD_FRAMES.length;
+/* frame at which the keys are fully lit and idle, before code entry */
+const K1 = Math.round(KEYPAD_COUNT * CLIPS.keypad.k1Fraction);
+
 const finePointer = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+/* no phone-sized keypad frame set, so the clip is desktop-only and phones keep
+   the flat v2 keys */
+const padViewport = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
 
 const whenIdle = (cb: () => void) => {
   const w = window as Window & {
@@ -55,57 +67,111 @@ export default function HeroButtons({
       return id;
     };
 
-    /* ---------- wheel clip, Sign up only ---------- */
-    let player: ClipPlayer | null = null;
-    let loading = false;
-    let pendingNav = false;
-    /* true while the pointer/focus/tap is on Sign up, so a clip that finishes
-       loading mid-hover starts on its own instead of waiting for a second hover */
-    let hovering = false;
-    const startClip = () => {
-      if (!player?.ready()) return;
-      fx.current?.setClipActive(true);
-      player.playTo(player.last());
-    };
-    const layer = FX.wheelClip && !reducedMotion ? fx.current?.getClipLayer() : null;
+    /* ---------- clips ---------- */
+    let wheel: ClipPlayer | null = null;
+    let pad: ClipPlayer | null = null;
+    let wheelLoading = false;
+    let padLoading = false;
+    let wheelNav = false;
+    let padNav = false;
+    /* true while the pointer/focus/tap is on a button, so a clip that finishes
+       loading mid-hover starts on its own instead of waiting for a re-hover */
+    let hoveringUp = false;
+    let hoveringIn = false;
 
-    if (layer?.canvas) {
-      player = createClipPlayer({
-        canvas: layer.canvas,
+    const wheelLayer = FX.wheelClip && !reducedMotion ? fx.current?.getClipLayer() : null;
+    if (wheelLayer?.canvas) {
+      wheel = createClipPlayer({
+        canvas: wheelLayer.canvas,
         fps: CLIPS.wheel.fps,
-        getRect: layer.getRect,
+        getRect: wheelLayer.getRect,
         onArrive: () => {
-          if (!pendingNav) return;
-          pendingNav = false;
+          if (!wheelNav) return;
+          wheelNav = false;
           navigate(signupHref);
         },
         onHidden: () => fx.current?.setClipActive(false),
       });
     }
 
-    const requestClip = () => {
-      if (!player || loading || player.ready()) return;
-      const p = player;
-      loading = true;
+    const padLayer =
+      FX.keypadClip && !reducedMotion && KEYPAD_COUNT > 0 && padViewport()
+        ? fx.current?.getKeypadLayer()
+        : null;
+    if (padLayer?.canvas) {
+      pad = createClipPlayer({
+        canvas: padLayer.canvas,
+        fps: CLIPS.keypad.fps,
+        getRect: padLayer.getRect,
+        warning: "[fx] keypad clip unavailable — Sign in keeps the static vault",
+        onArrive: () => {
+          if (!padNav) return;
+          padNav = false;
+          navigate(signinHref);
+        },
+        onHidden: () => fx.current?.setKeypadClipActive(false),
+      });
+      console.log(`[fx] keypad clip: ${KEYPAD_COUNT} frames, K1 = ${K1}`);
+    }
+
+    /* one clip at a time: the other is cut instantly, no overlap */
+    const startWheel = () => {
+      if (!wheel?.ready()) return;
+      pad?.hideNow();
+      fx.current?.setClipActive(true);
+      wheel.playTo(wheel.last());
+    };
+    const startPad = (to: number) => {
+      if (!pad?.ready()) return;
+      wheel?.hideNow();
+      fx.current?.setKeypadClipActive(true);
+      pad.playTo(to);
+    };
+
+    const requestWheel = () => {
+      if (!wheel || wheelLoading || wheel.ready()) return;
+      const p = wheel;
+      wheelLoading = true;
       discoverFrames(CLIPS.wheel.dir)
         .then((urls) => p.load(urls))
         .then((ok) => {
-          loading = false;
+          wheelLoading = false;
           if (!ok) {
             p.dispose();
-            if (player === p) player = null;
+            if (wheel === p) wheel = null;
             return;
           }
-          if (hovering) startClip();
+          if (hoveringUp) startWheel();
         })
         .catch(() => {
-          loading = false;
+          wheelLoading = false;
         });
     };
 
-    /* start streaming the frames as soon as the entrance is under way, so the
-       first hover plays on the click instead of waiting for the decode */
-    if (player) later(() => whenIdle(requestClip), 200);
+    const requestPad = () => {
+      if (!pad || padLoading || pad.ready()) return;
+      const p = pad;
+      padLoading = true;
+      p.load(KEYPAD_FRAMES)
+        .then((ok) => {
+          padLoading = false;
+          if (!ok) {
+            p.dispose();
+            if (pad === p) pad = null;
+            return;
+          }
+          if (hoveringIn) startPad(K1);
+        })
+        .catch(() => {
+          padLoading = false;
+        });
+    };
+
+    /* the wheel streams as soon as the entrance is under way, so the first hover
+       plays on the click instead of waiting for the decode */
+    if (wheel) later(() => whenIdle(requestWheel), 200);
+    /* the keypad streams once the entrance has landed */
+    if (pad) later(() => whenIdle(requestPad), 2618);
 
     /* ---------- buttons ---------- */
     const lift = (el: HTMLElement, on: boolean) => {
@@ -115,20 +181,29 @@ export default function HeroButtons({
     };
 
     const enterUp = () => {
-      hovering = true;
-      if (player?.ready()) startClip();
-      else if (player) requestClip();
+      hoveringUp = true;
+      if (wheel?.ready()) startWheel();
+      else if (wheel) requestWheel();
       fx.current?.signUpHover(true);
       lift(up, true);
     };
     const leaveUp = () => {
-      hovering = false;
-      if (player?.ready()) player.reverseTo(0);
+      hoveringUp = false;
+      if (wheel?.ready()) wheel.reverseTo(0);
       fx.current?.signUpHover(false);
       lift(up, false);
     };
-    const enterIn = () => fx.current?.signInHover(true);
-    const leaveIn = () => fx.current?.signInHover(false);
+    const enterIn = () => {
+      hoveringIn = true;
+      if (pad?.ready()) startPad(K1);
+      else if (pad) requestPad();
+      fx.current?.signInHover(true);
+    };
+    const leaveIn = () => {
+      hoveringIn = false;
+      if (pad?.ready()) pad.reverseTo(0);
+      fx.current?.signInHover(false);
+    };
 
     const press = (el: HTMLElement) =>
       gsap.to(el, { scale: 0.97, duration: 0.236, ease: "power2.out", overwrite: "auto" });
@@ -140,51 +215,73 @@ export default function HeroButtons({
     const clickUp = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return navigate(signupHref);
-      if (player?.ready()) {
-        const atEnd = player.index() >= player.last();
-        fx.current?.setClipActive(true);
-        player.playTo(player.last());
+      if (wheel?.ready()) {
+        const atEnd = wheel.index() >= wheel.last();
+        startWheel();
         if (atEnd) {
           depart(signupHref);
           return;
         }
-        pendingNav = true;
+        wheelNav = true;
         later(() => {
-          if (!pendingNav) return;
-          pendingNav = false;
+          if (!wheelNav) return;
+          wheelNav = false;
           navigate(signupHref);
         }, 2618);
         return;
       }
-      requestClip();
+      requestWheel();
       depart(signupHref);
     };
+
     const clickIn = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return navigate(signinHref);
+      if (pad?.ready()) {
+        const atEnd = pad.index() >= pad.last();
+        startPad(pad.last());
+        if (atEnd) {
+          depart(signinHref);
+          return;
+        }
+        padNav = true;
+        later(() => {
+          if (!padNav) return;
+          padNav = false;
+          navigate(signinHref);
+        }, 2618);
+        return;
+      }
+      requestPad();
       fx.current?.signInClick();
       depart(signinHref);
     };
 
-    /* touch: first tap reveals the reaction, second tap follows the link */
+    /* touch: first tap runs to the hold frame, second tap follows the link */
     const tapUp = (e: TouchEvent) => {
       if (canHover || reducedMotion) return;
-      requestClip();
+      requestWheel();
       if (!armed.current.signup) {
         e.preventDefault();
         armed.current.signup = true;
-        hovering = true;
-        if (player?.ready()) startClip();
+        hoveringUp = true;
+        if (wheel?.ready()) startWheel();
         fx.current?.signUpHover(true);
       }
     };
     const tapIn = (e: TouchEvent) => {
       if (canHover || reducedMotion) return;
+      requestPad();
       if (!armed.current.signin) {
         e.preventDefault();
         armed.current.signin = true;
-        fx.current?.signInHover(true);
-        later(() => fx.current?.signInHover(false), 1200);
+        if (pad?.ready()) {
+          hoveringIn = true;
+          startPad(K1);
+        } else {
+          fx.current?.signInHover(true);
+          later(() => fx.current?.signInHover(false), 1200);
+        }
       }
     };
 
@@ -195,6 +292,8 @@ export default function HeroButtons({
       signin.addEventListener("mouseleave", leaveIn);
       up.addEventListener("focus", enterUp);
       up.addEventListener("blur", leaveUp);
+      signin.addEventListener("focus", enterIn);
+      signin.addEventListener("blur", leaveIn);
     }
     up.addEventListener("pointerdown", () => press(up));
     up.addEventListener("pointerup", () => release(up));
@@ -213,11 +312,14 @@ export default function HeroButtons({
       up.removeEventListener("blur", leaveUp);
       signin.removeEventListener("mouseenter", enterIn);
       signin.removeEventListener("mouseleave", leaveIn);
+      signin.removeEventListener("focus", enterIn);
+      signin.removeEventListener("blur", leaveIn);
       up.removeEventListener("click", clickUp);
       signin.removeEventListener("click", clickIn);
       up.removeEventListener("touchstart", tapUp);
       signin.removeEventListener("touchstart", tapIn);
-      player?.dispose();
+      wheel?.dispose();
+      pad?.dispose();
     };
   }, [signupRef, signinRef, fx, reducedMotion, signupHref, signinHref, navigate]);
 

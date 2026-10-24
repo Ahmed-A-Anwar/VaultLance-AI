@@ -16,10 +16,12 @@ export interface VaultFx {
   signUpHover: (on: boolean) => void;
   signInHover: (on: boolean) => void;
   signInClick: () => void;
-  /* the clip canvas lives inside the float + parallax wrapper; the drawn rect
+  /* the clip canvases live inside the float + parallax wrapper; the drawn rect
      is the same box the static frame was painted into */
   getClipLayer: () => ClipLayer;
+  getKeypadLayer: () => ClipLayer;
   setClipActive: (on: boolean) => void;
+  setKeypadClipActive: (on: boolean) => void;
 }
 
 interface Rect {
@@ -60,6 +62,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const ledRef = useRef<HTMLDivElement | null>(null);
   const seamRef = useRef<SVGPathElement | null>(null);
   const connectorRef = useRef<SVGPathElement | null>(null);
+  const keypadElRef = useRef<HTMLDivElement | null>(null);
+  const keypadClipRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const clipRef = useRef<HTMLCanvasElement | null>(null);
   const lastRect = useRef<ClipRect | null>(null);
@@ -142,7 +146,21 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       canvas: clipRef.current,
       getRect: () => lastRect.current,
     }),
+    getKeypadLayer: () => ({
+      canvas: keypadClipRef.current,
+      getRect: () => lastRect.current,
+    }),
     setClipActive(on: boolean) {
+      if (seamRef.current) {
+        if (on) seamRef.current.style.visibility = "hidden";
+        else {
+          seamRef.current.style.visibility = "";
+          gsap.set(seamRef.current, { stroke: "rgba(226,184,103,0)", strokeWidth: 2 });
+        }
+      }
+    },
+    setKeypadClipActive(on: boolean) {
+      if (keypadElRef.current) keypadElRef.current.style.visibility = on ? "hidden" : "";
       if (seamRef.current) {
         if (on) seamRef.current.style.visibility = "hidden";
         else {
@@ -268,10 +286,12 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     <div className="hero-stage" ref={stageRef} aria-hidden="true">
       <canvas ref={canvasRef} className="hero-canvas" />
       <canvas ref={clipRef} className="hero-canvas hero-clip" data-testid="wheel-clip" />
+      <canvas ref={keypadClipRef} className="hero-canvas hero-clip" data-testid="keypad-clip" />
       <div className="hero-rim" ref={rimRef} />
       <div className="hero-rect" ref={rectRef}>
         <div
           className="hero-keypad"
+          ref={keypadElRef}
           style={{
             left: `${KEYPAD.x}%`,
             top: `${KEYPAD.y}%`,
