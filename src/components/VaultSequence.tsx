@@ -104,7 +104,7 @@ export function VaultSequence() {
       <section
         className="vs"
         ref={sectionRef}
-        aria-label="VaultPay escrow sequence — reduced-motion fallback"
+        aria-label="VaultLance escrow sequence — reduced-motion fallback"
         data-testid="vault-sequence"
       >
         <div className="vs-fallback-stack">
@@ -152,7 +152,7 @@ export function VaultSequence() {
     <section
       className="vs"
       ref={sectionRef}
-      aria-label="VaultPay escrow sequence"
+      aria-label="VaultLance escrow sequence"
       data-testid="vault-sequence"
     >
       <div className="vs-pin" ref={pinRef} style={{ position: "relative" }}>

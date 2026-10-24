@@ -30,6 +30,9 @@ export interface ClipPlayer {
   hideNow: () => void;
   dispose: () => void;
   ready: () => boolean;
+  /* highest frame with a contiguous run of decoded frames behind it: a caller
+     can hold a sequence back until everything it will draw is banked */
+  bankedTo: () => number;
   index: () => number;
   last: () => number;
 }
@@ -92,6 +95,8 @@ export function createClipPlayer({
   let loaded = false;
   let warned = false;
   let disposed = false;
+  /* true once a frame is decoded, or has failed and will simply be skipped */
+  let settled: boolean[] = [];
 
   let current = 0;
   let target = 0;
@@ -246,6 +251,8 @@ export function createClipPlayer({
         } catch {
           /* a single bad frame leaves a hold, not a failed clip */
           images[from + k] = null;
+        } finally {
+          settled[from + k] = true;
         }
       })
     );
@@ -256,13 +263,30 @@ export function createClipPlayer({
     if (loading) return loading;
     loading = (async () => {
       const t0 = Date.now();
+      /* Browsers defer image decoding while the page is in the background, so a
+         cold load in an unfocused tab can sit there far past the budget and get
+         its clip thrown away. Only time spent awake counts. */
+      let asleep = 0;
+      let asleepFrom = document.hidden ? t0 : 0;
+      const watch = () => {
+        if (document.hidden) {
+          if (!asleepFrom) asleepFrom = Date.now();
+        } else if (asleepFrom) {
+          asleep += Date.now() - asleepFrom;
+          asleepFrom = 0;
+        }
+      };
+      document.addEventListener("visibilitychange", watch);
+      const awake = () =>
+        Date.now() - t0 - asleep - (asleepFrom ? Date.now() - asleepFrom : 0);
       try {
         if (!urls.length) throw new Error("no frames");
         total = urls.length;
         images = new Array<HTMLImageElement | null>(total).fill(null);
+        settled = new Array<boolean>(total).fill(false);
         await fill(urls, 0, Math.min(BATCH, total));
         if (!images[0]) throw new Error("first frame failed");
-        if (Date.now() - t0 > LOAD_BUDGET) throw new Error("load budget exceeded");
+        if (awake() > LOAD_BUDGET) throw new Error("load budget exceeded");
         loaded = true;
         drawn = -1;
         drawnImg = -1;
@@ -270,11 +294,9 @@ export function createClipPlayer({
         void (async () => {
           for (let i = BATCH; i < total; i += BATCH) {
             if (disposed) return;
-            await new Promise<void>((res) => {
-              const w = window as Window & { requestIdleCallback?: (fn: IdleRequestCallback, o?: IdleRequestOptions) => number };
-              if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(() => res(), { timeout: 200 });
-              else window.setTimeout(res, 16);
-            });
+            /* yield only long enough to keep the frame loop breathing: the clip
+               has to be fully banked before the sequence that uses it starts */
+            await new Promise<void>((res) => window.setTimeout(res, 0));
             if (disposed) return;
             await fill(urls, i, Math.min(i + BATCH, total));
           }
@@ -286,6 +308,8 @@ export function createClipPlayer({
         loaded = false;
         warnOnce();
         return false;
+      } finally {
+        document.removeEventListener("visibilitychange", watch);
       }
     })();
     return loading;
@@ -358,6 +382,10 @@ export function createClipPlayer({
     hideNow,
     dispose,
     ready: () => loaded,
+    bankedTo: () => {
+      for (let i = 0; i < total; i++) if (!settled[i]) return i - 1;
+      return total - 1;
+    },
     index: () => Math.round(current),
     last: () => Math.max(0, total - 1),
   };

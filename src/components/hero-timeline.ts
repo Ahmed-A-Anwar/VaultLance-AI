@@ -1,5 +1,5 @@
 /* hero-timeline.ts — entrance timeline, idle loops and pointer parallax for the
-   VaultPay AI hero. Timings come from the spec only. The hero is the whole page,
+   VaultLance AI hero. Timings come from the spec only. The hero is the whole page,
    so the copy never fades or leaves on scroll. */
 
 import gsap from "gsap";

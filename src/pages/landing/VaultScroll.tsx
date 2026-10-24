@@ -234,7 +234,7 @@ export function VaultScrollNarrative({ onCta }: { onCta: () => void }) {
   });
 
   return (
-    <section className="vs" ref={sectionRef} aria-label="VaultPay escrow, staged over the vault" data-testid="vault-scroll">
+    <section className="vs" ref={sectionRef} aria-label="VaultLance escrow, staged over the vault" data-testid="vault-scroll">
       <div className="vs-pin" ref={pinRef}>
         <img className="vs-fallback" src={frameUrl(0)} alt="" decoding="async" aria-hidden="true" />
         <canvas ref={canvasRef} aria-hidden="true" />

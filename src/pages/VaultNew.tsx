@@ -55,7 +55,7 @@ export default function VaultNew() {
       <nav aria-label="Breadcrumb"><a href="/">← The instrument</a></nav>
       <header style={{ marginBlock: "var(--s-5)" }}>
         <h1 style={{ fontSize: "clamp(2rem,5vw,2.6rem)" }}>Seal a vault</h1>
-        <p className="lede">Drop the deliverable. VaultPay hashes it locally (sha-256, no upload), holds the client's authorization, and releases only toward a verdict.</p>
+        <p className="lede">Drop the deliverable. VaultLance hashes it locally (sha-256, no upload), holds the client's authorization, and releases only toward a verdict.</p>
       </header>
 
       <div className="pages-grid">

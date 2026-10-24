@@ -22,7 +22,7 @@ export const SEED = {
     amountCents: 425000,              // $4,250.00 held, not captured
     currency: "USD" as const,
     createdAt: SANDBOX_TXN.createdAt,
-    stagingUrl: "https://vaultpay-sandbox-preview.app/checkout",
+    stagingUrl: "https://vaultlance-sandbox-preview.app/checkout",
     files: [
       { path: "src/checkout/index.tsx", size: 51200, hash: "3f9ac1b7d402e6f88ab71c1cb41c0d12e6d2e04db83e21b0a3003a1f36a23e4d" },
       { path: "src/steps/AddressStep.tsx", size: 18944, hash: "94f0ac31d0e2f4b7a8029c1ae0b741d0dbe82130030a1e4a36b23c7d01e88f52" },

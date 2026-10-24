@@ -1,7 +1,8 @@
 /* HeroButtons.tsx — wires the two hero CTAs to vault reactions, press states,
    tap behavior and routing. Hover reactions are desktop-only. Sign up drives the
    wheel image-sequence clip and Sign in drives the keypad clip; only one of the
-   two clips is ever on screen. */
+   two clips is ever on screen. On entry the vault demos both reactions by itself
+   — keypad lights and runs back down, then one wheel turn — before a pointer. */
 
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +35,12 @@ const finePointer = () =>
    the flat v2 keys */
 const padViewport = () =>
   typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+
+/* ---------- entrance intro ---------- */
+/* the entrance timeline lands at 2.618s; the clips start after it */
+const INTRO_DELAY = 2618;
+/* beat on the lit keypad before the keys run back down */
+const INTRO_HOLD = 618;
 
 const whenIdle = (cb: () => void) => {
   const w = window as Window & {
@@ -78,6 +85,10 @@ export default function HeroButtons({
        loading mid-hover starts on its own instead of waiting for a re-hover */
     let hoveringUp = false;
     let hoveringIn = false;
+    /* resolved when a clip reaches its target frame, so the intro can pace itself
+       on the clip itself instead of on guessed durations */
+    let wheelArrive: (() => void) | null = null;
+    let padArrive: (() => void) | null = null;
 
     const wheelLayer = FX.wheelClip && !reducedMotion ? fx.current?.getClipLayer() : null;
     if (wheelLayer?.canvas) {
@@ -86,6 +97,9 @@ export default function HeroButtons({
         fps: CLIPS.wheel.fps,
         getRect: wheelLayer.getRect,
         onArrive: () => {
+          const settle = wheelArrive;
+          wheelArrive = null;
+          settle?.();
           if (!wheelNav) return;
           wheelNav = false;
           navigate(signupHref);
@@ -105,6 +119,9 @@ export default function HeroButtons({
         getRect: padLayer.getRect,
         warning: "[fx] keypad clip unavailable — Sign in keeps the static vault",
         onArrive: () => {
+          const settle = padArrive;
+          padArrive = null;
+          settle?.();
           if (!padNav) return;
           padNav = false;
           navigate(signinHref);
@@ -167,11 +184,10 @@ export default function HeroButtons({
         });
     };
 
-    /* the wheel streams as soon as the entrance is under way, so the first hover
-       plays on the click instead of waiting for the decode */
+    /* both clips stream while the entrance plays, so the intro that follows has
+       nothing left to decode and the first hover already has its frames */
     if (wheel) later(() => whenIdle(requestWheel), 200);
-    /* the keypad streams once the entrance has landed */
-    if (pad) later(() => whenIdle(requestPad), 2618);
+    if (pad) later(() => whenIdle(requestPad), 618);
 
     /* ---------- buttons ---------- */
     const lift = (el: HTMLElement, on: boolean) => {
@@ -303,6 +319,93 @@ export default function HeroButtons({
     signin.addEventListener("click", clickIn);
     up.addEventListener("touchstart", tapUp, { passive: false });
     signin.addEventListener("touchstart", tapIn, { passive: false });
+
+    /* ---------- first visit: the vault demos itself ---------- */
+    /* Counts down only while the tab is on screen: a backgrounded or embedded
+       tab, where the clips are paused too, cannot race past its own beats. */
+    const sleep = (ms: number) =>
+      new Promise<void>((res) => {
+        let left = ms;
+        const step = () => {
+          if (!document.hidden) left -= 100;
+          if (left <= 0) res();
+          else later(step, 100);
+        };
+        later(step, 100);
+      });
+
+    const clipsReady = () => (!pad || pad.ready()) && (!wheel || wheel.ready());
+
+    /* hold a phase back until every frame it will draw is banked, so the sequence
+       runs on decoded frames instead of holding on one still streaming. The cap
+       is only there so a lost frame cannot strand the page. */
+    const bank = async (player: ClipPlayer | null, frame: number) => {
+      for (let left = 20_000; left > 0; left -= 100) {
+        if (!player || player.bankedTo() >= frame) return;
+        await sleep(100);
+      }
+    };
+
+    /* Keypad first, then one wheel turn: the hover amounts only, never the click
+       amount, and nothing here changes how the buttons react afterwards. */
+    const runIntro = async () => {
+      /* the entrance has to land on screen before the demo starts over it */
+      await sleep(INTRO_DELAY);
+      /* the keypad decodes after the entrance: wait for it */
+      while (!clipsReady()) await sleep(100);
+      if (hoveringUp || hoveringIn) return;
+      console.info("[fx] vault intro: keypad, then one wheel turn");
+
+      /* the keys light up and run back down inside 0..K1, so that is all this
+         phase needs banked before it starts */
+      await bank(pad, K1);
+      if (pad?.ready() && pad.index() < K1) {
+        const arrived = new Promise<void>((res) => {
+          padArrive = res;
+        });
+        startPad(K1);
+        await Promise.race([arrived, sleep(4000)]);
+        padArrive = null;
+        await sleep(INTRO_HOLD);
+
+        /* the keys go dark at their own pace before the wheel takes over */
+        if (!hoveringUp && !hoveringIn) {
+          const settled = new Promise<void>((res) => {
+            padArrive = res;
+          });
+          pad.reverseTo(0);
+          await Promise.race([settled, sleep(4000)]);
+          padArrive = null;
+        }
+      }
+
+      /* the pointer took over while the keys were lit: leave it alone */
+      if (hoveringUp || hoveringIn) return;
+
+      if (wheel?.ready()) {
+        /* the wheel runs end to end, so it needs the whole clip banked */
+        await bank(wheel, wheel.last());
+        const arrived = new Promise<void>((res) => {
+          wheelArrive = res;
+        });
+        startWheel();
+        await Promise.race([arrived, sleep(9000)]);
+        wheelArrive = null;
+        /* back to closed, so the first real hover starts from the same frame */
+        if (!hoveringUp && !hoveringIn) wheel.reverseTo(0);
+      } else if (pad?.ready() && !hoveringIn) {
+        /* no wheel clip to take over: dim the keys instead of leaving them lit */
+        pad.reverseTo(0);
+      }
+    };
+
+    if (reducedMotion) {
+      console.info("[fx] vault intro: off — reduced motion is on");
+    } else if (!wheel && !pad) {
+      console.info("[fx] vault intro: off — no clip loaded");
+    } else {
+      void runIntro();
+    }
 
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
