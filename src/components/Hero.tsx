@@ -1,8 +1,10 @@
 /* Hero.tsx — the landing content inside the persistent vault layout: the copy
    column, the entrance timeline and the CTA wiring. The vault itself lives in
-   VaultLayout and is never remounted by a route change. */
+   VaultLayout and is never remounted by a route change. Coming back from
+   /signup, the copy returns instead of replaying the intro. */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import gsap from "gsap";
 import { HeroCopy } from "./HeroCopy";
 import HeroButtons from "./HeroButtons";
 import { createHeroTimeline } from "./hero-timeline";
@@ -11,8 +13,19 @@ import { useVaultScene } from "../lib/vaultScene";
 const SIGNIN_HREF = "/signin";
 
 export function Hero() {
-  const { fx, pageRef, stageWrapRef, rimRef, glowRef, signupRef, signinRef, ready, reduced, returning, startSignup } =
-    useVaultScene();
+  const {
+    fx,
+    pageRef,
+    stageWrapRef,
+    rimRef,
+    glowRef,
+    signupRef,
+    signinRef,
+    ready,
+    reduced,
+    returning,
+    startSignup,
+  } = useVaultScene();
 
   const copyRef = useRef<HTMLDivElement | null>(null);
   const eyebrowRef = useRef<HTMLParagraphElement | null>(null);
@@ -23,8 +36,34 @@ export function Hero() {
   const microRef = useRef<HTMLParagraphElement | null>(null);
   const chipsRef = useRef<HTMLUListElement | null>(null);
 
+  /* the way back: the copy is set to its exit pose before paint, then returns on
+     the same beat the vault slides home */
+  useLayoutEffect(() => {
+    if (!ready || !returning) return;
+    const items = [
+      eyebrowRef.current,
+      headlineRef.current,
+      ctaBlockRef.current,
+      microRef.current,
+      bodyRef.current,
+      chipsRef.current,
+    ].filter(Boolean) as HTMLElement[];
+    gsap.set(items, { x: -89, opacity: 0 });
+    const tween = gsap.to(items, {
+      x: 0,
+      opacity: 1,
+      duration: 0.618,
+      stagger: 0.0618,
+      ease: "power3.out",
+      delay: 0.382,
+    });
+    return () => {
+      tween.kill();
+    };
+  }, [ready, returning]);
+
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || returning) return;
     const timeline = createHeroTimeline({
       reducedMotion: reduced,
       parallax: !reduced && window.innerWidth >= 1024,

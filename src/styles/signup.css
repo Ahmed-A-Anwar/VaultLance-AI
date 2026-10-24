@@ -27,6 +27,12 @@
   box-shadow: 0 24px 64px rgba(14, 21, 32, 0.12);
 }
 
+/* a route that has just unmounted, parked exactly where it was so its exit can
+   keep playing (VaultLayout's exit timeline) */
+.scene-ghost {
+  will-change: transform, opacity;
+}
+
 .signup-h1 {
   margin: 0;
   font-family: var(--hero-font-display);
