@@ -1,21 +1,20 @@
-/* Hero.tsx — landing top: vault stage behind the copy column. */
+/* Hero.tsx — the landing content inside the persistent vault layout: the copy
+   column, the entrance timeline and the CTA wiring. The vault itself lives in
+   VaultLayout and is never remounted by a route change. */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { HeroCopy } from "./HeroCopy";
-import { HeroVault, type VaultFx } from "./HeroVault";
 import HeroButtons from "./HeroButtons";
 import { createHeroTimeline } from "./hero-timeline";
+import { useVaultScene } from "../lib/vaultScene";
 
-const FRAME_1 = "/vault-frames/f_001.webp";
-const SIGNUP_HREF = "/signup";
 const SIGNIN_HREF = "/signin";
 
 export function Hero() {
-  const pageRef = useRef<HTMLElement | null>(null);
+  const { fx, pageRef, stageWrapRef, rimRef, glowRef, signupRef, signinRef, ready, reduced, returning, startSignup } =
+    useVaultScene();
+
   const copyRef = useRef<HTMLDivElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const rimRef = useRef<HTMLDivElement | null>(null);
-  const glowRef = useRef<HTMLDivElement | null>(null);
   const eyebrowRef = useRef<HTMLParagraphElement | null>(null);
   const headlineRef = useRef<HTMLHeadingElement | null>(null);
   const bodyRef = useRef<HTMLParagraphElement | null>(null);
@@ -23,27 +22,16 @@ export function Hero() {
   const buttonsRef = useRef<HTMLDivElement | null>(null);
   const microRef = useRef<HTMLParagraphElement | null>(null);
   const chipsRef = useRef<HTMLUListElement | null>(null);
-  const signupRef = useRef<HTMLAnchorElement | null>(null);
-  const signinRef = useRef<HTMLAnchorElement | null>(null);
-  const fx = useRef<VaultFx | null>(null);
-
-  const [mounted, setMounted] = useState(false);
-  const reduced = typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-  const onVaultReady = useCallback(() => setReady(true), []);
 
   useEffect(() => {
-    if (!mounted || !ready) return;
+    if (!ready) return;
     const timeline = createHeroTimeline({
       reducedMotion: reduced,
-      parallax: window.innerWidth >= 1024,
+      parallax: !reduced && window.innerWidth >= 1024,
       targets: {
         page: pageRef.current,
         copy: copyRef.current,
-        stage: stageRef.current,
+        stage: stageWrapRef.current,
         rim: rimRef.current,
         eyebrow: eyebrowRef.current,
         headline: headlineRef.current,
@@ -57,50 +45,38 @@ export function Hero() {
     });
     timeline.play();
     return () => timeline.destroy();
-  }, [mounted, ready, reduced]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, reduced, returning]);
 
   return (
-    <section className="hero-page" ref={pageRef} data-testid="hero">
-      <div className="hero-shell">
-        <div className="hero-stage-wrap" ref={stageRef}>
-          <HeroVault
-            ref={fx}
-            frameSrc={FRAME_1}
-            rimRef={rimRef}
-            glowRef={glowRef}
-            signinAnchorRef={signinRef}
-            onReady={onVaultReady}
-          />
-        </div>
-
-        <div className="hero-layout">
-          <HeroCopy
-            ref={copyRef}
-            headline="Pay for work you've actually tested."
-            signupHref={SIGNUP_HREF}
-            signinHref={SIGNIN_HREF}
-            eyebrowRef={eyebrowRef}
-            headlineRef={headlineRef}
-            bodyRef={bodyRef}
-            ctaBlockRef={ctaBlockRef}
-            buttonsRef={buttonsRef}
-            microRef={microRef}
-            chipsRef={chipsRef}
-            signupRef={signupRef}
-            signinRef={signinRef}
-          />
-        </div>
-      </div>
+    <>
+      <main id="main" className="hero-layout">
+        <HeroCopy
+          ref={copyRef}
+          headline="Pay for work you've actually tested."
+          signupHref="/signup"
+          signinHref={SIGNIN_HREF}
+          eyebrowRef={eyebrowRef}
+          headlineRef={headlineRef}
+          bodyRef={bodyRef}
+          ctaBlockRef={ctaBlockRef}
+          buttonsRef={buttonsRef}
+          microRef={microRef}
+          chipsRef={chipsRef}
+          signupRef={signupRef}
+          signinRef={signinRef}
+        />
+      </main>
 
       <HeroButtons
         signupRef={signupRef}
         signinRef={signinRef}
         fx={fx}
         reducedMotion={reduced}
-        signupHref={SIGNUP_HREF}
+        onSignup={startSignup}
         signinHref={SIGNIN_HREF}
       />
-    </section>
+    </>
   );
 }
 

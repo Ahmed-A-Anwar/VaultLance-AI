@@ -1,0 +1,63 @@
+/* Signup — the form card in the left column, inside the persistent vault layout.
+   Hero tokens only: no new colours, faces or radii. */
+
+.signup-layout {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  pointer-events: none;
+}
+.signup-layout > * {
+  pointer-events: auto;
+}
+
+/* centred on the 38.2% line, shrinking so it never reaches the vault */
+.signup-card {
+  --card-w: min(440px, calc(38.2vw - 89px));
+  width: var(--card-w);
+  margin-left: calc(38.2vw - var(--card-w) / 2);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  padding: 34px;
+  box-shadow: 0 24px 64px rgba(14, 21, 32, 0.12);
+}
+
+.signup-h1 {
+  margin: 0;
+  font-family: var(--hero-font-display);
+  font-weight: 600;
+  font-size: 42px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--hero-ink);
+}
+.signup-sub {
+  margin: 13px 0 0;
+  font-family: var(--hero-font-body);
+  font-size: 16px;
+  line-height: 1.618;
+  color: var(--hero-slate);
+}
+
+/* ---- stacked layout under the vault ---- */
+@media (max-width: 1023px) {
+  .signup-layout {
+    min-height: 0;
+    flex: 1 0 auto;
+    align-content: start;
+    padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
+  }
+  .signup-card {
+    --card-w: 100%;
+    margin-left: 0;
+    padding: 21px;
+  }
+  .signup-h1 {
+    font-size: 34px;
+  }
+}

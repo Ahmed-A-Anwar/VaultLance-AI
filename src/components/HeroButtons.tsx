@@ -18,7 +18,8 @@ export interface HeroButtonsProps {
   signinRef: RefObject<HTMLAnchorElement | null>;
   fx: RefObject<VaultFx | null>;
   reducedMotion: boolean;
-  signupHref: string;
+  /* Sign up hands off to the signup transition, which owns the navigation */
+  onSignup: () => void;
   signinHref: string;
 }
 
@@ -56,7 +57,7 @@ export default function HeroButtons({
   signinRef,
   fx,
   reducedMotion,
-  signupHref,
+  onSignup,
   signinHref,
 }: HeroButtonsProps) {
   const navigate = useNavigate();
@@ -102,7 +103,7 @@ export default function HeroButtons({
           settle?.();
           if (!wheelNav) return;
           wheelNav = false;
-          navigate(signupHref);
+          onSignup();
         },
         onHidden: () => fx.current?.setClipActive(false),
       });
@@ -227,27 +228,29 @@ export default function HeroButtons({
       gsap.to(el, { scale: 1, duration: 0.236, ease: "power2.out", overwrite: "auto" });
 
     const depart = (href: string) => later(() => navigate(href), 1000);
+    /* Sign up leaves through the transition, not through the router */
+    const departUp = () => later(onSignup, 1000);
 
     const clickUp = (e: MouseEvent) => {
       e.preventDefault();
-      if (reducedMotion) return navigate(signupHref);
+      if (reducedMotion) return onSignup();
       if (wheel?.ready()) {
         const atEnd = wheel.index() >= wheel.last();
         startWheel();
         if (atEnd) {
-          depart(signupHref);
+          departUp();
           return;
         }
         wheelNav = true;
         later(() => {
           if (!wheelNav) return;
           wheelNav = false;
-          navigate(signupHref);
+          onSignup();
         }, 2618);
         return;
       }
       requestWheel();
-      depart(signupHref);
+      departUp();
     };
 
     const clickIn = (e: MouseEvent) => {
@@ -424,7 +427,7 @@ export default function HeroButtons({
       wheel?.dispose();
       pad?.dispose();
     };
-  }, [signupRef, signinRef, fx, reducedMotion, signupHref, signinHref, navigate]);
+  }, [signupRef, signinRef, fx, reducedMotion, onSignup, signinHref, navigate]);
 
   return null;
 }

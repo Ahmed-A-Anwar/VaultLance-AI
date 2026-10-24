@@ -1,7 +1,9 @@
 import { lazy, Suspense } from "react";
 import { RouterProvider, createBrowserRouter, Outlet, RouteObject } from "react-router-dom";
+import VaultLayout from "./layouts/VaultLayout";
 
 const Landing = lazy(() => import("./pages/Landing"));
+const Signup = lazy(() => import("./pages/Signup"));
 const VaultNew = lazy(() => import("./pages/VaultNew"));
 const VaultDetail = lazy(() => import("./pages/VaultDetail"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
@@ -23,22 +25,21 @@ function Shell() {
 }
 
 const routes: RouteObject[] = [
-  { path: "/", element: <Landing /> },
+  /* the vault mounts once here and both routes render inside it */
+  {
+    element: <VaultLayout />,
+    children: [
+      { path: "/", element: <Landing /> },
+      { path: "/signup", element: <Signup /> },
+    ],
+  },
   { path: "/vault/new", element: <VaultNew /> },
   { path: "/vault/:id", element: <VaultDetail /> },
   { path: "/v/:token", element: <ClientPortal /> },
   { path: "/v/:token/files", element: <ClientFiles /> },
   { path: "/console", element: <Console /> },
   { path: "/demo", element: <Demo /> },
-  /* placeholders so the hero CTAs land somewhere real; the forms come later */
-  {
-    path: "/signup",
-    element: (
-      <p className="wrap" style={{ paddingBlock: "var(--s-20)" }} data-testid="signup-placeholder">
-        Sign up. The account form is not built yet.
-      </p>
-    ),
-  },
+  /* placeholder so the Sign in CTA lands somewhere real; the login form comes later */
   {
     path: "/signin",
     element: (
