@@ -42,7 +42,7 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
   return (
     <div className="hero-copy" ref={ref}>
       <p className="hero-eyebrow" ref={eyebrowRef}>
-        AI-AUDITED ESCROW FOR DIGITAL WORK
+        AI-AUDITED ESCROW FOR DIGITAL FREELANCE WORK
       </p>
 
       <h1 className="hero-h1" ref={headlineRef}>
@@ -55,9 +55,9 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
       </h1>
 
       <p className="hero-body" ref={bodyRef}>
-        VaultPay AI holds the deliverables and your payment side by side. Ask the AI
-        anything about the work. It runs real checks, not guesses. Approve, and PayPal
-        releases the funds and unlocks the files.
+        VaultPay AI is an escrow agent that securely hosts freelance digital deliverables from web apps to brand design assets, 
+        allowing clients to interrogate the work through live staging tests and visual AI analysis,
+         giving them the confidence to authorize the PayPal payment that instantly unlocks their files.
       </p>
 
       <div className="hero-cta-block" ref={ctaBlockRef}>

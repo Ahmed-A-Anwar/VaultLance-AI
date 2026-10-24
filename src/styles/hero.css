@@ -205,22 +205,14 @@
   max-width: 44ch;
 }
 
-/* buttons sit on the 61.8% horizontal golden line when the column has room */
+/* the CTAs flow after the body so a longer paragraph can never run under them;
+   the golden-line placement only held while the copy stayed short */
 .hero-cta-block {
   position: static;
   margin-top: 21px;
   display: grid;
   gap: 13px;
   justify-items: start;
-}
-@media (min-width: 1366px) {
-  .hero-cta-block {
-    position: absolute;
-    left: 89px;
-    right: 34px;
-    top: 61.8%;
-    margin-top: 0;
-  }
 }
 .hero-cta-row {
   display: flex;
