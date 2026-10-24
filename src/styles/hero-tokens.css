@@ -1,0 +1,43 @@
+/* Hero tokens — VaultPay AI landing top. Spec values only. */
+
+:root {
+  /* sampled from frame 1 edges (sharp, 3% / 97% regions) */
+  --hero-bg-top: #c9d0d2;
+  --hero-bg-mid: #d5dbdc;
+  --hero-bg-bot: #e1e7e8;
+
+  --hero-ink: #0e1520;
+  --hero-slate: #4b5663;
+  --hero-steel: #8a95a1;
+  --hero-brass: #b8893a;
+  --hero-brass-light: #e2b867;
+  --hero-teal: #12a5b5;
+  --hero-success: #1f9d6b;
+
+  --hero-font-display: "Hero Fraunces", Georgia, serif;
+  --hero-font-body: "Hero Inter", system-ui, sans-serif;
+  --hero-font-mono: "Hero JetBrains Mono", ui-monospace, monospace;
+
+  /* type scale x1.618 */
+  --hero-t-16: 16px;
+  --hero-t-26: 26px;
+  --hero-t-42: 42px;
+  --hero-t-68: 68px;
+  --hero-t-110: 110px;
+
+  /* spacing scale, Fibonacci */
+  --hero-s-8: 8px;
+  --hero-s-13: 13px;
+  --hero-s-21: 21px;
+  --hero-s-34: 34px;
+  --hero-s-55: 55px;
+  --hero-s-89: 89px;
+
+  /* motion */
+  --hero-d-236: 0.236s;
+  --hero-d-382: 0.382s;
+  --hero-d-618: 0.618s;
+  --hero-d-1: 1s;
+  --hero-d-1618: 1.618s;
+  --hero-d-2618: 2.618s;
+}

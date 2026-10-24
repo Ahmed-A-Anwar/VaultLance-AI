@@ -1,0 +1,85 @@
+/*
+  VaultPay AI — design tokens. EVERY hex, curve and radius lives here.
+  Component CSS may reference these variables only. See docs/PLAN.md.
+*/
+:root {
+  /* ---- colour: ground & structure ---- */
+  --paper: #eff1f0;          /* page ground: cool chalk, not cream */
+  --panel: #ffffff;          /* document surfaces */
+  --well: #e4e7e6;           /* recessed wells, inputs, trays */
+  --ink: #182029;            /* body text (13.2:1 on paper) */
+  --ink-soft: #59636d;       /* secondary text (5.0:1 on paper) */
+  --rule: #d7dbde;           /* hairlines */
+
+  /* ---- colour: brand wax (never a state) ---- */
+  --seal: #0e2a43;           /* primary buttons, vault mark */
+  --seal-ink: #0a1f31;       /* pressed / hover of seal */
+  --seal-ring: #35608a;      /* focus rings on seal surfaces */
+
+  /* ---- colour: state families (colour + mark + word, never colour alone) ---- */
+  --held: #8a4b10;           /* HELD — escrow brass */
+  --held-bg: #f2e4cc;
+  --paid: #14603b;           /* PAID / RELEASED */
+  --paid-bg: #dcebe0;
+  --failed: #9b1c16;         /* VOIDED / FAIL */
+  --failed-bg: #f6ddd9;
+  --audit: #0f4c81;          /* AUDITING / COMPUTED */
+  --audit-bg: #dce7f2;
+  --slate: #3d434b;          /* SEALED — dormant metal */
+  --slate-bg: #e2e5e9;
+
+  /* ---- overlay lift (the only shadow in the system) ---- */
+  --overlay-shadow: 0 24px 64px rgba(14, 42, 67, 0.22);
+  --backdrop: rgba(24, 32, 41, 0.44);
+
+  /* ---- type ---- */
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --step--1: 13px;
+  --step-0: 16px;
+  --step-1: 20px;
+  --step-2: 28px;
+  --step-3: 40px;
+  --step-4: 56px;
+  --step-5: 76px;   /* display clamps down responsively */
+
+  /* ---- spacing ledger (4px base) ---- */
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-5: 20px;
+  --s-8: 32px;
+  --s-12: 48px;
+  --s-20: 80px;
+  --measure: 62ch;
+  --content: 1120px;
+
+  /* ---- radius: document 10 / control 4 / token pill ---- */
+  --r-doc: 10px;
+  --r-ctl: 4px;
+  --r-pill: 1000px;
+
+  /* ---- motion: named curves & durations (see PLAN.md M1–M7) ---- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --d-press: 160ms;
+  --d-fast: 180ms;
+  --d-ui: 260ms;
+  --d-flip: 260ms;
+  --d-morph: 520ms;
+  --d-fill: 900ms;
+  --d-reveal: 480ms;
+}
+
+/* ---- reduced motion: fewer & gentler, never zero (ships with M1–M7) ---- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --d-press: 1ms;
+    --d-fast: 160ms;
+    --d-ui: 160ms;
+    --d-flip: 1ms;      /* token flips become instant swaps */
+    --d-morph: 200ms;
+    --d-fill: 1ms;
+    --d-reveal: 160ms;
+  }
+  html { scroll-behavior: auto; }
+}

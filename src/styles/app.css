@@ -1,0 +1,90 @@
+/* VaultPay AI — base. References src/styles/tokens.css only. Fonts are wired
+   in main.tsx via @fontsource (local, no CDN). */
+@import "./tokens.css";
+
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-sans); font-size: var(--step-0); font-weight: 480;
+  line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+img, svg { display: block; max-width: 100%; }
+button, input, textarea, select { font: inherit; color: inherit; }
+h1, h2, h3 { font-weight: 620; letter-spacing: -0.01em; line-height: 0.98; }
+h1 { font-size: clamp(2.6rem, 6vw, var(--step-4)); font-variation-settings: "wdth" 118; }
+h2 { font-size: clamp(1.7rem, 3.4vw, var(--step-2)); font-variation-settings: "wdth" 112; }
+h3 { font-size: 1.15rem; }
+p, ul, ol, figure { max-width: var(--measure); }
+a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.875em; }
+::selection { background: var(--held-bg); color: var(--seal-ink); }
+
+:focus-visible { outline: 2px solid var(--seal-ring); outline-offset: 2px; border-radius: var(--r-ctl); }
+.mono-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "sl-zero"; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.wrap { max-width: var(--content); margin-inline: auto; padding-inline: clamp(16px, 4vw, 32px); }
+.section { padding-block: var(--s-20); border-top: 1px solid var(--rule); }
+.section:first-of-type { border-top: 0; }
+.section-head { margin-bottom: var(--s-8); max-width: 60ch; }
+.lede { color: var(--ink-soft); font-size: 1.1rem; max-width: 52ch; }
+
+/* ---- document panel: the recurring white instrument surface ---- */
+.panel {
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: var(--r-doc); overflow: clip;
+}
+.panel-gap { display: grid; gap: var(--s-5); }
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  white-space: nowrap;
+  border-radius: var(--r-ctl); border: 1.5px solid var(--seal);
+  padding: 11px 18px; font-weight: 560; font-size: 0.95rem; line-height: 1.2;
+  transition: background-color var(--d-press) ease-out, color var(--d-press) ease-out,
+    border-color var(--d-press) ease-out, transform var(--d-press) ease-out;
+  background: var(--seal); color: #fff;
+}
+@media (hover: hover) and (pointer: fine) { .btn:hover { background: var(--seal-ink); border-color: var(--seal-ink); } }
+.btn:active { transform: scale(0.97); }
+.btn[disabled], .btn[aria-disabled="true"] {
+  cursor: not-allowed; transform: none; background: var(--well);
+  border-color: var(--rule); color: var(--ink-soft);
+}
+.btn.ghost { background: transparent; color: var(--seal); }
+@media (hover: hover) and (pointer: fine) { .btn.ghost:hover { background: var(--held-bg); } }
+.btn.full { width: 100%; justify-content: center; }
+.btn .spin { width: 14px; height: 14px; border-radius: var(--r-pill); border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+.small { font-size: var(--step--1); color: var(--ink-soft); }
+.tiny { font-size: 12px; color: var(--ink-soft); }
+
+/* ---- inputs / selects / textareas ---- */
+.field { display: grid; gap: 6px; }
+.field > label { font-weight: 560; font-size: 0.95rem; }
+.control {
+  width: 100%; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: var(--r-ctl); padding: 10px 12px; transition: border-color var(--d-fast) ease-out;
+}
+.control:focus-visible { outline: 2px solid var(--seal-ring); outline-offset: 0; }
+.control[aria-invalid="true"] { border-color: var(--failed); }
+textarea.control { resize: vertical; min-height: 84px; }
+select.control { appearance: none; background-image: none; padding-right: 28px; }
+.reason { display: inline-block; font-size: var(--step--1); color: var(--ink-soft); }
+.warn-reason { color: var(--held); font-size: var(--step--1); display: inline-flex; gap: 6px; align-items: center; }
+
+/* ---- shared-element route transition surface (PLAN M3) ---- */
+.morph-in { animation: morph-in var(--d-morph) var(--ease-in-out) both; }
+@keyframes morph-in {
+  from { opacity: 0; transform: scale(0.965); clip-path: inset(2% 1.5%); }
+  to { opacity: 1; transform: scale(1); clip-path: inset(0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .morph-in { animation: morph-fade 200ms ease-out both; }
+  @keyframes morph-fade { from { opacity: 0; } to { opacity: 1; } }
+}

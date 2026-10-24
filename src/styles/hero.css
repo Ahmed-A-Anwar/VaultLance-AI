@@ -1,0 +1,377 @@
+/* Hero styles — VaultPay AI landing top. Golden-ratio values only. */
+
+.hero-page {
+  position: relative;
+  background: linear-gradient(180deg, var(--hero-bg-top) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-bot) 100%);
+  color: var(--hero-ink);
+  overflow: clip;
+}
+.hero-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: repeating-radial-gradient(
+    circle at 17% 23%, #000 0, transparent 1px, transparent 3px);
+  z-index: 2;
+}
+
+.hero-shell {
+  position: relative;
+  min-height: 100svh;
+}
+.hero-stage-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hero-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  /* feather the drawn frame into the page gradient so a capped draw never shows an edge */
+  mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+.hero-rim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(38% 46% at 61.8% 50%, rgba(18, 165, 181, 0.18), transparent 70%);
+}
+
+/* the drawn image rect — hotspots are % of this box */
+.hero-rect {
+  position: absolute;
+  overflow: visible;
+  visibility: hidden;
+}
+.hero-rect[data-painted="1"] {
+  visibility: visible;
+}
+.hero-wheel {
+  position: absolute;
+  left: 53.54%;
+  top: 49.72%;
+  width: 7.08%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  transform-origin: 50% 50%;
+  will-change: transform;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-keypad {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.hero-keypad-glow {
+  position: absolute;
+  inset: -25%;
+  border-radius: 13px;
+  background: radial-gradient(closest-side, rgba(18, 165, 181, 0.6), transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+}
+.hero-keypad-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8%;
+  padding: 4%;
+}
+.hero-keypad-key {
+  border-radius: 20%;
+  background: rgba(18, 165, 181, 0.9);
+  box-shadow: 0 0 13px rgba(18, 165, 181, 0.55);
+  opacity: 0;
+}
+.hero-led {
+  position: absolute;
+  right: 5%;
+  top: 3%;
+  width: 14%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(31, 157, 107, 0.35);
+}
+
+.hero-hinge {
+  position: absolute;
+  width: 1.4%;
+  height: 21%;
+  overflow: hidden;
+  transform: translateX(-50%);
+}
+.hero-hinge-bar {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: linear-gradient(180deg, rgba(226, 184, 103, 0) 0%, rgba(255, 240, 205, 0.8) 50%, rgba(226, 184, 103, 0) 100%);
+}
+
+.hero-seam-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.hero-connector {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---- copy column ---- */
+.hero-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 38.2% 1fr;
+  min-height: 100svh;
+  pointer-events: none;
+}
+.hero-layout > * {
+  pointer-events: auto;
+}
+.hero-copy {
+  position: relative;
+  padding: 55px 34px 55px 89px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-height: 100svh;
+  will-change: transform, opacity;
+}
+.hero-eyebrow,
+.hero-micro,
+.hero-chip {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.hero-h1 {
+  font-family: var(--hero-font-display);
+  font-weight: 600;
+  font-size: clamp(42px, 4.7vw, 68px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--hero-ink);
+  font-optical-sizing: auto;
+  text-wrap: balance;
+  margin-block: 8px;
+}
+.hero-h1 .word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-block: 0.06em;
+  margin-inline-end: 0.16em;
+}
+.hero-h1 .word-inner {
+  display: inline-block;
+  will-change: transform;
+}
+.hero-body {
+  font-family: var(--hero-font-body);
+  font-size: 16px;
+  line-height: 1.618;
+  color: var(--hero-slate);
+  max-width: 44ch;
+}
+
+/* buttons sit on the 61.8% horizontal golden line when the column has room */
+.hero-cta-block {
+  position: static;
+  margin-top: 21px;
+  display: grid;
+  gap: 13px;
+  justify-items: start;
+}
+@media (min-width: 1366px) {
+  .hero-cta-block {
+    position: absolute;
+    left: 89px;
+    right: 34px;
+    top: 61.8%;
+    margin-top: 0;
+  }
+}
+.hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 21px;
+}
+.hero-micro {
+  margin-top: 8px;
+}
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  list-style: none;
+  padding: 0;
+}
+.hero-chip {
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  padding: 6px 10px;
+}
+
+/* ---- buttons ---- */
+.hero-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 55px;
+  padding: 0 21px;
+  border-radius: 13px;
+  font-family: var(--hero-font-body);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  overflow: hidden;
+  transition: box-shadow 0.382s ease, background-color 0.382s ease, border-color 0.382s ease, color 0.382s ease;
+}
+.hero-btn.primary {
+  color: var(--hero-ink);
+  background: linear-gradient(160deg, var(--hero-brass-light) 0%, var(--hero-brass) 100%);
+  box-shadow: 0 13px 34px rgba(184, 137, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+.hero-btn.primary:hover {
+  box-shadow: 0 18px 44px rgba(184, 137, 58, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+.hero-btn.glass {
+  color: var(--hero-ink);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--hero-steel);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
+}
+.hero-btn.glass:hover {
+  border-color: var(--hero-teal);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08), 0 0 0 4px rgba(18, 165, 181, 0.15);
+}
+.hero-btn:active {
+  transform: scale(0.97);
+}
+.hero-btn:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+}
+.hero-btn.glass:focus-visible {
+  outline-color: var(--hero-brass);
+}
+.hero-btn-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.hero-shimmer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-140%);
+  pointer-events: none;
+  animation: hero-sweep 6.18s linear infinite;
+}
+/* one 1.618s pass on hover, idle pass every 6.18s */
+.hero-btn.primary:hover .hero-shimmer {
+  animation: hero-sweep 6.18s linear infinite, hero-sweep-once 1.618s linear 1;
+}
+@keyframes hero-sweep {
+  0% { transform: translateX(-140%); }
+  26.2% { transform: translateX(240%); }
+  100% { transform: translateX(240%); }
+}
+@keyframes hero-sweep-once {
+  from { transform: translateX(-140%); }
+  to { transform: translateX(240%); }
+}
+
+/* ---- responsive: vault first, then copy ---- */
+@media (max-width: 1023px) {
+  .hero-shell {
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-stage-wrap {
+    position: relative;
+    inset: auto;
+    order: -1;
+    height: 62svh;
+  }
+  .hero-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    order: 0;
+  }
+  .hero-copy {
+    padding: 21px;
+    min-height: 0;
+    gap: 21px;
+  }
+  .hero-cta-block {
+    position: static;
+    justify-items: stretch;
+  }
+  .hero-cta-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 21px;
+  }
+  .hero-btn {
+    width: 100%;
+  }
+  .hero-h1 {
+    max-width: 100%;
+  }
+  .hero-connector {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-shimmer {
+    display: none;
+  }
+  .hero-btn {
+    transition: background-color 0.16s linear, border-color 0.16s linear, color 0.16s linear;
+  }
+  .hero-btn:active {
+    transform: none;
+  }
+}

@@ -1,0 +1,56 @@
+/* App pages (/vault/*, /v/*, /console, /demo). Tokens only. */
+.apptop {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--rule);
+}
+.apptop .mono small { display: block; color: var(--ink-soft); }
+.pages-grid { display: grid; gap: var(--s-8); margin-top: var(--s-5); }
+@media (min-width: 1000px) { .pages-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; } }
+
+/* dropzone */
+.drop {
+  border: 1.5px dashed var(--rule); border-radius: var(--r-doc); background: var(--panel);
+  padding: var(--s-8); display: grid; gap: 10px; justify-items: center; text-align: center;
+  transition: border-color var(--d-fast) ease-out, background-color var(--d-fast) ease-out;
+}
+.drop.drop-live { border-color: var(--seal); border-style: dashed; background: var(--audit-bg); }
+.drop input[type="file"] { width: 100%; }
+
+/* portal split */
+.portal-grid { display: grid; gap: var(--s-8); align-items: start; }
+@media (min-width: 900px) { .portal-grid.both { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); } }
+.portal-foot {
+  position: sticky; bottom: 0; z-index: 5; background: var(--panel);
+  border-top: 1px solid var(--rule); border-radius: var(--r-doc) var(--r-doc) 0 0;
+  padding: 12px 16px; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+.ask-inline { display: flex; gap: 8px; }
+.sugg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+/* vault detail hero */
+.vd-hero { display: grid; gap: var(--s-5); margin-block: var(--s-5) var(--s-8); }
+.share-grid { display: grid; gap: var(--s-5); }
+@media (min-width: 720px) { .share-grid { grid-template-columns: auto minmax(0, 1fr); align-items: start; } }
+.payout-row { border-top: 1px solid var(--rule); padding-top: 12px; display: grid; gap: 4px; }
+
+/* console */
+.console-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-block: var(--s-5); }
+.console-bar .control { width: auto; min-width: 150px; }
+.group-note { padding: 8px 14px 0; color: var(--ink-soft); }
+.console-empty { padding: var(--s-12) 14px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.led-legend { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--ink-soft); }
+.dot { width: 8px; height: 8px; border-radius: var(--r-pill); display: inline-block; margin-right: 4px; }
+.src-lat { color: var(--ink-soft); font-size: 12px; }
+.event-src { display: inline-flex; gap: 6px; align-items: center; }
+.event-src svg { width: 12px; height: 12px; color: var(--audit); }
+
+/* demo banner + replay controls */
+.demo-banner {
+  background: var(--audit-bg); border: 1px solid var(--rule); border-radius: var(--r-doc);
+  padding: 10px 16px; margin-block: var(--s-3) var(--s-5); font-size: var(--step--1);
+  display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+.demo-banner code { font-size: 0.95em; }
+.chip-steps { display: flex; gap: 6px; align-items: center; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.step-num { color: var(--ink-soft); }
+[role="status"].tick { min-height: 20px; }

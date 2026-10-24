@@ -1,0 +1,33 @@
+2026-10-23 — Hero color sampling (frame 1, sharp, edge regions only)
+Frame: public/vault-frames/f_001.webp — 1920 x 1080, 3 channels
+Sampled stops (edge regions, 3% and 97%):
+  top    #adb4b4 / #a9b3b2
+  middle #b7bebd / #b7bebd
+  bottom #ced5d5 / #dae0e0
+Representative page gradient stops used:
+  top    #C9D0D2
+  middle #D5DBDC
+  bottom #E1E7E8
+Note: real sharp samples read top/mid/bottom (slightly cooler/lower chroma than the
+approx spec target). The page gradient uses the spec's representative stops so the
+hero reads as the spec intends; real values reported above.
+Wheel hotspot crop method: TBD during build (crop attempt first, conic-gradient
+screen glint sweep fallback if crop is not possible).
+
+2026-10-23 — Entrance + idle + scroll-handoff hero built (see src/components/Hero* and src/styles/hero.css)
+
+2026-10-24 — Hero rebuilt around frame 1 (src/components/Hero*.tsx, src/styles/hero*.css)
+- Sampled f_001.webp edges with sharp: top #adb4b4/#a9b3b2, mid #b7bebd, bottom
+  #ced5d5/#dae0e0. Page gradient uses the spec stops #C9D0D2 -> #D5DBDC -> #E1E7E8.
+- Grain: CSS-only repeating-radial-gradient at 4% (no SVG file, no data URI).
+- Wheel: cropped with sharp to public/vault-frames/wheel.png (r=68px, feathered
+  circular alpha), rotated as its own layer. No conic-gradient fallback needed.
+- Hotspot corrections (>1% off measured): lower dial y 61.8 -> 60.4, handle
+  y 36-63 -> 39-60.5, door seam = door-plate rounded rect.
+- Buttons anchored to top:61.8% at >=1366px; below that they flow after the body
+  because the mandated type scale does not fit above the line in a 38.2% column.
+- Vault drawn width capped at 112% viewport + canvas feathered so it never crosses
+  into the text column at 1024.
+- Fonts self-hosted in public/fonts and preloaded from index.html: CLS 0.00.
+- /signup and /signin are not registered routes yet — navigation lands on the
+  catch-all until those pages exist.

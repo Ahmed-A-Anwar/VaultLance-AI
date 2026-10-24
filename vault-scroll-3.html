@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vault</title>
+<!--
+  ─────────────────────────────────────────────────────────────────────
+  Scroll-linked canvas image sequence (AirPods-style), text-free:
+  nothing on the page but the pinned animation.
+
+  Drop this file next to your "Vault 3" frame folder, or change
+  FRAMES_DIR below. Only dependencies: GSAP + ScrollTrigger (CDN).
+  ─────────────────────────────────────────────────────────────────────
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #cfd5d8;  /* matches the frame background grey */
+  }
+
+  html, body {
+    background: var(--bg);
+  }
+
+  /* The sequence: the whole page. Height sets how long the scrub runs. */
+  .sequence {
+    height: 300svh;
+    position: relative;
+  }
+
+  .pin-stage {
+    position: relative;
+    height: 100svh;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* Static first frame — shown instantly and doubles as the no-JS fallback */
+  .fallback-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    will-change: transform;
+  }
+  canvas.is-ready { opacity: 1; }
+
+  /* Loading state: a bare progress line at the bottom, no text */
+  .loader {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: var(--bg);
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+  .loader::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: var(--p, 0%);
+    background: #8a8f94;
+    transition: width 0.25s ease;
+  }
+  .loader.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    canvas { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Scroll scrub runs across this whole section while the canvas is pinned -->
+  <section class="sequence" aria-label="Rotating vault sequence">
+    <div class="pin-stage">
+      <img class="fallback-frame"
+           src="./Vault%203/ezgif-frame-001.jpg"
+           alt=""
+           decoding="async">
+      <canvas id="seq-canvas" aria-hidden="true"></canvas>
+      <div class="loader" id="loader" style="--p:0%"></div>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script>
+  (() => {
+    'use strict';
+
+    /* ───────────────── configuration ───────────────── */
+    const FRAMES_DIR = './Vault%203/';                   // folder holding the frames (URL-encoded)
+    const FRAME_NAME = i => `ezgif-frame-${String(i).padStart(3, '0')}.jpg`;
+    const FRAME_COUNT = 20;                              // 001 → 020
+    /* ───────────────────────────────────────────────── */
+
+    gsap.registerPlugin(ScrollTrigger);
+    // Stops pin/progress from jumping on mobile when the address bar collapses
+    ScrollTrigger.config({ ignoreMobileResize: true });
+
+    const canvas  = document.getElementById('seq-canvas');
+    const stage   = canvas.parentElement;                // .pin-stage
+    const ctx     = canvas.getContext('2d');
+    const loader  = document.getElementById('loader');
+
+    const state   = { frame: 0 };
+    const frames  = new Array(FRAME_COUNT).fill(null);   // index → loaded Image (or null on failure)
+    let lastIndex = 0;                                   // highest successfully loaded frame
+    let ready     = false;
+
+    /* ───────────────── helpers ───────────────── */
+    const loadImage = src => new Promise(resolve => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload  = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+
+    /* Draw like object-fit: cover — fills the viewport, keeps the vault centered */
+    function render() {
+      if (!canvas.width || !canvas.height) return;
+      const W = stage.clientWidth, H = stage.clientHeight;
+      ctx.clearRect(0, 0, W, H);
+
+      // Nearest loaded frame (skips any that failed to fetch)
+      let i = Math.min(Math.max(Math.round(state.frame), 0), lastIndex);
+      let img = frames[i];
+      if (!img) {                       // walk outward to a neighbour that decoded
+        for (let d = 1; d <= FRAME_COUNT; d++) {
+          img = frames[i - d] || frames[i + d] || null;
+          if (img) break;
+        }
+      }
+      if (!img) return;
+
+      const s  = Math.max(W / img.width, H / img.height);
+      const dw = img.width * s, dh = img.height * s;
+      ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    }
+
+    function resizeCanvas() {
+      // Cap DPR at 2: beyond that the 1920px source frames gain nothing
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w   = stage.clientWidth;
+      const h   = stage.clientHeight;
+      if (!w || !h) return;
+      canvas.width  = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      render();
+    }
+
+    /* ───────────────── preload everything first ───────────────── */
+    let loadedSoFar = 0;
+    const urls = Array.from({ length: FRAME_COUNT }, (_, i) => FRAMES_DIR + FRAME_NAME(i + 1));
+
+    async function init() {
+      await Promise.allSettled(urls.map((src, i) =>
+        loadImage(src).then(img => {
+          if (img) { frames[i] = img; if (i + 1 > lastIndex) lastIndex = i + 1; }
+          loader.style.setProperty('--p', `${Math.round((++loadedSoFar) / FRAME_COUNT * 100)}%`);
+        })
+      ));
+
+      const okCount = frames.filter(Boolean).length;
+      if (okCount) {
+        resizeCanvas();
+        ready = true;
+        canvas.classList.add('is-ready');
+      } else {
+        // Total failure: keep the static fallback frame visible, no scrub
+        console.warn('[vault-scroll] No frames loaded — serving static fallback image.');
+      }
+      loader.classList.add('is-done');
+
+      /* ───────────────── pin + scrub the sequence ───────────────── */
+      if (ready) {
+        gsap.to(state, {
+          frame: FRAME_COUNT - 1,
+          ease: 'none',
+          onUpdate: render,
+          scrollTrigger: {
+            trigger: '.sequence',
+            start: 'top top',
+            end: 'bottom bottom',
+            pin: '.pin-stage',
+            pinSpacing: true,
+            anticipatePin: 1,
+            scrub: true,             // position is linked 1:1 to the scrollbar
+            invalidateOnRefresh: true,
+          },
+        });
+      }
+
+      window.addEventListener('resize', () => { resizeCanvas(); ScrollTrigger.refresh(); }, { passive: true });
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>

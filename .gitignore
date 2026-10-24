@@ -1,0 +1,9 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+screenshots/
+docs/hero-shots/
+dev.log
+backup/
+.DS_Store
