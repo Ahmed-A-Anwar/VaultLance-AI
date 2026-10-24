@@ -56,6 +56,14 @@ export default function HeroButtons({
     let player: ClipPlayer | null = null;
     let loading = false;
     let pendingNav = false;
+    /* true while the pointer/focus/tap is on Sign up, so a clip that finishes
+       loading mid-hover starts on its own instead of waiting for a second hover */
+    let hovering = false;
+    const startClip = () => {
+      if (!player?.ready()) return;
+      fx.current?.setClipActive(true);
+      player.playTo(player.last());
+    };
     const layer = FX.wheelClip && !reducedMotion ? fx.current?.getClipLayer() : null;
 
     if (layer?.canvas) {
@@ -83,7 +91,9 @@ export default function HeroButtons({
           if (!ok) {
             p.dispose();
             if (player === p) player = null;
+            return;
           }
+          if (hovering) startClip();
         })
         .catch(() => {
           loading = false;
@@ -101,16 +111,14 @@ export default function HeroButtons({
     };
 
     const enterUp = () => {
-      if (player?.ready()) {
-        fx.current?.setClipActive(true);
-        player.playTo(player.last());
-      } else if (player) {
-        requestClip();
-      }
+      hovering = true;
+      if (player?.ready()) startClip();
+      else if (player) requestClip();
       fx.current?.signUpHover(true);
       lift(up, true);
     };
     const leaveUp = () => {
+      hovering = false;
       if (player?.ready()) player.reverseTo(0);
       fx.current?.signUpHover(false);
       lift(up, false);
@@ -145,7 +153,8 @@ export default function HeroButtons({
         return;
       }
       requestClip();
-      fx.current?.signUpClick();
+      /* no legacy wheel spin: with wheelClip on the only vault reaction is the clip */
+      if (!FX.wheelClip) fx.current?.signUpClick();
       depart(signupHref);
     };
     const clickIn = (e: MouseEvent) => {
@@ -162,10 +171,8 @@ export default function HeroButtons({
       if (!armed.current.signup) {
         e.preventDefault();
         armed.current.signup = true;
-        if (player?.ready()) {
-          fx.current?.setClipActive(true);
-          player.playTo(player.last());
-        }
+        hovering = true;
+        if (player?.ready()) startClip();
         fx.current?.signUpHover(true);
       }
     };

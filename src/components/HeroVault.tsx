@@ -5,6 +5,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import gsap from "gsap";
 import type { ClipRect } from "../lib/clipPlayer";
+import { FX } from "../config/fx";
 
 export interface ClipLayer {
   canvas: HTMLCanvasElement | null;
@@ -157,8 +158,10 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         }
       }
     },
+    /* with wheelClip on, the cropped-wheel spin and gold seam never play: the
+       clip is the only Sign up vault reaction. FX.wheelClip = false restores v1. */
     signUpHover(on) {
-      if (wheelRef.current && !clipOn.current) {
+      if (wheelRef.current && !FX.wheelClip) {
         spin.current += on ? 55 : -spin.current % 360 === 0 ? 0 : -55;
         gsap.to(wheelRef.current, {
           rotation: on ? spin.current : Math.round(spin.current / 360) * 360,
@@ -176,7 +179,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         );
         gsap.to(bar, { opacity: on ? 1 : 0, duration: on ? 0.236 : 0.382, ease: "power2.out" });
       });
-      if (seamRef.current && !clipOn.current) {
+      if (seamRef.current && !FX.wheelClip) {
         gsap.to(seamRef.current, {
           stroke: on ? "rgba(226,184,103,0.55)" : "rgba(226,184,103,0)",
           strokeWidth: on ? 3 : 2,
@@ -187,7 +190,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       }
     },
     signUpClick() {
-      if (wheelRef.current && !clipOn.current) {
+      if (wheelRef.current && !FX.wheelClip) {
         spin.current += 360;
         gsap.to(wheelRef.current, {
           rotation: spin.current,
@@ -196,7 +199,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
           overwrite: "auto",
         });
       }
-      if (seamRef.current && !clipOn.current) {
+      if (seamRef.current && !FX.wheelClip) {
         gsap.fromTo(
           seamRef.current,
           { stroke: "rgba(226,184,103,0.15)" },

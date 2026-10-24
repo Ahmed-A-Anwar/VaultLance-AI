@@ -97,7 +97,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   const warnOnce = () => {
     if (warned) return;
     warned = true;
-    console.warn("[fx] wheel clip unavailable — falling back to v1 wheel");
+    console.warn("[fx] wheel clip unavailable — Sign up keeps the static vault");
   };
 
   const draw = () => {
