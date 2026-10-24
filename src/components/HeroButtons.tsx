@@ -24,8 +24,11 @@ const finePointer = () =>
   window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 const whenIdle = (cb: () => void) => {
-  const w = window as Window & { requestIdleCallback?: (fn: IdleRequestCallback) => number };
-  if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(() => cb());
+  const w = window as Window & {
+    requestIdleCallback?: (fn: IdleRequestCallback, opts?: IdleRequestOptions) => number;
+  };
+  /* the timeout keeps the decode from being starved by the entrance animation */
+  if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(() => cb(), { timeout: 400 });
   else window.setTimeout(cb, 300);
 };
 
@@ -100,8 +103,9 @@ export default function HeroButtons({
         });
     };
 
-    /* load after the entrance lands, or on the first hover/focus/tap */
-    if (player) later(() => whenIdle(requestClip), 2618);
+    /* start streaming the frames as soon as the entrance is under way, so the
+       first hover plays on the click instead of waiting for the decode */
+    if (player) later(() => whenIdle(requestClip), 200);
 
     /* ---------- buttons ---------- */
     const lift = (el: HTMLElement, on: boolean) => {

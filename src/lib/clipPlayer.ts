@@ -71,7 +71,10 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   const ctx = canvas.getContext("2d");
   const frameDur = 1000 / fps;
 
-  let images: HTMLImageElement[] = [];
+  /* frames decode progressively: the first batch makes the clip playable, the
+     rest stream in behind it so the first hover starts as fast as the others */
+  let images: (HTMLImageElement | null)[] = [];
+  let total = 0;
   let loading: Promise<boolean> | null = null;
   let loaded = false;
   let warned = false;
@@ -84,6 +87,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   let lastT = 0;
   let raf = 0;
   let drawn = -1;
+  let drawnImg = -1;
   let visible = false;
 
   canvas.style.opacity = "0";
@@ -104,7 +108,9 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
     const rect = getRect();
     if (!ctx || !rect) return;
     const idx = Math.round(current);
-    const img = images[idx];
+    /* hold the previous frame if this one has not decoded yet */
+    const imgIdx = images[idx] ? idx : drawnImg;
+    const img = imgIdx >= 0 ? images[imgIdx] : null;
     if (!img || !img.complete) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = canvas.clientWidth;
@@ -122,6 +128,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, rect.dx, rect.dy, rect.dw, rect.dh);
     drawn = idx;
+    drawnImg = imgIdx;
   };
 
   const clear = () => {
@@ -129,6 +136,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawn = -1;
+    drawnImg = -1;
   };
 
   const fade = (to: number, done?: () => void) => {
@@ -204,38 +212,64 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   window.addEventListener("resize", onResize);
   document.addEventListener("visibilitychange", onVisibility);
 
+  const decodeOne = async (u: string) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = u;
+    if (typeof img.decode === "function") await img.decode();
+    else
+      await new Promise<void>((res, rej) => {
+        img.onload = () => res();
+        img.onerror = () => rej(new Error("frame failed"));
+      });
+    return img;
+  };
+
+  const fill = async (urls: string[], from: number, to: number) => {
+    await Promise.all(
+      urls.slice(from, to).map(async (u, k) => {
+        try {
+          images[from + k] = await decodeOne(u);
+        } catch {
+          /* a single bad frame leaves a hold, not a failed clip */
+          images[from + k] = null;
+        }
+      })
+    );
+  };
+
   const load = (urls: string[]): Promise<boolean> => {
     if (loaded) return Promise.resolve(true);
     if (loading) return loading;
     loading = (async () => {
       const t0 = Date.now();
-      const out: HTMLImageElement[] = new Array<HTMLImageElement>(urls.length);
       try {
         if (!urls.length) throw new Error("no frames");
-        for (let i = 0; i < urls.length; i += BATCH) {
-          if (Date.now() - t0 > LOAD_BUDGET) throw new Error("load budget exceeded");
-          await Promise.all(
-            urls.slice(i, i + BATCH).map(async (u, k) => {
-              const img = new Image();
-              img.decoding = "async";
-              img.src = u;
-              if (typeof img.decode === "function") await img.decode();
-              else
-                await new Promise<void>((res, rej) => {
-                  img.onload = () => res();
-                  img.onerror = () => rej(new Error("frame failed"));
-                });
-              out[i + k] = img;
-            })
-          );
-        }
+        total = urls.length;
+        images = new Array<HTMLImageElement | null>(total).fill(null);
+        await fill(urls, 0, Math.min(BATCH, total));
+        if (!images[0]) throw new Error("first frame failed");
         if (Date.now() - t0 > LOAD_BUDGET) throw new Error("load budget exceeded");
-        images = out.filter(Boolean);
         loaded = true;
         drawn = -1;
+        drawnImg = -1;
+        /* the rest streams in after the first batch, yielding between batches */
+        void (async () => {
+          for (let i = BATCH; i < total; i += BATCH) {
+            if (disposed) return;
+            await new Promise<void>((res) => {
+              const w = window as Window & { requestIdleCallback?: (fn: IdleRequestCallback, o?: IdleRequestOptions) => number };
+              if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(() => res(), { timeout: 200 });
+              else window.setTimeout(res, 16);
+            });
+            if (disposed) return;
+            await fill(urls, i, Math.min(i + BATCH, total));
+          }
+        })();
         return true;
       } catch {
         images = [];
+        total = 0;
         loaded = false;
         warnOnce();
         return false;
@@ -245,8 +279,8 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   };
 
   const playTo = (frame: number) => {
-    if (!loaded || disposed || !images.length) return;
-    target = Math.max(0, Math.min(images.length - 1, Math.round(frame)));
+    if (!loaded || disposed || !total) return;
+    target = Math.max(0, Math.min(total - 1, Math.round(frame)));
     const at = Math.round(current);
     dir = target === at ? 0 : target > at ? 1 : -1;
     if (!visible) {
@@ -262,8 +296,8 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
   };
 
   const reverseTo = (frame: number) => {
-    if (!loaded || disposed || !images.length) return;
-    target = Math.max(0, Math.min(images.length - 1, Math.round(frame)));
+    if (!loaded || disposed || !total) return;
+    target = Math.max(0, Math.min(total - 1, Math.round(frame)));
     const at = Math.round(current);
     if (target >= at) {
       dir = 0;
@@ -286,6 +320,7 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
     document.removeEventListener("visibilitychange", onVisibility);
     gsap.killTweensOf(canvas);
     images = [];
+    total = 0;
     loaded = false;
     visible = false;
     clear();
@@ -299,6 +334,6 @@ export function createClipPlayer({ canvas, fps, getRect, onArrive, onHidden }: C
     dispose,
     ready: () => loaded,
     index: () => Math.round(current),
-    last: () => Math.max(0, images.length - 1),
+    last: () => Math.max(0, total - 1),
   };
 }
