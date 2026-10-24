@@ -167,6 +167,18 @@ export default function Signup() {
     <main id="main" className="signup-layout">
       <div className="signup-card" data-testid="signup-card" ref={cardRef}>
         <div className="signup-head">
+          {/* a plain route link, so it works from a cold load too; the layout runs
+              the reverse transition for any /signup -> / change. The ready state
+              has its own "Back to the vault", so this steps aside there. */}
+          {step !== 3 && (
+            <Link className="signup-home" to="/" data-reveal data-testid="signup-back">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M19 12H5M11 5l-7 7 7 7" />
+              </svg>
+              Back
+            </Link>
+          )}
           <h1 className="signup-h1" data-reveal>
             Open your vault.
           </h1>
@@ -209,11 +221,8 @@ export default function Signup() {
 
           {step === 2 && (
             <form className="signup-form" onSubmit={submit} noValidate>
+              {/* a step, not a page: the arrow stays on the card's Back */}
               <button type="button" className="signup-back" onClick={() => move(1, -1)}>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M19 12H5M11 5l-7 7 7 7" />
-                </svg>
                 Change role
               </button>
 

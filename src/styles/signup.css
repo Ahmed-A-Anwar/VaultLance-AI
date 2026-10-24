@@ -34,6 +34,32 @@
   will-change: transform, opacity;
 }
 
+/* the way back to the hero, above the heading */
+.signup-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--hero-s-21);
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  text-decoration: none;
+}
+.signup-home svg {
+  transition: transform var(--hero-d-236) ease;
+}
+.signup-home:hover {
+  color: var(--hero-ink);
+}
+.signup-home:hover svg {
+  transform: translateX(-3px);
+}
+.signup-home:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .signup-h1 {
   margin: 0;
   font-family: var(--hero-font-display);
@@ -130,6 +156,10 @@
   color: var(--hero-slate);
   font-family: var(--hero-font-body);
   font-size: 13px;
+  /* a text action beside the icon-led Back at the top of the card */
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 .signup-back:hover {
   color: var(--hero-ink);
@@ -284,6 +314,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .role-btn {
+    transition: none;
+  }
+  .signup-home svg {
     transition: none;
   }
 }
