@@ -48,9 +48,11 @@ export function Hero() {
       bodyRef.current,
       chipsRef.current,
     ].filter(Boolean) as HTMLElement[];
-    gsap.set(items, { x: -89, opacity: 0 });
+    // phones return from below, desktop from the left (the same axis as the exit)
+    const vertical = window.innerWidth < 768;
+    gsap.set(items, vertical ? { y: 89, x: 0, opacity: 0 } : { x: -89, y: 0, opacity: 0 });
     const tween = gsap.to(items, {
-      x: 0,
+      ...(vertical ? { y: 0 } : { x: 0 }),
       opacity: 1,
       duration: 0.618,
       stagger: 0.0618,

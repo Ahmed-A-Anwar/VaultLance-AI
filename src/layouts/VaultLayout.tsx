@@ -24,6 +24,10 @@ const T_HERO = 0.618;
 const T_CARD = 0.618;
 const T_CARD_KIDS = 1;
 
+/* phones get the vertical version of the same move: the copy leaves downward and
+   the form rises in; the vault never slides sideways */
+const isVertical = () => typeof window !== "undefined" && window.innerWidth < 768;
+
 /* a detached element parked exactly where it was, so it can animate out after
    its route has unmounted */
 function freeze(el: HTMLElement): HTMLElement {
@@ -118,6 +122,7 @@ export default function VaultLayout() {
     }
 
     signupMode.current = "animated";
+    const vertical = isVertical();
     const hero = pageRef.current?.querySelector<HTMLElement>(".hero-layout") ?? null;
     const ghost = hero ? freeze(hero) : null;
     const items = ghost
@@ -135,7 +140,13 @@ export default function VaultLayout() {
     if (items.length) {
       tl.to(
         items,
-        { x: -89, opacity: 0, duration: T_HERO, stagger: 0.0618, ease: "power3.in" },
+        {
+          ...(vertical ? { y: 89 } : { x: -89 }),
+          opacity: 0,
+          duration: T_HERO,
+          stagger: 0.0618,
+          ease: "power3.in",
+        },
         0
       );
     }
@@ -158,9 +169,10 @@ export default function VaultLayout() {
     card.dataset.entered = "true";
 
     const kids = Array.from(card.querySelectorAll<HTMLElement>("[data-reveal]"));
-    gsap.set(card, { x: -89, opacity: 0 });
+    gsap.set(card, isVertical() ? { y: 89, x: 0 } : { x: -89, y: 0 });
+    gsap.set(card, { opacity: 0 });
     if (kids.length) gsap.set(kids, { y: 21, opacity: 0 });
-    tl.to(card, { x: 0, opacity: 1, duration: T_CARD, ease: "power3.out" }, T_CARD);
+    tl.to(card, { x: 0, y: 0, opacity: 1, duration: T_CARD, ease: "power3.out" }, T_CARD);
     if (kids.length) {
       tl.to(
         kids,
@@ -242,7 +254,12 @@ export default function VaultLayout() {
       );
     }
     if (card) {
-      tl.to(card, { x: -89, opacity: 0, duration: 0.382, ease: "power3.in" }, 0.226);
+      const vertical = isVertical();
+      tl.to(
+        card,
+        { ...(vertical ? { y: 89 } : { x: -89 }), opacity: 0, duration: 0.382, ease: "power3.in" },
+        0.226
+      );
     }
     timeline.current = tl;
     // eslint-disable-next-line react-hooks/exhaustive-deps
