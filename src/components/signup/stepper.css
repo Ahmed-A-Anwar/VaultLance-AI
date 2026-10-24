@@ -1,0 +1,240 @@
+/* stepper.css — the path: a hairline rail with bolt nodes on desktop, a compact
+   numbered row in the card under 1100px. Hero tokens only. */
+
+/* ---------- vertical rail ---------- */
+.stepper {
+  position: relative;
+  width: 100%;
+}
+
+/* the rail sits in its own 13px column so the nodes ride it exactly */
+.stepper-rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 13px;
+  overflow: visible;
+  pointer-events: none;
+}
+.stepper-rail-base,
+.stepper-rail-draw {
+  fill: none;
+  stroke: var(--hero-steel);
+  stroke-width: 1;
+  shape-rendering: geometricPrecision;
+}
+.stepper-rail-base {
+  opacity: 0.45;
+}
+.stepper-rail-draw {
+  opacity: 0;
+}
+
+.stepper-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 55px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper-step {
+  display: grid;
+  grid-template-columns: 13px 1fr;
+  column-gap: 13px;
+  align-items: start;
+}
+
+.stepper-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  box-sizing: border-box;
+  border: 1px solid var(--hero-steel);
+  border-radius: 50%;
+  background: var(--hero-bg-mid);
+  color: #fff;
+}
+.stepper-node svg {
+  width: 8px;
+  height: 8px;
+}
+.stepper-step[data-state="active"] .stepper-node {
+  border-color: var(--hero-brass);
+  background: var(--hero-brass);
+  box-shadow: 0 0 13px rgba(184, 137, 58, 0.5);
+}
+.stepper-step[data-state="done"] .stepper-node {
+  border-color: var(--hero-success);
+  background: var(--hero-success);
+  box-shadow: 0 0 13px rgba(31, 157, 107, 0.35);
+}
+
+.stepper-copy {
+  display: grid;
+  gap: 4px;
+}
+.stepper-label,
+.stepper-note {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-ink);
+}
+.stepper-caption {
+  margin: 0;
+  max-width: 24ch;
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  line-height: 1.618;
+  color: var(--hero-slate);
+}
+.stepper-note {
+  margin: 21px 0 0;
+  color: var(--hero-slate);
+}
+
+/* the current step, above the first node */
+.stepper-here {
+  position: absolute;
+  top: -21px;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--hero-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--hero-slate);
+  white-space: nowrap;
+}
+/* a short viewport leaves no room above the rail: the brass node still marks
+   the current step */
+@media (max-height: 799px) {
+  .stepper-here {
+    display: none;
+  }
+}
+.stepper-here-dot {
+  width: 6px;
+  height: 6px;
+  margin-left: 3.5px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+  box-shadow: 0 0 13px rgba(184, 137, 58, 0.7);
+  animation: stepper-pulse 1.618s ease-in-out infinite;
+}
+@keyframes stepper-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- compact row (under 1100px) ---------- */
+.stepper-compact-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+.stepper-chip {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--hero-slate);
+}
+.stepper-chip:disabled {
+  cursor: default;
+}
+.stepper-chip:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.stepper-chip-dot {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--hero-steel);
+  border-radius: 50%;
+  font-family: var(--hero-font-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--hero-slate);
+  background: transparent;
+}
+.stepper-chip-dot svg {
+  width: 10px;
+  height: 10px;
+}
+.stepper-chip[data-state="active"] .stepper-chip-dot {
+  border-color: var(--hero-brass);
+  background: var(--hero-brass);
+  color: var(--hero-ink);
+  box-shadow: 0 0 13px rgba(184, 137, 58, 0.5);
+}
+.stepper-chip[data-state="done"] .stepper-chip-dot {
+  border-color: var(--hero-success);
+  background: var(--hero-success);
+  color: #fff;
+}
+.stepper-chip-label {
+  font-family: var(--hero-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hero-ink);
+  opacity: 0.8;
+}
+.stepper-chip[data-state="empty"] .stepper-chip-label {
+  color: var(--hero-slate);
+  opacity: 0.5;
+}
+.stepper-compact-caption {
+  margin: 8px 0 0;
+  min-height: 21px;
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--hero-slate);
+}
+.stepper-compact .stepper-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--hero-slate);
+}
+
+/* INTERROGATE is the longest label: on a phone the row becomes two by two
+   rather than letting labels collide */
+@media (max-width: 430px) {
+  .stepper-compact-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepper-here-dot {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
