@@ -1,0 +1,337 @@
+/* Signin — the unlock card on the 38.2% line, the keypad's state in the strip to
+   its left, and the brand block in the top corner. Hero tokens only, and the
+   same measurements as /signup so the two decks read as one card. */
+
+.signin-layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-height: 100svh;
+  pointer-events: none;
+}
+.signin-layout > * {
+  pointer-events: auto;
+}
+
+/* ---- brand: wordmark and the way back ---- */
+.signin-brand {
+  position: absolute;
+  left: 55px;
+  top: 55px;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.signin-wordmark {
+  font-family: var(--hero-font-display);
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--hero-ink);
+}
+.signin-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  text-decoration: none;
+}
+.signin-home svg {
+  transition: transform var(--hero-d-236) ease;
+}
+.signin-home:hover {
+  color: var(--hero-ink);
+}
+.signin-home:hover svg {
+  transform: translateX(-3px);
+}
+.signin-home:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---- the keypad's state, in the strip left of the card (0..23.6vw) ---- */
+.signin-rail {
+  position: absolute;
+  left: 55px;
+  top: 50%;
+  transform: translateY(-50%);
+  /* whatever the card leaves of the strip; 233px where there is room */
+  width: min(233px, calc(38.2vw - 302.5px));
+}
+.signin-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.618;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+  transition: color var(--hero-d-382) ease;
+}
+.signin-status-dot {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--hero-teal);
+  box-shadow: 0 0 13px rgba(18, 165, 181, 0.55);
+  animation: signin-pulse 2.618s ease-in-out infinite;
+}
+.signin-status.is-rejected {
+  color: #c4453d;
+}
+.signin-status.is-rejected .signin-status-dot {
+  background: #c4453d;
+  box-shadow: 0 0 13px rgba(196, 69, 61, 0.45);
+}
+.signin-status.is-accepted {
+  color: var(--hero-success);
+}
+.signin-status.is-accepted .signin-status-dot {
+  background: var(--hero-success);
+  box-shadow: 0 0 13px rgba(31, 157, 107, 0.55);
+}
+@keyframes signin-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* the same line, in the card, once the strip is gone */
+.signin-status-inline {
+  display: none;
+  margin-bottom: 13px;
+}
+
+/* ---- card ---- */
+.signin-card {
+  width: 453px;
+  margin-left: calc(38.2vw - 226.5px);
+  max-height: calc(100svh - 55px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  padding: 34px;
+  box-shadow: 0 24px 64px rgba(14, 21, 32, 0.12);
+}
+
+.signin-head {
+  display: grid;
+}
+.signin-h1 {
+  margin: 0;
+  font-family: var(--hero-font-display);
+  font-weight: 600;
+  font-size: 42px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--hero-ink);
+}
+.signin-sub {
+  margin: 13px 0 0;
+  font-family: var(--hero-font-body);
+  font-size: 16px;
+  line-height: 1.618;
+  color: var(--hero-slate);
+}
+
+/* ---- form ---- */
+.signin-form {
+  display: grid;
+  gap: 13px;
+  margin-top: 21px;
+}
+.signin-field {
+  display: grid;
+  gap: 4px;
+}
+.signin-label {
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--hero-ink);
+}
+.signin-input {
+  width: 100%;
+  height: 55px;
+  padding: 0 13px;
+  border-radius: 13px;
+  border: 1px solid var(--hero-steel);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 16px;
+  transition: border-color var(--hero-d-236) ease, box-shadow var(--hero-d-236) ease;
+}
+.signin-input::placeholder {
+  color: var(--hero-slate);
+}
+.signin-input:hover {
+  border-color: var(--hero-ink);
+}
+.signin-input:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 1px;
+  border-color: var(--hero-teal);
+}
+.signin-input[aria-invalid="true"] {
+  border-color: var(--failed);
+  box-shadow: inset 0 0 0 1px var(--failed);
+}
+
+/* the show/hide control sits inside the field's own height */
+.signin-pw {
+  position: relative;
+}
+.signin-pw .signin-input {
+  padding-right: 68px;
+}
+.signin-eye {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--hero-d-236) ease, background-color var(--hero-d-236) ease;
+}
+.signin-eye:hover {
+  color: var(--hero-ink);
+  background: rgba(255, 255, 255, 0.55);
+}
+.signin-eye:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 1px;
+}
+
+.signin-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -3px;
+}
+.signin-forgot {
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.signin-forgot:hover {
+  color: var(--hero-ink);
+}
+.signin-forgot:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.signin-err {
+  margin: 0;
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--failed);
+}
+
+.signin-submit {
+  width: 100%;
+  margin-top: 0;
+}
+.signin-note {
+  margin: 0;
+  text-align: center;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--hero-slate);
+}
+
+.signin-link {
+  color: var(--hero-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.signin-link:hover {
+  color: var(--hero-teal);
+}
+
+.signin-foot {
+  margin: 13px 0 0;
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  color: var(--hero-slate);
+}
+
+/* ---- under 1100px: the rail becomes a row inside the card ---- */
+@media (max-width: 1099px) {
+  .signin-rail {
+    display: none;
+  }
+  .signin-status-inline {
+    display: flex;
+  }
+}
+
+/* ---- stacked layout under the vault ---- */
+@media (max-width: 1023px) {
+  .signin-layout {
+    display: block;
+    min-height: 0;
+    flex: 1 0 auto;
+    padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
+  }
+  .signin-brand {
+    position: static;
+    margin-bottom: 21px;
+  }
+  .signin-card {
+    width: 100%;
+    margin-left: 0;
+    max-height: none;
+    padding: 21px;
+  }
+  .signin-h1 {
+    font-size: 34px;
+  }
+  .signin-form {
+    margin-top: 21px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-status-dot {
+    animation: none;
+  }
+  .signin-home svg,
+  .signin-status,
+  .signin-eye {
+    transition: none;
+  }
+}

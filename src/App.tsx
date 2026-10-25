@@ -4,6 +4,7 @@ import VaultLayout from "./layouts/VaultLayout";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signup = lazy(() => import("./pages/Signup"));
+const Signin = lazy(() => import("./pages/Signin"));
 const VaultNew = lazy(() => import("./pages/VaultNew"));
 const VaultDetail = lazy(() => import("./pages/VaultDetail"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
@@ -31,6 +32,7 @@ const routes: RouteObject[] = [
     children: [
       { path: "/", element: <Landing /> },
       { path: "/signup", element: <Signup /> },
+      { path: "/signin", element: <Signin /> },
     ],
   },
   { path: "/vault/new", element: <VaultNew /> },
@@ -39,13 +41,13 @@ const routes: RouteObject[] = [
   { path: "/v/:token/files", element: <ClientFiles /> },
   { path: "/console", element: <Console /> },
   { path: "/demo", element: <Demo /> },
-  /* placeholder so the Sign in CTA lands somewhere real; the login form comes later */
+  /* placeholder so a successful mock sign-in lands somewhere real */
   {
-    path: "/signin",
+    path: "/dashboard",
     element: (
-      <p className="wrap" style={{ paddingBlock: "var(--s-20)" }} data-testid="signin-placeholder">
-        Sign in. The login form is not built yet.
-      </p>
+      <main id="main" className="wrap" style={{ paddingBlock: "var(--s-20)" }} data-testid="dashboard">
+        <h1>Dashboard</h1>
+      </main>
     ),
   },
   { path: "*", element: <p className="wrap" style={{ paddingBlock: "var(--s-20)" }}>Nothing here. <a href="/">The instrument is over here.</a></p> },

@@ -17,6 +17,12 @@ import { VaultSceneContext, type VaultScene } from "../lib/vaultScene";
 /* the single horizontal anchor, as a percentage of the viewport width */
 export const HERO_X = 61.8;
 export const SIGNUP_X = 76.4;
+/* the same column as /signup: the two decks are one place, crossfaded */
+export const SIGNIN_X = 76.4;
+
+/* the two form decks live at the same anchor, so only the card changes */
+const DECK: Record<string, number> = { "/signup": SIGNUP_X, "/signin": SIGNIN_X };
+const anchorFor = (pathname: string) => DECK[pathname] ?? HERO_X;
 
 /* timeline positions, from the 0.236 / 0.382 / 0.618 / 1 / 1.618 ledger */
 const T_VAULT = 1;
@@ -66,7 +72,7 @@ export default function VaultLayout() {
   const signupRef = useRef<HTMLAnchorElement | null>(null);
   const signinRef = useRef<HTMLAnchorElement | null>(null);
   const fx = useRef<VaultFx | null>(null);
-  const anchor = useRef({ v: pathname === "/signup" ? SIGNUP_X : HERO_X });
+  const anchor = useRef({ v: anchorFor(pathname) });
   const signupMode = useRef<"instant" | "animated">("instant");
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
@@ -84,7 +90,7 @@ export default function VaultLayout() {
 
   /* the first paint takes the route's anchor with no tween */
   useLayoutEffect(() => {
-    writeAnchor(pathname === "/signup" ? SIGNUP_X : HERO_X);
+    writeAnchor(anchorFor(pathname));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -162,6 +168,10 @@ export default function VaultLayout() {
     cardRect.current = card.getBoundingClientRect();
   }, []);
 
+  /* /signin's card parked in the same slots: one deck is on screen at a time, so
+     the way back can freeze whichever card is mounted */
+  const registerSigninCard = registerSignupCard;
+
   const enterSignupCard = useCallback((card: HTMLElement) => {
     if (signupMode.current !== "animated") return;
     const tl = timeline.current;
@@ -188,6 +198,20 @@ export default function VaultLayout() {
       undefined,
       T_CARD_KIDS + T_CARD
     );
+  }, []);
+
+  /* ---- /signin: same deck, same timeline family ---- */
+
+  const startSignin = useCallback(() => {
+    navigate("/signin");
+  }, [navigate]);
+
+  const enterSigninCard = useCallback((_card: HTMLElement) => {
+    /* the entrance joins the running timeline once the transition lands */
+  }, []);
+
+  const padEnter = useCallback(async () => {
+    /* the code-entry tail of the keypad clip */
   }, []);
 
   /* ---- back: /signup -> / ---- */
@@ -282,9 +306,10 @@ export default function VaultLayout() {
     const w = window as Window & { __vaultCanvas?: Element | null };
     w.__vaultCanvas = wrapRef.current?.querySelector(".hero-canvas") ?? null;
     console.info("[vault] layout mounted");
-    /* /signup is a lazy route: warm its module here so the change of route costs
-       nothing at the moment the wheel lands */
+    /* both decks are lazy routes: warm their modules here so the change of route
+       costs nothing at the moment the clip lands */
     void import("../pages/Signup");
+    void import("../pages/Signin");
   }, []);
 
   /* only the nodes this layout parked itself; the card belongs to React while
@@ -310,10 +335,25 @@ export default function VaultLayout() {
       reduced,
       returning,
       startSignup,
+      startSignin,
       enterSignupCard,
+      enterSigninCard,
       registerSignupCard,
+      registerSigninCard,
+      padEnter,
     }),
-    [ready, reduced, returning, startSignup, enterSignupCard, registerSignupCard]
+    [
+      ready,
+      reduced,
+      returning,
+      startSignup,
+      startSignin,
+      enterSignupCard,
+      enterSigninCard,
+      registerSignupCard,
+      registerSigninCard,
+      padEnter,
+    ]
   );
 
   return (
