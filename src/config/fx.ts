@@ -1,11 +1,17 @@
 /* fx.ts — feature flags for hero effects.
    wheelClip false switches the Sign up vault clip off; keypadClip false switches
    the Sign in keypad clip off. In both cases the button keeps the static vault
-   and the flat DOM overlays. */
+   and the flat DOM overlays.
+
+   signinFlow true hands the keypad to /signin: the click plays only as far as
+   K1 (keys lit, idle) and the frame stays on the vault, so the form opens on a
+   lit keypad instead of a finished code entry. false restores the old behavior —
+   play to the last frame, then navigate. */
 
 export const FX = {
   wheelClip: true,
   keypadClip: true,
+  signinFlow: true,
 };
 
 export const CLIPS = {

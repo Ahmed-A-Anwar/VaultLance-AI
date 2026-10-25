@@ -13,6 +13,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { HeroVault, type VaultFx } from "../components/HeroVault";
 import { VaultSceneContext, type VaultScene } from "../lib/vaultScene";
+import { CLIPS, FX } from "../config/fx";
+import keypadManifest from "../config/keypad-manifest.json";
 
 /* the single horizontal anchor, as a percentage of the viewport width */
 export const HERO_X = 61.8;
@@ -33,6 +35,11 @@ const T_CARD_KIDS = 1;
 /* phones get the vertical version of the same move: the copy leaves downward and
    the form rises in; the vault never slides sideways */
 const isVertical = () => typeof window !== "undefined" && window.innerWidth < 768;
+
+/* the keypad clip, and the frame where the keys are fully lit and idle */
+const KEYPAD_FRAMES: string[] = keypadManifest;
+const K1 = Math.round(KEYPAD_FRAMES.length * CLIPS.keypad.k1Fraction);
+const K1_URL = KEYPAD_FRAMES[K1];
 
 /* a detached element parked exactly where it was, so it can animate out after
    its route has unmounted */
@@ -73,7 +80,9 @@ export default function VaultLayout() {
   const signinRef = useRef<HTMLAnchorElement | null>(null);
   const fx = useRef<VaultFx | null>(null);
   const anchor = useRef({ v: anchorFor(pathname) });
-  const signupMode = useRef<"instant" | "animated">("instant");
+  const cardMode = useRef<"instant" | "animated">("instant");
+  /* the keypad warning is printed once per session, not once per route */
+  const padWarned = useRef(false);
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
   const cardRect = useRef<DOMRect | null>(null);
@@ -121,13 +130,13 @@ export default function VaultLayout() {
     }
 
     if (reduced) {
-      signupMode.current = "instant";
+      cardMode.current = "instant";
       writeAnchor(SIGNUP_X);
       navigate("/signup");
       return;
     }
 
-    signupMode.current = "animated";
+    cardMode.current = "animated";
     const vertical = isVertical();
     const hero = pageRef.current?.querySelector<HTMLElement>(".hero-layout") ?? null;
     const ghost = hero ? freeze(hero) : null;
@@ -173,7 +182,7 @@ export default function VaultLayout() {
   const registerSigninCard = registerSignupCard;
 
   const enterSignupCard = useCallback((card: HTMLElement) => {
-    if (signupMode.current !== "animated") return;
+    if (cardMode.current !== "animated") return;
     const tl = timeline.current;
     if (!tl || card.dataset.entered === "true") return;
     card.dataset.entered = "true";
@@ -202,9 +211,51 @@ export default function VaultLayout() {
 
   /* ---- /signin: same deck, same timeline family ---- */
 
+  /* the lit keypad is painted into the vault's own canvas, the way /signup keeps
+     the landed wheel: the still survives the hero's clip player being disposed,
+     a resize and the route change, so nothing can flash the keys dark on the way
+     in. A missing frame set falls back to the flat CSS keys. */
+  const padHold = useCallback(async () => {
+    if (!FX.keypadClip) return false;
+    const loaded = await new Promise<boolean>((res) => {
+      const img = new Image();
+      img.onload = () => res(true);
+      img.onerror = () => res(false);
+      img.src = K1_URL;
+    });
+    if (!loaded) {
+      if (!padWarned.current) {
+        padWarned.current = true;
+        console.warn("[fx] keypad clip unavailable — Sign in keeps the static keypad");
+      }
+      return false;
+    }
+    await fx.current?.holdFrame(K1_URL);
+    return true;
+  }, []);
+
   const startSignin = useCallback(() => {
-    navigate("/signin");
-  }, [navigate]);
+    timeline.current?.kill();
+    timeline.current = null;
+    if (ghostRef.current) {
+      ghostRef.current.remove();
+      ghostRef.current = null;
+    }
+    writeAnchor(SIGNIN_X);
+
+    if (reduced) {
+      cardMode.current = "instant";
+      navigate("/signin");
+      return;
+    }
+    cardMode.current = "animated";
+    /* the still goes in first and the route follows it, so the clip canvas can be
+       cleared on unmount without the keypad blinking out */
+    void padHold().then((ok) => {
+      if (!ok) fx.current?.signInHover(true);
+      navigate("/signin");
+    });
+  }, [navigate, padHold, reduced, writeAnchor]);
 
   const enterSigninCard = useCallback((_card: HTMLElement) => {
     /* the entrance joins the running timeline once the transition lands */
@@ -228,7 +279,7 @@ export default function VaultLayout() {
       /* no transition is running when /signup is reached by history or a plain
          link, so the vault lands on the signup anchor itself instead of staying
          at the hero's and leaving the card on top of the wheel */
-      if (signupMode.current !== "animated") writeAnchor(SIGNUP_X);
+      if (cardMode.current !== "animated") writeAnchor(SIGNUP_X);
       return;
     }
     if (!back) return;
@@ -249,13 +300,13 @@ export default function VaultLayout() {
     const rect = cardRect.current;
 
     if (reduced) {
-      signupMode.current = "instant";
+      cardMode.current = "instant";
       writeAnchor(HERO_X);
       card?.remove();
       return;
     }
 
-    signupMode.current = "instant";
+    cardMode.current = "instant";
     if (card && rect) {
       Object.assign(card.style, {
         inset: "auto",

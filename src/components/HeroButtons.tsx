@@ -12,6 +12,7 @@ import type { VaultFx } from "./HeroVault";
 import { CLIPS, FX } from "../config/fx";
 import keypadManifest from "../config/keypad-manifest.json";
 import { createClipPlayer, discoverFrames, type ClipPlayer } from "../lib/clipPlayer";
+import { useVaultScene } from "../lib/vaultScene";
 
 export interface HeroButtonsProps {
   signupRef: RefObject<HTMLAnchorElement | null>;
@@ -61,6 +62,9 @@ export default function HeroButtons({
   signinHref,
 }: HeroButtonsProps) {
   const navigate = useNavigate();
+  /* the signin transition lives in the layout, which owns the vault and the
+     route swap; this file only decides when the keypad has gone far enough */
+  const { startSignin } = useVaultScene();
   const armed = useRef({ signup: false, signin: false });
 
   useEffect(() => {
@@ -92,6 +96,10 @@ export default function HeroButtons({
        on the clip itself instead of on guessed durations */
     let wheelArrive: (() => void) | null = null;
     let padArrive: (() => void) | null = null;
+
+    /* the one place a Sign in leaves: through the transition, or straight to the
+       link when the flow flag is off */
+    const goSignin = () => (FX.signinFlow ? startSignin() : navigate(signinHref));
 
     const wheelLayer = FX.wheelClip && !reducedMotion ? fx.current?.getClipLayer() : null;
     if (wheelLayer?.canvas) {
@@ -127,7 +135,7 @@ export default function HeroButtons({
           settle?.();
           if (!padNav) return;
           padNav = false;
-          navigate(signinHref);
+          goSignin();
         },
         onHidden: () => fx.current?.setKeypadClipActive(false),
       });
@@ -273,23 +281,33 @@ export default function HeroButtons({
 
     const clickIn = (e: MouseEvent) => {
       e.preventDefault();
-      if (reducedMotion) return navigate(signinHref);
+      if (reducedMotion) return goSignin();
+      /* with the signin flow the clip stops at K1: keys lit and idle, which is
+         the frame the form is unlocked over. The code entry from there belongs
+         to /signin, not to the hero. */
+      const target = FX.signinFlow ? K1 : pad?.last() ?? 0;
       if (pad?.ready()) {
-        const atEnd = pad.index() >= pad.last();
-        startPad(pad.last());
+        const atEnd = pad.index() >= target;
+        startPad(target);
         if (atEnd) {
-          depart(signinHref);
+          goSignin();
           return;
         }
         padNav = true;
+        /* the clip reports its own landing; this only catches a frame loop that
+           never got there (a tab held in the background) */
         later(() => {
           if (!padNav) return;
           padNav = false;
-          navigate(signinHref);
+          goSignin();
         }, 2618);
         return;
       }
       requestPad();
+      if (FX.signinFlow) {
+        goSignin();
+        return;
+      }
       fx.current?.signInClick();
       depart(signinHref);
     };
@@ -448,7 +466,7 @@ export default function HeroButtons({
       wheel?.dispose();
       pad?.dispose();
     };
-  }, [signupRef, signinRef, fx, reducedMotion, onSignup, signinHref, navigate]);
+  }, [signupRef, signinRef, fx, reducedMotion, onSignup, signinHref, navigate, startSignin]);
 
   return null;
 }
