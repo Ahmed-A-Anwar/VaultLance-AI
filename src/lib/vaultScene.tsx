@@ -17,6 +17,8 @@ export interface VaultScene {
   /* the vault frame has painted at least once */
   ready: boolean;
   reduced: boolean;
+  /* the keypad frames could not be loaded, so /signin shows the flat CSS keys */
+  padFail: boolean;
   /* arrived here by going back from /signup, so the hero returns instead of
      replaying the intro */
   returning: boolean;
