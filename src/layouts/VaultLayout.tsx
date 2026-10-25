@@ -154,6 +154,9 @@ export default function VaultLayout() {
   const padPlayer = useRef<ClipPlayer | null>(null);
   const padRole = useRef<"enter" | "leave" | "wave" | null>(null);
   const padArrive = useRef<(() => void) | null>(null);
+  /* the ref mirrors padFail so the action callbacks can skip the clip without
+     waiting for a render (and without a second console warning) */
+  const padFailRef = useRef(false);
 
   const makePad = useCallback(
     (role: "enter" | "leave" | "wave") => {
@@ -196,6 +199,7 @@ export default function VaultLayout() {
   /* paint K1 into the vault and hold it there */
   const padHold = useCallback(async () => {
     if (!FX.keypadClip) {
+      padFailRef.current = true;
       setPadFail(true);
       return false;
     }
@@ -210,6 +214,7 @@ export default function VaultLayout() {
         padWarned.current = true;
         console.warn("[fx] keypad clip unavailable — Sign in keeps the static keypad");
       }
+      padFailRef.current = true;
       setPadFail(true);
       return false;
     }
@@ -221,7 +226,7 @@ export default function VaultLayout() {
 
   /* code entry: K1 to the last frame, over the still that is already on screen */
   const padEnter = useCallback(async () => {
-    if (reduced || !FX.keypadClip) return;
+    if (reduced || !FX.keypadClip || padFailRef.current) return;
     const urls = KEYPAD_FRAMES.slice(K1);
     const made = makePad("enter");
     if (!made) return;
@@ -259,7 +264,7 @@ export default function VaultLayout() {
      out onto the dark still */
   const padReverse = useCallback(() => {
     const layer = fx.current?.getKeypadLayer();
-    if (reduced || !FX.keypadClip || !layer?.canvas) {
+    if (reduced || !FX.keypadClip || padFailRef.current || !layer?.canvas) {
       fx.current?.setKeypadClipActive(false);
       void fx.current?.holdFrame(null);
       return;
