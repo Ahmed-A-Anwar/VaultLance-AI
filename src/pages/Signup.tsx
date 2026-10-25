@@ -70,6 +70,8 @@ export default function Signup() {
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({});
   const moving = useRef(false);
+  const stepRef = useRef<Step>(1);
+  const queued = useRef<{ step: Step; dir: 1 | -1 } | null>(null);
   const advance = useRef<number | null>(null);
 
   /* the card hands itself to the transition, and keeps its rect for the way back */
@@ -94,8 +96,16 @@ export default function Signup() {
      the right, 0.382s each */
   const move = (next: Step, dir: 1 | -1 = 1) => {
     const panel = panelRef.current;
-    if (!panel || moving.current) return;
+    if (!panel) return;
+    /* a click that lands while a step is still sliding is honoured rather than
+       dropped: it waits for the running move to land, then runs. Dropping it
+       made "Change role" look dead if it was clicked right after arriving. */
+    if (moving.current) {
+      queued.current = { step: next, dir };
+      return;
+    }
     const swap = () => {
+      stepRef.current = next;
       setStep(next);
       // a step swap takes the caret with it
       if (next === 2) requestAnimationFrame(() => nameRef.current?.focus());
@@ -124,6 +134,9 @@ export default function Signup() {
             onComplete: () => {
               gsap.set(panel, { clearProps: "transform,opacity" });
               moving.current = false;
+              const nextMove = queued.current;
+              queued.current = null;
+              if (nextMove && nextMove.step !== stepRef.current) move(nextMove.step, nextMove.dir);
             },
           }
         );

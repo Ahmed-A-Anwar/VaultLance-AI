@@ -199,7 +199,14 @@ export default function VaultLayout() {
   useLayoutEffect(() => {
     const back = arrivingBack;
     prevPath.current = pathname;
-    if (pathname === "/signup") setReturning(false);
+    if (pathname === "/signup") {
+      setReturning(false);
+      /* no transition is running when /signup is reached by history or a plain
+         link, so the vault lands on the signup anchor itself instead of staying
+         at the hero's and leaving the card on top of the wheel */
+      if (signupMode.current !== "animated") writeAnchor(SIGNUP_X);
+      return;
+    }
     if (!back) return;
 
     timeline.current?.kill();

@@ -22,6 +22,9 @@ export interface VaultFx {
   getKeypadLayer: () => ClipLayer;
   setClipActive: (on: boolean) => void;
   setKeypadClipActive: (on: boolean) => void;
+  /* drop every CTA reaction and put the hotspots back to rest. The hero calls
+     this as it unmounts, so nothing it lit can follow the vault to /signup. */
+  resetCtas: () => void;
   /* paint a still frame as the vault itself — the wheel's last frame becomes the
      resting photo once the turn has landed — or null to put f_001 back */
   holdFrame: (url: string | null) => Promise<void>;
@@ -181,6 +184,39 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   }, [frameSrc, paint, onReady]);
 
   useImperativeHandle(ref, () => ({
+    resetCtas() {
+      keyRefs.current.forEach((key) => {
+        if (!key) return;
+        gsap.killTweensOf(key);
+        gsap.set(key, { opacity: 0 });
+      });
+      hingeRefs.current.forEach((bar) => {
+        if (!bar) return;
+        gsap.killTweensOf(bar);
+        gsap.set(bar, { opacity: 0, yPercent: 0 });
+      });
+      if (glowRef?.current) {
+        gsap.killTweensOf(glowRef.current);
+        gsap.set(glowRef.current, { opacity: 0 });
+      }
+      if (ledRef.current) {
+        gsap.killTweensOf(ledRef.current);
+        gsap.set(ledRef.current, { clearProps: "background,boxShadow" });
+      }
+      /* the dashed Sign in connector is redrawn on every hover, so dropping its
+         path is enough to take a half-drawn one off the vault */
+      if (connectorRef.current) {
+        gsap.killTweensOf(connectorRef.current);
+        connectorRef.current.removeAttribute("d");
+      }
+      if (seamRef.current) {
+        gsap.killTweensOf(seamRef.current);
+        gsap.set(seamRef.current, { stroke: "rgba(226,184,103,0)", strokeWidth: 2 });
+        seamRef.current.style.visibility = "";
+      }
+      /* a clip hidden on the way out may have left the flat keypad hidden */
+      if (keypadElRef.current) keypadElRef.current.style.visibility = "";
+    },
     getClipLayer: () => ({
       canvas: clipRef.current,
       getRect: () => lastRect.current,
@@ -255,6 +291,12 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         if (!key) return;
         const col = i % 3;
         const row = Math.floor(i / 3);
+        /* kill this key's previous tween first. overwrite: "auto" only stops
+           tweens that have already started, so a staggered tween still waiting
+           on its delay would fire after the keys were asked to go dark — a
+           pointer flick across Sign in left a staircase of keys lit, and the
+           vault carried them onto /signup. */
+        gsap.killTweensOf(key);
         gsap.to(key, {
           opacity: on ? 1 : 0,
           duration: 0.0618,

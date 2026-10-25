@@ -430,6 +430,9 @@ export default function HeroButtons({
 
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
+      /* the vault outlives this route: anything the hero left lit (keys, glow,
+         hinges, the hidden flat keypad) would still be on top of it */
+      fx.current?.resetCtas();
       up.removeEventListener("mouseenter", enterUp);
       up.removeEventListener("mouseleave", leaveUp);
       up.removeEventListener("focus", enterUp);

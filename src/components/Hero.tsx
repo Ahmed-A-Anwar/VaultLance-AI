@@ -51,16 +51,26 @@ export function Hero() {
     // phones return from below, desktop from the left (the same axis as the exit)
     const vertical = window.innerWidth < 768;
     gsap.set(items, vertical ? { y: 89, x: 0, opacity: 0 } : { x: -89, y: 0, opacity: 0 });
-    const tween = gsap.to(items, {
-      ...(vertical ? { y: 0 } : { x: 0 }),
-      opacity: 1,
-      duration: 0.618,
-      stagger: 0.0618,
-      ease: "power3.out",
-      delay: 0.382,
-    });
+
+    let tween: gsap.core.Tween | null = null;
+    const id = window.setTimeout(() => {
+      tween = gsap.to(items, {
+        ...(vertical ? { y: 0 } : { x: 0 }),
+        opacity: 1,
+        duration: 0.618,
+        stagger: 0.0618,
+        ease: "power3.out",
+      });
+    }, 382);
+
+    /* the copy never stays in its exit pose: if this effect is torn down before
+       the reveal has landed (StrictMode's double mount, or the route changing
+       again), put it back at rest. A killed tween would otherwise freeze the
+       headline and the CTAs at opacity 0, which reads as the buttons vanishing. */
     return () => {
-      tween.kill();
+      window.clearTimeout(id);
+      tween?.kill();
+      gsap.set(items, { x: 0, y: 0, opacity: 1, clearProps: "transform" });
     };
   }, [ready, returning]);
 
