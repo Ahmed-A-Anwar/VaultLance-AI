@@ -263,6 +263,32 @@
   width: 100%;
   margin-top: 0;
 }
+.signin-submit[disabled] {
+  cursor: progress;
+  opacity: 0.85;
+}
+.signin-spin {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: signin-spin 0.618s linear infinite;
+}
+@keyframes signin-spin {
+  to { transform: rotate(1turn); }
+}
+/* the wrong-code answer: one flash multiplied into the keypad's own rect */
+.signin-flash {
+  position: fixed;
+  z-index: 4;
+  border-radius: 13px;
+  background: #c4453d;
+  opacity: 0;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
 .signin-note {
   margin: 0;
   text-align: center;
