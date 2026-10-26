@@ -259,11 +259,11 @@ export default function HeroButtons({
 
     /* both clips stream while the entrance plays, so the intro that follows has
        nothing left to decode and the first hover already has its frames. The
-       keypad is what the gate now waits on, so it goes first and gets the pipe
-       to itself for its first stretch; the wheel follows while the entrance is
-       still playing, which it needs several seconds out. */
+       keypad is what the gate waits on, so it goes first with the whole pipe:
+       the wheel starts when the gate opens (see runIntro), by which time the
+       entrance still has seconds to run and nothing is competing for sockets. */
     if (pad) later(() => whenIdle(requestPad), 150);
-    if (wheel) later(() => whenIdle(requestWheel), pad ? 1200 : 150);
+    else if (wheel) later(() => whenIdle(requestWheel), 150);
 
     /* ---------- buttons ---------- */
     const lift = (el: HTMLElement, on: boolean) => {
@@ -443,6 +443,10 @@ export default function HeroButtons({
       /* nothing demos itself behind the entry gate: the entrance only starts once
          the gate opens, so the beat is measured from the release, not the mount */
       while (!bootedRef.current) await sleep(100);
+      /* the gate only waited for the keypad, so the wheel starts now: it is not
+         drawn for another several seconds and until then it would only take
+         sockets away from the frames the gate is counting */
+      if (pad) requestWheel();
       /* the entrance has to land on screen before the demo starts over it */
       await sleep(INTRO_DELAY);
       /* the keypad decodes after the entrance: wait for it */
