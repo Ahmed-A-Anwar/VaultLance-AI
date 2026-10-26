@@ -11,11 +11,14 @@ type Request =
   | { type: "decode"; index: number };
 
 export type Reply =
+  | { type: "ready" }
   | { type: "fetched"; index: number; ok: boolean }
   | { type: "frame"; index: number; bitmap: ImageBitmap }
   | { type: "decode-failed"; index: number };
 
-/* requests in flight at once; the browser multiplexes them over one connection */
+/* requests in flight at once; the browser multiplexes them over one connection.
+   Each batch waits for its slowest frame before the next one starts, so this is
+   kept small: a wider batch measured slower on a 10 Mbps link, not faster. */
 const FETCH_BATCH = 8;
 /* bitmaps decoded at once: enough to keep the pipeline full without holding a
    long queue of full-resolution surfaces */
@@ -82,6 +85,9 @@ const run = async (token: number) => {
 self.onmessage = (e: MessageEvent<Request>) => {
   const msg = e.data;
   if (msg.type === "init") {
+    /* the module ran: say so before fetching, so the page can tell a worker
+       that never started from one that is merely waiting on the network */
+    post({ type: "ready" });
     urls = msg.urls;
     blobs = new Array<Blob | null>(urls.length).fill(null);
     got = new Array<boolean>(urls.length).fill(false);

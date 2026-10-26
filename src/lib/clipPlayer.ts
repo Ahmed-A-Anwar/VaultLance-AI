@@ -56,6 +56,10 @@ const BEHIND = 3;
 const REVERSE_AHEAD = 3;
 const REVERSE_BEHIND = 8;
 const FADE = 0.236;
+/* how long a worker gets to announce itself: a module that fails to load (a
+   blocked script URL, a stale deploy, a syntax error) never posts anything, and
+   waiting on a promise nobody settles would hold the entry gate on zero frames */
+const WORKER_START = 5000;
 
 /* a dev server answers unknown paths with index.html, so ok alone is not enough */
 const probe = async (url: string) => {
@@ -108,6 +112,7 @@ export function createClipPlayer({
   let blobs: (Blob | null)[] = [];
   let worker: Worker | null = null;
   let firstSettled: ((ok: boolean) => void) | null = null;
+  let workerAlive: ((ok: boolean) => void) | null = null;
   /* decoded frames around the playhead, and the ones being decoded now */
   let frames = new Map<number, Frame>();
   let asked = new Set<number>();
@@ -296,6 +301,11 @@ export function createClipPlayer({
 
   const onWorkerMessage = (e: MessageEvent<Reply>) => {
     const msg = e.data;
+    if (msg.type === "ready") {
+      workerAlive?.(true);
+      workerAlive = null;
+      return;
+    }
     if (msg.type === "fetched") {
       got[msg.index] = true;
       if (msg.index === 0) {
@@ -313,7 +323,10 @@ export function createClipPlayer({
     asked.delete(msg.index);
   };
 
-  /* the no-worker path: fetch here, decode here */
+  /* the no-worker path: fetch here, decode here. Each frame is decoded as it
+     arrives rather than around the playhead, because the entry gate counts
+     decoded frames: a lazy path here would never reach the count it waits for
+     and the visitor would sit on the curtain until it timed out. */
   const loadInline = async (list: string[]) => {
     const fetchOne = async (i: number) => {
       try {
@@ -324,6 +337,13 @@ export function createClipPlayer({
         blobs[i] = null;
       } finally {
         got[i] = true;
+      }
+      const blob = blobs[i];
+      if (!blob) return;
+      try {
+        accept(i, await createImageBitmap(blob));
+      } catch {
+        asked.delete(i);
       }
     };
     await fetchOne(0);
@@ -354,10 +374,25 @@ export function createClipPlayer({
           try {
             worker = new Worker(new URL("./clipWorker.ts", import.meta.url), { type: "module" });
             worker.onmessage = onWorkerMessage;
+            worker.onerror = () => {
+              workerAlive?.(false);
+              workerAlive = null;
+            };
             const first = new Promise<boolean>((res) => {
               firstSettled = res;
-              worker!.postMessage({ type: "init", urls: list });
             });
+            const started = new Promise<boolean>((res) => {
+              workerAlive = res;
+              worker!.postMessage({ type: "init", urls: list });
+              window.setTimeout(() => {
+                if (workerAlive !== res) return;
+                workerAlive = null;
+                res(false);
+              }, WORKER_START);
+            });
+            /* the worker is up before its first frame can be waited on: a failed
+               start falls back to the inline path rather than hanging here */
+            if (!(await started)) throw new Error("worker did not start");
             const ok = await first;
             if (!ok) throw new Error("first frame failed");
             loaded = true;
@@ -366,6 +401,8 @@ export function createClipPlayer({
           } catch {
             worker?.terminate();
             worker = null;
+            workerAlive = null;
+            firstSettled = null;
             loaded = false;
           }
         }

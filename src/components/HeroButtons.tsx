@@ -155,15 +155,18 @@ export default function HeroButtons({
       console.log(`[fx] keypad clip: ${KEYPAD_COUNT} frames, K1 = ${K1}`);
     }
 
-    /* what the entry gate measures: the whole wheel, because the intro turns it
-       end to end, and the keypad up to K1, which is as far as the intro or a
-       Sign in click ever goes before the route takes over */
+    /* what the entry gate waits for: the keypad up to K1, the first thing drawn
+       once the entrance lands. The wheel is not needed until seconds later
+       (entrance, keypad demo, then the turn) and keeps streaming underneath,
+       where the intro's own bank() holds the wheel beat until it is there — so
+       holding the visitor out for it only lengthens the wait. A phone has no
+       keypad set, so there the gate is still the whole wheel. */
     const padNeed = K1 + 1;
     /* the wheel's length is discovered from its folder, so there is no total to
        report until the probe has answered: a made-up denominator would make the
        bar jump backwards the moment the real one arrived */
     const wheelNeed = () => (wheel ? (wheel.last() > 0 ? wheel.last() + 1 : 0) : 0);
-    const measured = () => !wheel || wheelNeed() > 0;
+    const measured = () => (pad ? true : !wheel || wheelNeed() > 0);
     /* frames that have arrived, not frames that have decoded: a 1920x1080 frame
        is ~8MB of pixels, and waiting for 130 of those is the whole wait. The
        player decodes around the playhead as it plays. */
@@ -172,8 +175,8 @@ export default function HeroButtons({
     /* only a clip that exists is counted: a player that was never created (a
        phone has no keypad set) or that failed would otherwise be credited with
        frames it never received, and the gate would open on nothing */
-    const total = () => (wheel ? wheelNeed() : 0) + (pad ? padNeed : 0);
-    const loaded = () => (wheel ? loadedIn(wheel, wheelNeed()) : 0) + (pad ? loadedIn(pad, padNeed) : 0);
+    const total = () => (pad ? padNeed : wheel ? wheelNeed() : 0);
+    const loaded = () => (pad ? loadedIn(pad, padNeed) : wheel ? loadedIn(wheel, wheelNeed()) : 0);
 
     clips.current = {
       progress: () => {
@@ -181,9 +184,10 @@ export default function HeroButtons({
         const all = total();
         return all > 0 ? loaded() / all : 1;
       },
-      ready: () =>
-        (!wheel || (wheel.last() > 0 && wheel.loadedTo() >= wheel.last())) &&
-        (!pad || pad.loadedTo() >= K1),
+      ready: () => {
+        if (pad) return pad.loadedTo() >= K1;
+        return !wheel || (wheel.last() > 0 && wheel.loadedTo() >= wheel.last());
+      },
       counts: () => ({ banked: loaded(), total: measured() ? total() : 0 }),
     };
 
@@ -254,9 +258,12 @@ export default function HeroButtons({
     };
 
     /* both clips stream while the entrance plays, so the intro that follows has
-       nothing left to decode and the first hover already has its frames */
-    if (wheel) later(() => whenIdle(requestWheel), 200);
-    if (pad) later(() => whenIdle(requestPad), 618);
+       nothing left to decode and the first hover already has its frames. The
+       keypad is what the gate now waits on, so it goes first and gets the pipe
+       to itself for its first stretch; the wheel follows while the entrance is
+       still playing, which it needs several seconds out. */
+    if (pad) later(() => whenIdle(requestPad), 150);
+    if (wheel) later(() => whenIdle(requestWheel), pad ? 1200 : 150);
 
     /* ---------- buttons ---------- */
     const lift = (el: HTMLElement, on: boolean) => {
