@@ -18,7 +18,7 @@ const PATTERN = /^ezgif-frame-(\d+)\.webp$/i;
 
 const CLIPS = [
   { dir: "public/wheel-turn", out: "src/config/wheel-manifest.json", label: "wheel" },
-  { dir: "public/Keypad frames", out: "src/config/keypad-manifest.json", label: "keypad" },
+  { dir: "public/keypad-frames", out: "src/config/keypad-manifest.json", label: "keypad" },
 ];
 
 const frameNumber = (name) => Number(name.match(PATTERN)[1]);
