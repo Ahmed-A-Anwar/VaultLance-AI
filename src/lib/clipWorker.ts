@@ -16,10 +16,11 @@ export type Reply =
   | { type: "frame"; index: number; bitmap: ImageBitmap }
   | { type: "decode-failed"; index: number };
 
-/* requests in flight at once; the browser multiplexes them over one connection.
-   Each batch waits for its slowest frame before the next one starts, so this is
-   kept small: a wider batch measured slower on a 10 Mbps link, not faster. */
-const FETCH_BATCH = 8;
+/* requests in flight at once. Batches that wait for their slowest frame cost a
+   full round trip per batch, and a cold edge takes ~0.7s to first byte: 49
+   frames in batches of 8 measured ten seconds, the same frames in one sliding
+   window about three. A slot frees, the next request starts. */
+const FETCH_WINDOW = 14;
 /* bitmaps decoded at once: enough to keep the pipeline full without holding a
    long queue of full-resolution surfaces */
 const DECODE_BATCH = 4;
@@ -27,7 +28,12 @@ const DECODE_BATCH = 4;
 let urls: string[] = [];
 let blobs: (Blob | null)[] = [];
 let got: boolean[] = [];
-let runToken = 0;
+/* fetch and decode advance as counters fed by promises, not as loops that await
+   a batch: neither one can stall the other */
+let fetchNext = 0;
+let fetchBusy = 0;
+let decodeNext = 0;
+let decodeBusy = 0;
 
 const post = (reply: Reply, transfer: Transferable[] = []) => {
   (self as unknown as Worker).postMessage(reply, transfer);
@@ -63,23 +69,36 @@ const decodeAndPost = async (i: number) => {
   }
 };
 
-/* frame 0 first so the clip is drawable, then the rest decodes in batches */
-const run = async (token: number) => {
-  if (!urls.length) return;
-  await decodeAndPost(0);
-  for (let i = 1; i < urls.length; i += FETCH_BATCH) {
-    if (token !== runToken) return;
-    const batch: Promise<Blob | null>[] = [];
-    for (let k = i; k < Math.min(i + FETCH_BATCH, urls.length); k++) batch.push(getBlob(k));
-    await Promise.all(batch);
-    if (token !== runToken) return;
-    for (let k = i; k < Math.min(i + FETCH_BATCH, urls.length); k += DECODE_BATCH) {
-      const group: Promise<void>[] = [];
-      for (let j = k; j < Math.min(k + DECODE_BATCH, i + FETCH_BATCH); j++) group.push(decodeAndPost(j));
-      await Promise.all(group);
-      if (token !== runToken) return;
-    }
+const pumpFetch = () => {
+  while (fetchBusy < FETCH_WINDOW && fetchNext < urls.length) {
+    const i = fetchNext++;
+    fetchBusy += 1;
+    void getBlob(i).then(() => {
+      fetchBusy -= 1;
+      pumpFetch();
+      pumpDecode();
+    });
   }
+};
+
+/* frames decode in index order: the page counts the contiguous run from zero, so
+   an out-of-order decode would hold its progress back. A frame that fails is
+   stepped over instead of blocking the ones behind it. */
+const pumpDecode = () => {
+  while (decodeBusy < DECODE_BATCH && decodeNext < urls.length && got[decodeNext]) {
+    const i = decodeNext++;
+    decodeBusy += 1;
+    void decodeAndPost(i).then(() => {
+      decodeBusy -= 1;
+      pumpDecode();
+    });
+  }
+};
+
+const run = () => {
+  if (!urls.length) return;
+  pumpFetch();
+  pumpDecode();
 };
 
 self.onmessage = (e: MessageEvent<Request>) => {
@@ -91,8 +110,11 @@ self.onmessage = (e: MessageEvent<Request>) => {
     urls = msg.urls;
     blobs = new Array<Blob | null>(urls.length).fill(null);
     got = new Array<boolean>(urls.length).fill(false);
-    runToken += 1;
-    void run(runToken);
+    fetchNext = 0;
+    fetchBusy = 0;
+    decodeNext = 0;
+    decodeBusy = 0;
+    run();
     return;
   }
   if (msg.type === "decode") {
