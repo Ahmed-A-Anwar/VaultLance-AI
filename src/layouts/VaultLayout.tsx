@@ -13,7 +13,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { HeroVault, type VaultFx } from "../components/HeroVault";
-import { VaultSceneContext, type VaultScene } from "../lib/vaultScene";
+import { Boot } from "../components/Boot";
+import { VaultSceneContext, type VaultScene, type VaultClipsHandle } from "../lib/vaultScene";
 import { createClipPlayer, type ClipPlayer } from "../lib/clipPlayer";
 import { CLIPS, FX } from "../config/fx";
 import keypadManifest from "../config/keypad-manifest.json";
@@ -41,6 +42,18 @@ const SWAP_X = 34;
 /* phones get the vertical version of the same move: the copy leaves downward and
    the form rises in; the vault never slides sideways */
 const isVertical = () => typeof window !== "undefined" && window.innerWidth < 768;
+
+/* the entry gate: once per tab session, on the landing route, and never when
+   motion is reduced (there is nothing to bank for a page that does not play) */
+const BOOT_KEY = "vl-booted";
+const needsBoot = (reduced: boolean, pathname: string) => {
+  if (reduced || pathname !== "/") return false;
+  try {
+    return window.sessionStorage.getItem(BOOT_KEY) !== "1";
+  } catch {
+    return true;
+  }
+};
 
 /* the keypad clip, and the frame where the keys are fully lit and idle */
 const KEYPAD_FRAMES: string[] = keypadManifest;
@@ -92,6 +105,19 @@ export default function VaultLayout() {
   const { pathname } = useLocation();
   const [ready, setReady] = useState(false);
   const [returning, setReturning] = useState(false);
+  /* boot: the curtain is up, reveal: it is lifting and the hero is running its
+     entrance behind it, live: the curtain is gone */
+  const [bootStage, setBootStage] = useState<"boot" | "reveal" | "live">(() =>
+    needsBoot(
+      typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      pathname
+    )
+      ? "boot"
+      : "live"
+  );
+  const booted = bootStage !== "boot";
+  const clips = useRef<VaultClipsHandle | null>(null);
   /* the keypad still could not be loaded: /signin shows the flat CSS keys */
   const [padFail, setPadFail] = useState(false);
 
@@ -117,6 +143,17 @@ export default function VaultLayout() {
     typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ).current;
+
+  const enter = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(BOOT_KEY, "1");
+    } catch {
+      /* private mode: the gate simply shows again next visit */
+    }
+    setBootStage("reveal");
+  }, []);
+
+  const bootGone = useCallback(() => setBootStage("live"), []);
 
   const writeAnchor = useCallback((v: number) => {
     anchor.current.v = v;
@@ -632,6 +669,8 @@ export default function VaultLayout() {
       signupRef,
       signinRef,
       ready,
+      booted,
+      clips,
       reduced,
       returning,
       padFail,
@@ -645,6 +684,7 @@ export default function VaultLayout() {
     }),
     [
       ready,
+      booted,
       reduced,
       returning,
       padFail,
@@ -674,6 +714,9 @@ export default function VaultLayout() {
           <Outlet />
         </div>
       </div>
+      {bootStage !== "live" && (
+        <Boot ready={ready} clips={clips} onEnter={enter} onGone={bootGone} />
+      )}
     </VaultSceneContext.Provider>
   );
 }

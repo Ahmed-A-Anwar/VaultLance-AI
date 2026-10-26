@@ -11,9 +11,122 @@
     <title>VaultLance AI — the sealed instrument</title>
     <meta name="author" content="VaultLance AI" />
     <meta name="theme-color" content="#0b0d10" />
+    <!-- The entry gate is React's, but the bundle takes time to arrive: without
+         this curtain the finished hero paints first and then the gate covers it.
+         Same conditions as components/Boot.tsx, and removed the moment it mounts. -->
+    <script>
+      (function () {
+        try {
+          var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          if (reduced || location.pathname !== "/") return;
+          if (sessionStorage.getItem("vl-booted") === "1") return;
+          document.documentElement.setAttribute("data-boot", "1");
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      #boot-static { display: none; }
+      html[data-boot="1"] #boot-static {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, #c9d0d2 0%, #d5dbdc 50%, #e1e7e8 100%);
+      }
+      #boot-static .bs-inner {
+        width: min(360px, 72vw);
+        display: grid;
+        justify-items: center;
+        gap: 21px;
+        text-align: center;
+        font-family: system-ui, sans-serif;
+      }
+      #boot-static .bs-word {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        color: #4b5663;
+      }
+      #boot-static .bs-dial {
+        position: relative;
+        width: 148px;
+        height: 148px;
+        justify-self: center;
+      }
+      #boot-static .bs-dial svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #boot-static .bs-needle {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 50%;
+        animation: bs-needle 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+      }
+      #boot-static .bs-needle::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 4px;
+        width: 1.5px;
+        height: 10px;
+        background: #0e1520;
+        transform: translateX(-50%);
+      }
+      #boot-static .bs-needle::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 6px;
+        height: 6px;
+        margin-left: -3px;
+        border-radius: 50%;
+        background: #b8893a;
+      }
+      @keyframes bs-needle {
+        from { transform: rotate(-120deg); }
+        to { transform: rotate(120deg); }
+      }
+      #boot-static .bs-meta {
+        margin: 0;
+        text-align: center;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: #4b5663;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-static" aria-hidden="true">
+      <div class="bs-inner">
+        <p class="bs-word">VAULTLANCE AI</p>
+        <div class="bs-dial">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(138,149,161,.4)" stroke-width="1" />
+            <circle
+              cx="60" cy="60" r="54" fill="none" stroke="#b8893a" stroke-width="1.5"
+              stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="305"
+              transform="rotate(-90 60 60)" />
+            <g stroke="rgba(138,149,161,.55)" stroke-width="1">
+              <line x1="60" y1="10" x2="60" y2="17" />
+              <line x1="60" y1="10" x2="60" y2="14" transform="rotate(60 60 60)" />
+              <line x1="60" y1="10" x2="60" y2="14" transform="rotate(120 60 60)" />
+              <line x1="60" y1="10" x2="60" y2="17" transform="rotate(180 60 60)" />
+              <line x1="60" y1="10" x2="60" y2="14" transform="rotate(240 60 60)" />
+              <line x1="60" y1="10" x2="60" y2="14" transform="rotate(300 60 60)" />
+            </g>
+          </svg>
+          <span class="bs-needle"></span>
+        </div>
+        <p class="bs-meta">BANKING FRAMES</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
