@@ -78,7 +78,6 @@ export default function HeroButtons({
   /* the signin transition lives in the layout, which owns the vault and the
      route swap; this file only decides when the keypad has gone far enough */
   const { startSignin } = useVaultScene();
-  const armed = useRef({ signup: false, signin: false });
 
   useEffect(() => {
     const up = signupRef.current;
@@ -309,6 +308,10 @@ export default function HeroButtons({
     const clickUp = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return onSignup();
+      /* a touch has no hover to preview the turn with, so the tap is the commit:
+         the signup transition is the motion, not a clip played out first. On a
+         pointer device the turn is the hover, and the click lands on it. */
+      if (!canHover) return onSignup();
       if (wheel?.ready()) {
         const atEnd = wheel.index() >= wheel.last();
         startWheel();
@@ -334,6 +337,7 @@ export default function HeroButtons({
     const clickIn = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return goSignin();
+      if (!canHover) return goSignin();
       /* with the signin flow the clip stops at K1: keys lit and idle, which is
          the frame the form is unlocked over. The code entry from there belongs
          to /signin, not to the hero. */
@@ -364,32 +368,16 @@ export default function HeroButtons({
       depart(signinHref);
     };
 
-    /* touch: first tap runs to the hold frame, second tap follows the link */
-    const tapUp = (e: TouchEvent) => {
+    /* touch has no hover to preview with, so a tap is the action: the clip is
+       requested on touchstart and the click itself plays it and leaves. A first
+       tap that only armed the button made every phone visitor press twice. */
+    const tapUp = () => {
       if (canHover || reducedMotion) return;
       requestWheel();
-      if (!armed.current.signup) {
-        e.preventDefault();
-        armed.current.signup = true;
-        hoveringUp = true;
-        if (wheel?.ready()) startWheel();
-        fx.current?.signUpHover(true);
-      }
     };
-    const tapIn = (e: TouchEvent) => {
+    const tapIn = () => {
       if (canHover || reducedMotion) return;
       requestPad();
-      if (!armed.current.signin) {
-        e.preventDefault();
-        armed.current.signin = true;
-        if (pad?.ready()) {
-          hoveringIn = true;
-          startPad(K1);
-        } else {
-          fx.current?.signInHover(true);
-          later(() => fx.current?.signInHover(false), 1200);
-        }
-      }
     };
 
     if (canHover) {
