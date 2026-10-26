@@ -216,9 +216,16 @@
   font-weight: 600;
   font-size: clamp(42px, 4.7vw, 68px);
   line-height: 1.05;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--hero-ink);
   font-optical-sizing: auto;
+  /* letter shapes only: no ligature substitutions, and the display cut of
+     Fraunces (opsz 96) with the wonk axis off. This also replaces the global
+     `h1 { font-variation-settings: "wdth" 118 }` from app.css, whose width axis
+     Fraunces does not carry, so nothing else about the face moves. */
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "clig" 0, "dlig" 0;
+  font-variation-settings: "opsz" 96, "WONK" 0;
   text-wrap: balance;
   margin: 21px 0;
 }
