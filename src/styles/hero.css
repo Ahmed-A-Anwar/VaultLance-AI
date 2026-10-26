@@ -501,6 +501,13 @@
   background: linear-gradient(180deg, var(--hero-bg-top) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-bot) 100%);
   color: var(--hero-ink);
   user-select: none;
+  opacity: 1;
+}
+/* the reveal: the entrance is already running under this */
+.boot.is-lifting {
+  opacity: 0;
+  transition: opacity 0.618s ease-in-out;
+  pointer-events: none;
 }
 .boot-inner {
   width: min(360px, 72vw);
