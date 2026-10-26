@@ -1,7 +1,10 @@
-/* Boot.tsx — the entry gate. The landing page is handed over only once the vault
-   has painted and both CTA clips have every frame the intro will draw decoded, so
-   the demo and the first hover run on banked frames instead of streaming in front
-   of the visitor. Shown once per tab session, and never with reduced motion.
+/* Boot.tsx — the entry gate. The landing page is handed over once the vault has
+   painted and the display face has landed. It used to wait for both CTA clips as
+   well, which on a slow link meant half a minute on a curtain for frames the
+   visitor would not see for another several seconds; the clips now stream behind
+   the entrance and the intro skips a phase that is not in yet. The ring and the
+   count still report the frames arriving, so the wait is legible while it lasts.
+   Shown once per tab session, and never with reduced motion.
 
    The gate is a vault dial rather than a bar, because a wait you can play with is
    read as shorter than a wait you can only watch: the needle follows the pointer
@@ -130,8 +133,12 @@ export function Boot({ ready, clips, onEnter, onGone }: BootProps) {
       const waited = performance.now() - t0;
       if (waited > SKIP_AFTER) setCanSkip(true);
       if (waited < MIN_MS) return;
-      if (live.current.ready && fonts && c && c.ready()) release("frames banked");
-      else if (waited > MAX_MS) release("timed out waiting for the clips");
+      /* the gate is over the vault itself, not the clips: waiting for a 2 MB
+         frame set held a visitor on a slow link for half a minute, so it lets go
+         as soon as the vault has painted. The clips stream behind the entrance
+         and the intro skips whatever phase is not in yet. */
+      if (live.current.ready && fonts) release("vault painted");
+      else if (waited > MAX_MS) release("timed out waiting for the vault");
     }, POLL);
 
     return () => {

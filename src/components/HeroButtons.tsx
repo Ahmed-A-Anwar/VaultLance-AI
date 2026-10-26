@@ -425,16 +425,16 @@ export default function HeroButtons({
         later(step, 100);
       });
 
-    const clipsReady = () => (!pad || pad.ready()) && (!wheel || wheel.ready());
-
-    /* hold a phase back until the frames it will draw have arrived, so the
-       sequence is not limping through the network as it plays. The cap is only
-       there so a lost frame cannot strand the page. */
-    const bank = async (player: ClipPlayer | null, frame: number) => {
-      for (let left = 20_000; left > 0; left -= 100) {
-        if (!player || player.loadedTo() >= frame) return;
+    /* the entry gate no longer waits for the clips, so on a slow link the frames
+       a phase draws may still be arriving when the entrance lands. Each phase
+       gets a short grace period and is then skipped: a demo that never starts is
+       better than a vault frozen halfway through one. */
+    const soon = async (player: ClipPlayer | null, frame: number, ms: number) => {
+      for (let left = ms; left > 0; left -= 100) {
+        if (!player || player.loadedTo() >= frame) return !!player;
         await sleep(100);
       }
+      return !!player && player.loadedTo() >= frame;
     };
 
     /* Keypad first, then one wheel turn: the hover amounts only, never the click
@@ -443,24 +443,23 @@ export default function HeroButtons({
       /* nothing demos itself behind the entry gate: the entrance only starts once
          the gate opens, so the beat is measured from the release, not the mount */
       while (!bootedRef.current) await sleep(100);
-      /* the gate only waited for the keypad, so the wheel starts now: it is not
-         drawn for another several seconds and until then it would only take
-         sockets away from the frames the gate is counting */
-      if (pad) requestWheel();
       /* the entrance has to land on screen before the demo starts over it */
       await sleep(INTRO_DELAY);
-      /* the keypad decodes after the entrance: wait for it */
-      while (!clipsReady()) await sleep(100);
       if (hoveringUp || hoveringIn) return;
       console.info("[fx] vault intro: keypad, then one wheel turn");
 
       /* the keys light up and run back down inside 0..K1, so that is all this
          phase needs banked before it starts */
-      await bank(pad, K1);
-      if (pad?.ready() && pad.index() < K1) {
+      const padIn = await soon(pad, K1, 6000);
+      if (hoveringUp || hoveringIn) return;
+      if (padIn && pad?.ready() && pad.index() < K1) {
         const arrived = new Promise<void>((res) => {
           padArrive = res;
         });
+        /* the wheel can start loading now: the keypad frames this phase draws
+           are already in, so the two are not after the same sockets. It then has
+           the length of the keypad demo to arrive before its own turn begins. */
+        requestWheel();
         startPad(K1);
         await Promise.race([arrived, sleep(4000)]);
         padArrive = null;
@@ -480,9 +479,16 @@ export default function HeroButtons({
       /* the pointer took over while the keys were lit: leave it alone */
       if (hoveringUp || hoveringIn) return;
 
-      if (wheel?.ready()) {
-        /* the wheel runs end to end, so it needs the whole clip banked */
-        await bank(wheel, wheel.last());
+      requestWheel();
+      /* the whole turn is drawn, so the wait is on the whole clip — but its
+         length is only known once it starts loading, hence the check inside the
+         loop rather than a count up front */
+      for (let left = 5000; left > 0; left -= 100) {
+        if (wheel && wheel.last() > 0 && wheel.loadedTo() >= wheel.last()) break;
+        if (hoveringUp || hoveringIn) return;
+        await sleep(100);
+      }
+      if (wheel?.ready() && wheel.last() > 0 && wheel.loadedTo() >= wheel.last()) {
         const arrived = new Promise<void>((res) => {
           wheelArrive = res;
         });
