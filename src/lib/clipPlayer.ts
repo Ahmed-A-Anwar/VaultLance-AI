@@ -38,7 +38,11 @@ export interface ClipPlayer {
 }
 
 const frameName = (i: number) => `ezgif-frame-${String(i).padStart(3, "0")}.webp`;
-const LOAD_BUDGET = 4000;
+/* a stalled network must not hold a promise forever, but a cold load of a
+   1920x1080 frame set is genuinely slow: a budget tight enough to trip on a
+   normal cold start throws the whole clip away, which is the one outcome the
+   entry gate exists to prevent. */
+const LOAD_BUDGET = 20_000;
 const BATCH = 10;
 const FADE = 0.236;
 

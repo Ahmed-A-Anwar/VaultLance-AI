@@ -164,25 +164,24 @@ export default function HeroButtons({
        bar jump backwards the moment the real one arrived */
     const wheelNeed = () => (wheel ? (wheel.last() > 0 ? wheel.last() + 1 : 0) : 0);
     const measured = () => !wheel || wheelNeed() > 0;
-    const bankedIn = (p: ClipPlayer | null, need: number) => {
-      if (!p) return need;
-      return Math.max(0, Math.min(need, p.bankedTo() + 1));
-    };
+    const bankedIn = (p: ClipPlayer, need: number) =>
+      Math.max(0, Math.min(need, p.bankedTo() + 1));
+    /* only a clip that exists is counted: a player that was never created (a
+       phone has no keypad set) or that failed would otherwise be credited with
+       frames it never banked, and the gate would open on nothing */
+    const total = () => (wheel ? wheelNeed() : 0) + (pad ? padNeed : 0);
+    const banked = () => (wheel ? bankedIn(wheel, wheelNeed()) : 0) + (pad ? bankedIn(pad, padNeed) : 0);
 
     clips.current = {
       progress: () => {
         if (!measured()) return 0;
-        const wNeed = wheelNeed();
-        const all = wNeed + padNeed;
-        return all > 0 ? (bankedIn(wheel, wNeed) + bankedIn(pad, padNeed)) / all : 1;
+        const all = total();
+        return all > 0 ? banked() / all : 1;
       },
       ready: () =>
         (!wheel || (wheel.last() > 0 && wheel.bankedTo() >= wheel.last())) &&
         (!pad || pad.bankedTo() >= K1),
-      counts: () => ({
-        banked: bankedIn(wheel, wheelNeed()) + bankedIn(pad, padNeed),
-        total: measured() ? wheelNeed() + padNeed : 0,
-      }),
+      counts: () => ({ banked: banked(), total: measured() ? total() : 0 }),
     };
 
     /* one clip at a time: the other is cut instantly, no overlap */
