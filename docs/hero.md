@@ -1,4 +1,4 @@
-# VaultPay AI hero — build record
+# VaultLance AI hero — build record
 
 Landing top section built around frame 1 of the vault sequence. Everything below is
 measured on the running page, not asserted.

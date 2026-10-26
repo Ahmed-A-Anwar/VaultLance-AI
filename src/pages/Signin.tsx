@@ -192,7 +192,7 @@ export default function Signin() {
   return (
     <main id="main" className="signin-layout">
       <div className="signin-brand">
-        <span className="signin-wordmark">VaultPay AI</span>
+        <span className="signin-wordmark">VaultLance AI</span>
         <Link className="signin-home" to="/" data-testid="signin-back">
           {ARROW}
           Back

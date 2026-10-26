@@ -1,4 +1,4 @@
-# VaultPay AI — research log
+# VaultLance AI — research log
 
 Date: 2026-10-23. Every search and failed source is recorded below.
 
@@ -41,8 +41,8 @@ Date: 2026-10-23. Every search and failed source is recorded below.
 7. **Codat** + [Block Club case](https://blockclub.co/case-studies/codat) — *Take:* **simulated product surface before explanation**; a refresh "logo, colors, type" that reads institutional, not sassy. This justifies landing sections 3–6 staging one real transaction as the product itself. *Reject:* implying certifications we don't hold.
 8. **Affinda** (affinda.com) — *Take:* the direct precedent of **"Passed 1 check / Needs judgement / Held for review"** — computed checks and judgment shown as two different things (whole basis of section 5), plus "**Illustrative data**" labelling. *Reject:* AI conclusions as confident binary pass/fail badges.
 9. **Overstory** (overstory.com) — *Take:* "See the risk → Model the tradeoffs → Make the decision" narrative order → landing is interrogation → verdict → handshake, not feature grid. *Reject:* "AI reviewed = objective truth" tone.
-10. **PostHog** (homepage) — *Take:* honesty labelling right at the point of use — every demo surface for VaultPay says this is seeded sandbox data with its transaction id. *Reject:* unlabelled fictional numbers anywhere (post-Research rule: never unlabeled invention).
-11. **Stripe sandbox demo** ([test cards](https://docs.stripe.com/testing)) — *Take:* sandbox / test outcomes notion *explicitly contradicted by docs* — sandbox transactions don't move funds and test cards are fake. VaultPay's copy matches that exactly. *Reject:* implying sandbox ids appear in that marketing preview (couldn't verify, so I compute them myself).
+10. **PostHog** (homepage) — *Take:* honesty labelling right at the point of use — every demo surface for VaultLance says this is seeded sandbox data with its transaction id. *Reject:* unlabelled fictional numbers anywhere (post-Research rule: never unlabeled invention).
+11. **Stripe sandbox demo** ([test cards](https://docs.stripe.com/testing)) — *Take:* sandbox / test outcomes notion *explicitly contradicted by docs* — sandbox transactions don't move funds and test cards are fake. VaultLance's copy matches that exactly. *Reject:* implying sandbox ids appear in that marketing preview (couldn't verify, so I compute them myself).
 12. **FigJam Open Sessions** ([help doc](https://help.figma.com/hc/en-us/articles/4410786053911-Invite-visitors-to-an-open-session)) — *Take:* the visitor-join pattern — with-a-friend demo uses two links + QR, participant includes a name/alias, access is temporary, explicit hesitation-free entry. *Reject:* using "guest account" anything (Linear's guest role is **sign-in-required** — explicit non-target).
 13. **UI Vault repo** (above) — *Take:* the directory-level pointers only — **GSAP/Lenis/Motion confirmed in its Scroll & Animation category; Polaris/Carbon/Primer/Spectrum status-token docs (all four fetched during validation: color + label + icon never alone)**. *Take:* QR generation: used a local generator, not goQR (which records request origin/IP). *Not confirmed:* specific audit/terminal blocks in its catalog.
 

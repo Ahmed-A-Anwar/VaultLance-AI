@@ -1,4 +1,4 @@
-# VaultPay AI — design plan (written before code)
+# VaultLance AI — design plan (written before code)
 
 Direction chosen in [RESEARCH.md](RESEARCH.md): **"The sealed instrument."**
 The product behaves like a legal-financial object: a certified document whose ledger

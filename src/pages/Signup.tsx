@@ -224,7 +224,7 @@ export default function Signup() {
   return (
     <main id="main" className="signup-layout">
       <div className="signup-brand">
-        <span className="signup-wordmark">VaultPay AI</span>
+        <span className="signup-wordmark">VaultLance AI</span>
         <Link className="signup-home" to="/" data-testid="signup-back">
           {ARROW}
           Back

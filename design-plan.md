@@ -1,7 +1,7 @@
-# VaultPay AI hero — design plan
+# VaultLance AI hero — design plan
 
 ## Subject
-VaultPay AI landing hero: vault photography + goldenratio layout + entrance timeline.
+VaultLance AI landing hero: vault photography + goldenratio layout + entrance timeline.
 
 ## Color
 - ink #0E1520
