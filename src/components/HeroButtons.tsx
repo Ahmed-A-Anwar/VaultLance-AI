@@ -164,24 +164,27 @@ export default function HeroButtons({
        bar jump backwards the moment the real one arrived */
     const wheelNeed = () => (wheel ? (wheel.last() > 0 ? wheel.last() + 1 : 0) : 0);
     const measured = () => !wheel || wheelNeed() > 0;
-    const bankedIn = (p: ClipPlayer, need: number) =>
-      Math.max(0, Math.min(need, p.bankedTo() + 1));
+    /* frames that have arrived, not frames that have decoded: a 1920x1080 frame
+       is ~8MB of pixels, and waiting for 130 of those is the whole wait. The
+       player decodes around the playhead as it plays. */
+    const loadedIn = (p: ClipPlayer, need: number) =>
+      Math.max(0, Math.min(need, p.loadedTo() + 1));
     /* only a clip that exists is counted: a player that was never created (a
        phone has no keypad set) or that failed would otherwise be credited with
-       frames it never banked, and the gate would open on nothing */
+       frames it never received, and the gate would open on nothing */
     const total = () => (wheel ? wheelNeed() : 0) + (pad ? padNeed : 0);
-    const banked = () => (wheel ? bankedIn(wheel, wheelNeed()) : 0) + (pad ? bankedIn(pad, padNeed) : 0);
+    const loaded = () => (wheel ? loadedIn(wheel, wheelNeed()) : 0) + (pad ? loadedIn(pad, padNeed) : 0);
 
     clips.current = {
       progress: () => {
         if (!measured()) return 0;
         const all = total();
-        return all > 0 ? banked() / all : 1;
+        return all > 0 ? loaded() / all : 1;
       },
       ready: () =>
-        (!wheel || (wheel.last() > 0 && wheel.bankedTo() >= wheel.last())) &&
-        (!pad || pad.bankedTo() >= K1),
-      counts: () => ({ banked: banked(), total: measured() ? total() : 0 }),
+        (!wheel || (wheel.last() > 0 && wheel.loadedTo() >= wheel.last())) &&
+        (!pad || pad.loadedTo() >= K1),
+      counts: () => ({ banked: loaded(), total: measured() ? total() : 0 }),
     };
 
     /* one clip at a time: the other is cut instantly, no overlap */
@@ -417,12 +420,12 @@ export default function HeroButtons({
 
     const clipsReady = () => (!pad || pad.ready()) && (!wheel || wheel.ready());
 
-    /* hold a phase back until every frame it will draw is banked, so the sequence
-       runs on decoded frames instead of holding on one still streaming. The cap
-       is only there so a lost frame cannot strand the page. */
+    /* hold a phase back until the frames it will draw have arrived, so the
+       sequence is not limping through the network as it plays. The cap is only
+       there so a lost frame cannot strand the page. */
     const bank = async (player: ClipPlayer | null, frame: number) => {
       for (let left = 20_000; left > 0; left -= 100) {
-        if (!player || player.bankedTo() >= frame) return;
+        if (!player || player.loadedTo() >= frame) return;
         await sleep(100);
       }
     };

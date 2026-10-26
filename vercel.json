@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "headers": [
+    {
+      "source": "/wheel-turn/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/Keypad frames/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/signup", "destination": "/index.html" },
+    { "source": "/signin", "destination": "/index.html" },
+    { "source": "/console", "destination": "/index.html" },
+    { "source": "/demo", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/vault/:path*", "destination": "/index.html" },
+    { "source": "/v/:path*", "destination": "/index.html" }
+  ]
+}

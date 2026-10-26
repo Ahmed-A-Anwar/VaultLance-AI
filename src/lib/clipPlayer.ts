@@ -1,8 +1,18 @@
 /* clipPlayer.ts — image-sequence player drawn onto its own canvas layered over
    the hero canvas. Frames come from a folder of ezgif-frame-NNN.webp exports;
-   the count is discovered from the folder, never hardcoded. */
+   the count is discovered from the folder, never hardcoded.
+
+   Frames are fetched and decoded in a worker (see clipWorker.ts) and decoded only
+   around the playhead. A 1920x1080 frame is about 8MB of pixels once decoded, so
+   holding a whole clip ready costs ~650MB and has to finish before the first
+   hover can be drawn — which is what made the entry gate wait, and what starved
+   the animation loop while it waited. Keeping the compressed bytes (a few MB for
+   the set) and decoding a window of them gives the same exact frames with a
+   fraction of the memory, and the gate waits on the download instead of on 130
+   decodes. */
 
 import gsap from "gsap";
+import type { Reply } from "./clipWorker";
 
 export interface ClipRect {
   dx: number;
@@ -30,20 +40,21 @@ export interface ClipPlayer {
   hideNow: () => void;
   dispose: () => void;
   ready: () => boolean;
-  /* highest frame with a contiguous run of decoded frames behind it: a caller
-     can hold a sequence back until everything it will draw is banked */
-  bankedTo: () => number;
+  /* highest frame with a contiguous run of *fetched* frames behind it: the set is
+     usable from here, its frames decode as they are needed */
+  loadedTo: () => number;
   index: () => number;
   last: () => number;
 }
 
+type Frame = ImageBitmap | HTMLImageElement;
+
 const frameName = (i: number) => `ezgif-frame-${String(i).padStart(3, "0")}.webp`;
-/* a stalled network must not hold a promise forever, but a cold load of a
-   1920x1080 frame set is genuinely slow: a budget tight enough to trip on a
-   normal cold start throws the whole clip away, which is the one outcome the
-   entry gate exists to prevent. */
-const LOAD_BUDGET = 20_000;
-const BATCH = 10;
+/* how far around the playhead to ask for frames it does not have yet, in frames */
+const AHEAD = 8;
+const BEHIND = 3;
+const REVERSE_AHEAD = 3;
+const REVERSE_BEHIND = 8;
 const FADE = 0.236;
 
 /* a dev server answers unknown paths with index.html, so ok alone is not enough */
@@ -91,16 +102,19 @@ export function createClipPlayer({
   const ctx = canvas.getContext("2d");
   const frameDur = 1000 / fps;
 
-  /* frames decode progressively: the first batch makes the clip playable, the
-     rest stream in behind it so the first hover starts as fast as the others */
-  let images: (HTMLImageElement | null)[] = [];
   let total = 0;
+  /* which frames have arrived (worker path) and, without a worker, their bytes */
+  let got: boolean[] = [];
+  let blobs: (Blob | null)[] = [];
+  let worker: Worker | null = null;
+  let firstSettled: ((ok: boolean) => void) | null = null;
+  /* decoded frames around the playhead, and the ones being decoded now */
+  let frames = new Map<number, Frame>();
+  let asked = new Set<number>();
   let loading: Promise<boolean> | null = null;
   let loaded = false;
   let warned = false;
   let disposed = false;
-  /* true once a frame is decoded, or has failed and will simply be skipped */
-  let settled: boolean[] = [];
 
   let current = 0;
   let target = 0;
@@ -108,8 +122,7 @@ export function createClipPlayer({
   let acc = 0;
   let lastT = 0;
   let raf = 0;
-  let drawn = -1;
-  let drawnImg = -1;
+  let drawnIdx = -1;
   let visible = false;
 
   canvas.style.opacity = "0";
@@ -126,14 +139,33 @@ export function createClipPlayer({
     console.warn(warning);
   };
 
+  const closeFrame = (f: Frame) => {
+    if (typeof ImageBitmap !== "undefined" && f instanceof ImageBitmap) f.close();
+  };
+
+  const accept = (i: number, frame: Frame) => {
+    asked.delete(i);
+    if (disposed) {
+      closeFrame(frame);
+      return;
+    }
+    frames.set(i, frame);
+    /* the worker decodes the clip in order, so every arriving frame can be the
+       one the playhead is on */
+    if (i === Math.round(current) || i === Math.round(target)) draw();
+  };
+
   const draw = () => {
     const rect = getRect();
     if (!ctx || !rect) return;
     const idx = Math.round(current);
-    /* hold the previous frame if this one has not decoded yet */
-    const imgIdx = images[idx] ? idx : drawnImg;
-    const img = imgIdx >= 0 ? images[imgIdx] : null;
-    if (!img || !img.complete) return;
+    /* hold the last painted frame until this one has decoded */
+    const frameIdx = frames.has(idx) ? idx : drawnIdx;
+    const frame = frameIdx >= 0 ? frames.get(frameIdx) : undefined;
+    if (!frame) {
+      if (!frames.has(idx)) decodeAt(idx);
+      return;
+    }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
@@ -148,17 +180,43 @@ export function createClipPlayer({
     ctx.clearRect(0, 0, w, h);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, rect.dx, rect.dy, rect.dw, rect.dh);
-    drawn = idx;
-    drawnImg = imgIdx;
+    ctx.drawImage(frame, rect.dx, rect.dy, rect.dw, rect.dh);
+    drawnIdx = frameIdx;
+    /* which frame is actually painted: the only honest progress signal a test
+       (or a person with devtools open) can read off a canvas */
+    canvas.dataset.frame = String(frameIdx);
+  };
+
+  const decodeAt = (i: number) => {
+    if (disposed || i < 0 || i >= total || frames.has(i) || asked.has(i)) return;
+    asked.add(i);
+    if (worker) {
+      worker.postMessage({ type: "decode", index: i });
+      return;
+    }
+    /* no worker: decode here, accepting that it costs the main thread */
+    const blob = blobs[i];
+    if (!blob) {
+      asked.delete(i);
+      return;
+    }
+    createImageBitmap(blob)
+      .then((bitmap) => accept(i, bitmap))
+      .catch(() => asked.delete(i));
+  };
+
+  /* keep just enough decoded in the direction the clip is travelling */
+  const warm = (center: number, bias: number) => {
+    const ahead = bias < 0 ? REVERSE_AHEAD : AHEAD;
+    const behind = bias < 0 ? REVERSE_BEHIND : BEHIND;
+    for (let i = center - behind; i <= center + ahead; i++) decodeAt(i);
   };
 
   const clear = () => {
     if (!ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawn = -1;
-    drawnImg = -1;
+    drawnIdx = -1;
   };
 
   const fade = (to: number, done?: () => void) => {
@@ -186,6 +244,7 @@ export function createClipPlayer({
     const wasReversing = dir < 0;
     dir = 0;
     stopLoop();
+    warm(Math.round(current), 0);
     draw();
     onArrive?.(current);
     if (wasReversing && target <= 0) hide();
@@ -207,7 +266,8 @@ export function createClipPlayer({
       }
       current = next;
     }
-    if (Math.round(current) !== drawn) draw();
+    warm(Math.round(current), dir);
+    if (frames.has(Math.round(current)) && Math.round(current) !== drawnIdx) draw();
     raf = requestAnimationFrame(tick);
   };
 
@@ -225,7 +285,7 @@ export function createClipPlayer({
 
   const onResize = () => {
     if (!visible) return;
-    drawn = -1;
+    drawnIdx = -1;
     draw();
   };
 
@@ -234,86 +294,90 @@ export function createClipPlayer({
   window.addEventListener("resize", onResize);
   document.addEventListener("visibilitychange", onVisibility);
 
-  const decodeOne = async (u: string) => {
-    const img = new Image();
-    img.decoding = "async";
-    img.src = u;
-    if (typeof img.decode === "function") await img.decode();
-    else
-      await new Promise<void>((res, rej) => {
-        img.onload = () => res();
-        img.onerror = () => rej(new Error("frame failed"));
-      });
-    return img;
+  const onWorkerMessage = (e: MessageEvent<Reply>) => {
+    const msg = e.data;
+    if (msg.type === "fetched") {
+      got[msg.index] = true;
+      if (msg.index === 0) {
+        loaded = msg.ok;
+        if (!msg.ok) warnOnce();
+        firstSettled?.(msg.ok);
+        firstSettled = null;
+      }
+      return;
+    }
+    if (msg.type === "frame") {
+      accept(msg.index, msg.bitmap);
+      return;
+    }
+    asked.delete(msg.index);
   };
 
-  const fill = async (urls: string[], from: number, to: number) => {
-    await Promise.all(
-      urls.slice(from, to).map(async (u, k) => {
-        try {
-          images[from + k] = await decodeOne(u);
-        } catch {
-          /* a single bad frame leaves a hold, not a failed clip */
-          images[from + k] = null;
-        } finally {
-          settled[from + k] = true;
-        }
-      })
-    );
+  /* the no-worker path: fetch here, decode here */
+  const loadInline = async (list: string[]) => {
+    const fetchOne = async (i: number) => {
+      try {
+        const res = await fetch(list[i], { cache: "force-cache" });
+        if (!res.ok) throw new Error(String(res.status));
+        blobs[i] = await res.blob();
+      } catch {
+        blobs[i] = null;
+      } finally {
+        got[i] = true;
+      }
+    };
+    await fetchOne(0);
+    if (!blobs[0]) throw new Error("first frame failed");
+    loaded = true;
+    decodeAt(0);
+    void (async () => {
+      for (let i = 1; i < total; i += 8) {
+        if (disposed) return;
+        const batch: Promise<void>[] = [];
+        for (let k = i; k < Math.min(i + 8, total); k++) batch.push(fetchOne(k));
+        await Promise.all(batch);
+      }
+    })();
   };
 
-  const load = (urls: string[]): Promise<boolean> => {
+  const load = (list: string[]): Promise<boolean> => {
     if (loaded) return Promise.resolve(true);
     if (loading) return loading;
     loading = (async () => {
-      const t0 = Date.now();
-      /* Browsers defer image decoding while the page is in the background, so a
-         cold load in an unfocused tab can sit there far past the budget and get
-         its clip thrown away. Only time spent awake counts. */
-      let asleep = 0;
-      let asleepFrom = document.hidden ? t0 : 0;
-      const watch = () => {
-        if (document.hidden) {
-          if (!asleepFrom) asleepFrom = Date.now();
-        } else if (asleepFrom) {
-          asleep += Date.now() - asleepFrom;
-          asleepFrom = 0;
-        }
-      };
-      document.addEventListener("visibilitychange", watch);
-      const awake = () =>
-        Date.now() - t0 - asleep - (asleepFrom ? Date.now() - asleepFrom : 0);
       try {
-        if (!urls.length) throw new Error("no frames");
-        total = urls.length;
-        images = new Array<HTMLImageElement | null>(total).fill(null);
-        settled = new Array<boolean>(total).fill(false);
-        await fill(urls, 0, Math.min(BATCH, total));
-        if (!images[0]) throw new Error("first frame failed");
-        if (awake() > LOAD_BUDGET) throw new Error("load budget exceeded");
-        loaded = true;
-        drawn = -1;
-        drawnImg = -1;
-        /* the rest streams in after the first batch, yielding between batches */
-        void (async () => {
-          for (let i = BATCH; i < total; i += BATCH) {
-            if (disposed) return;
-            /* yield only long enough to keep the frame loop breathing: the clip
-               has to be fully banked before the sequence that uses it starts */
-            await new Promise<void>((res) => window.setTimeout(res, 0));
-            if (disposed) return;
-            await fill(urls, i, Math.min(i + BATCH, total));
+        if (!list.length) throw new Error("no frames");
+        total = list.length;
+        got = new Array<boolean>(total).fill(false);
+        blobs = new Array<Blob | null>(total).fill(null);
+        drawnIdx = -1;
+        if (typeof Worker !== "undefined") {
+          try {
+            worker = new Worker(new URL("./clipWorker.ts", import.meta.url), { type: "module" });
+            worker.onmessage = onWorkerMessage;
+            const first = new Promise<boolean>((res) => {
+              firstSettled = res;
+              worker!.postMessage({ type: "init", urls: list });
+            });
+            const ok = await first;
+            if (!ok) throw new Error("first frame failed");
+            loaded = true;
+            decodeAt(0);
+            return true;
+          } catch {
+            worker?.terminate();
+            worker = null;
+            loaded = false;
           }
-        })();
+        }
+        await loadInline(list);
         return true;
       } catch {
-        images = [];
+        got = [];
+        blobs = [];
         total = 0;
         loaded = false;
         warnOnce();
         return false;
-      } finally {
-        document.removeEventListener("visibilitychange", watch);
       }
     })();
     return loading;
@@ -329,9 +393,10 @@ export function createClipPlayer({
       fade(1);
     }
     if (dir === 0) {
-      if (drawn !== at) draw();
+      if (drawnIdx !== at) draw();
       return;
     }
+    warm(at, dir);
     stopLoop();
     run();
   };
@@ -347,6 +412,7 @@ export function createClipPlayer({
       return;
     }
     dir = -1;
+    warm(at, dir);
     stopLoop();
     run();
   };
@@ -371,7 +437,13 @@ export function createClipPlayer({
     window.removeEventListener("resize", onResize);
     document.removeEventListener("visibilitychange", onVisibility);
     gsap.killTweensOf(canvas);
-    images = [];
+    worker?.terminate();
+    worker = null;
+    for (const f of frames.values()) closeFrame(f);
+    frames = new Map();
+    asked = new Set();
+    blobs = [];
+    got = [];
     total = 0;
     loaded = false;
     visible = false;
@@ -386,8 +458,10 @@ export function createClipPlayer({
     hideNow,
     dispose,
     ready: () => loaded,
-    bankedTo: () => {
-      for (let i = 0; i < total; i++) if (!settled[i]) return i - 1;
+    /* contiguous decoded frames: playback runs on frames that are already
+       bitmaps, so this is what the entry gate and the intro wait for */
+    loadedTo: () => {
+      for (let i = 0; i < total; i++) if (!frames.has(i)) return i - 1;
       return total - 1;
     },
     index: () => Math.round(current),
