@@ -487,6 +487,192 @@
   }
 }
 
+/* ---- entry gate ----
+   Covers the page while the two CTA clips decode. The gradient is the hero's
+   own, so the curtain lifting reads as the page arriving rather than as an
+   overlay disappearing. The dial is the vault's own vocabulary: a needle you
+   can turn, a ring that counts frames, the number in the hub. */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, var(--hero-bg-top) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-bot) 100%);
+  color: var(--hero-ink);
+  user-select: none;
+}
+.boot-inner {
+  width: min(360px, 72vw);
+  display: grid;
+  justify-items: center;
+  gap: var(--hero-s-21);
+  text-align: center;
+}
+.boot-word {
+  font-family: var(--hero-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--hero-slate);
+}
+
+/* ---- the dial ---- */
+.boot-dial {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  touch-action: none;
+  cursor: grab;
+}
+.boot-dial.is-dragging {
+  cursor: grabbing;
+}
+.boot-ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.boot-ring-track {
+  fill: none;
+  stroke: rgba(138, 149, 161, 0.4);
+  stroke-width: 1;
+}
+.boot-ring-arc {
+  fill: none;
+  stroke: var(--hero-brass);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 60px 60px;
+  transition: stroke-dashoffset 0.45s linear;
+}
+.boot-ticks line {
+  stroke: rgba(138, 149, 161, 0.55);
+  stroke-width: 1;
+}
+/* the marker rides the rim rather than crossing the hub, so the count in the
+   middle never sits under it: a short ink tick with a brass head */
+.boot-needle {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-120deg);
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.boot-dial.is-dragging .boot-needle {
+  transition: none;
+}
+.boot-needle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 1.5px;
+  height: 10px;
+  background: var(--hero-ink);
+  transform: translateX(-50%);
+}
+.boot-needle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+}
+.boot-hub {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  font-family: var(--hero-font-mono);
+  color: var(--hero-ink);
+}
+.boot-hub-num {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.boot-hub-unit {
+  font-size: 12px;
+  color: var(--hero-slate);
+}
+
+/* ---- the report under the dial ---- */
+.boot-count {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--hero-s-13);
+  font-family: var(--hero-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--hero-slate);
+}
+.boot-count-num {
+  color: var(--hero-ink);
+  font-variant-numeric: tabular-nums;
+}
+.boot-line {
+  font-family: var(--hero-font-body);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--hero-steel);
+  animation: boot-line-in 0.618s ease-out both;
+}
+@keyframes boot-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* the way out of a wait that runs long; nothing else on the page competes with
+   it, so it stays a text link, not a button */
+.boot-skip {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  cursor: pointer;
+  font-family: var(--hero-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+  border-bottom: 1px solid rgba(138, 149, 161, 0.6);
+}
+.boot-skip:hover {
+  color: var(--hero-ink);
+  border-bottom-color: var(--hero-brass);
+}
+
+@media (max-width: 480px) {
+  .boot-dial {
+    width: 124px;
+    height: 124px;
+  }
+  .boot-hub-num {
+    font-size: 22px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-shimmer {
     display: none;

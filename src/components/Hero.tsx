@@ -22,6 +22,8 @@ export function Hero() {
     signupRef,
     signinRef,
     ready,
+    booted,
+    clips,
     reduced,
     returning,
     startSignup,
@@ -74,8 +76,10 @@ export function Hero() {
     };
   }, [ready, returning]);
 
+  /* the entrance waits for the entry gate: the vault has painted, and both CTA
+     clips are banked. Running it under the curtain is what the gate is for. */
   useEffect(() => {
-    if (!ready || returning) return;
+    if (!ready || returning || !booted) return;
     const timeline = createHeroTimeline({
       reducedMotion: reduced,
       parallax: !reduced && window.innerWidth >= 1024,
@@ -97,7 +101,7 @@ export function Hero() {
     timeline.play();
     return () => timeline.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, reduced, returning]);
+  }, [ready, booted, reduced, returning]);
 
   return (
     <>
@@ -123,6 +127,8 @@ export function Hero() {
         signupRef={signupRef}
         signinRef={signinRef}
         fx={fx}
+        clips={clips}
+        booted={booted}
         reducedMotion={reduced}
         onSignup={startSignup}
         signinHref={SIGNIN_HREF}

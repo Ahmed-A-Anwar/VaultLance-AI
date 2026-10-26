@@ -11,13 +11,17 @@ import type { RefObject } from "react";
 import type { VaultFx } from "./HeroVault";
 import { CLIPS, FX } from "../config/fx";
 import keypadManifest from "../config/keypad-manifest.json";
+import wheelManifest from "../config/wheel-manifest.json";
 import { createClipPlayer, discoverFrames, type ClipPlayer } from "../lib/clipPlayer";
-import { useVaultScene } from "../lib/vaultScene";
+import { useVaultScene, type VaultClipsHandle } from "../lib/vaultScene";
 
 export interface HeroButtonsProps {
   signupRef: RefObject<HTMLAnchorElement | null>;
   signinRef: RefObject<HTMLAnchorElement | null>;
   fx: RefObject<VaultFx | null>;
+  /* published for the entry gate, which waits on these two clips */
+  clips: RefObject<VaultClipsHandle | null>;
+  booted: boolean;
   reducedMotion: boolean;
   /* Sign up hands off to the signup transition, which owns the navigation */
   onSignup: () => void;
@@ -26,6 +30,9 @@ export interface HeroButtonsProps {
 
 const KEYPAD_FRAMES: string[] = keypadManifest;
 const KEYPAD_COUNT = KEYPAD_FRAMES.length;
+/* listed at build time, so the entry gate has a denominator before the request
+   goes out; discovery stays as the fallback for a folder with no manifest */
+const WHEEL_FRAMES: string[] = wheelManifest;
 /* frame at which the keys are fully lit and idle, before code entry */
 const K1 = Math.round(KEYPAD_COUNT * CLIPS.keypad.k1Fraction);
 
@@ -57,11 +64,17 @@ export default function HeroButtons({
   signupRef,
   signinRef,
   fx,
+  clips,
+  booted,
   reducedMotion,
   onSignup,
   signinHref,
 }: HeroButtonsProps) {
   const navigate = useNavigate();
+  /* read in the effect below without re-running it: the gate opens mid-load and
+     a dependency on it would tear the players down and start the decode again */
+  const bootedRef = useRef(booted);
+  bootedRef.current = booted;
   /* the signin transition lives in the layout, which owns the vault and the
      route swap; this file only decides when the keypad has gone far enough */
   const { startSignin } = useVaultScene();
@@ -142,6 +155,36 @@ export default function HeroButtons({
       console.log(`[fx] keypad clip: ${KEYPAD_COUNT} frames, K1 = ${K1}`);
     }
 
+    /* what the entry gate measures: the whole wheel, because the intro turns it
+       end to end, and the keypad up to K1, which is as far as the intro or a
+       Sign in click ever goes before the route takes over */
+    const padNeed = K1 + 1;
+    /* the wheel's length is discovered from its folder, so there is no total to
+       report until the probe has answered: a made-up denominator would make the
+       bar jump backwards the moment the real one arrived */
+    const wheelNeed = () => (wheel ? (wheel.last() > 0 ? wheel.last() + 1 : 0) : 0);
+    const measured = () => !wheel || wheelNeed() > 0;
+    const bankedIn = (p: ClipPlayer | null, need: number) => {
+      if (!p) return need;
+      return Math.max(0, Math.min(need, p.bankedTo() + 1));
+    };
+
+    clips.current = {
+      progress: () => {
+        if (!measured()) return 0;
+        const wNeed = wheelNeed();
+        const all = wNeed + padNeed;
+        return all > 0 ? (bankedIn(wheel, wNeed) + bankedIn(pad, padNeed)) / all : 1;
+      },
+      ready: () =>
+        (!wheel || (wheel.last() > 0 && wheel.bankedTo() >= wheel.last())) &&
+        (!pad || pad.bankedTo() >= K1),
+      counts: () => ({
+        banked: bankedIn(wheel, wheelNeed()) + bankedIn(pad, padNeed),
+        total: measured() ? wheelNeed() + padNeed : 0,
+      }),
+    };
+
     /* one clip at a time: the other is cut instantly, no overlap */
     const startWheel = () => {
       if (!wheel?.ready()) return;
@@ -170,7 +213,7 @@ export default function HeroButtons({
       if (!wheel || wheelLoading || wheel.ready()) return;
       const p = wheel;
       wheelLoading = true;
-      discoverFrames(CLIPS.wheel.dir)
+      (WHEEL_FRAMES.length ? Promise.resolve(WHEEL_FRAMES) : discoverFrames(CLIPS.wheel.dir))
         .then((urls) => {
           wheelUrls = urls;
           return p.load(urls);
@@ -388,6 +431,9 @@ export default function HeroButtons({
     /* Keypad first, then one wheel turn: the hover amounts only, never the click
        amount, and nothing here changes how the buttons react afterwards. */
     const runIntro = async () => {
+      /* nothing demos itself behind the entry gate: the entrance only starts once
+         the gate opens, so the beat is measured from the release, not the mount */
+      while (!bootedRef.current) await sleep(100);
       /* the entrance has to land on screen before the demo starts over it */
       await sleep(INTRO_DELAY);
       /* the keypad decodes after the entrance: wait for it */
@@ -463,10 +509,13 @@ export default function HeroButtons({
       signin.removeEventListener("click", clickIn);
       up.removeEventListener("touchstart", tapUp);
       signin.removeEventListener("touchstart", tapIn);
+      /* the gate keeps polling this ref: clearing it retires the measurement
+         instead of leaving it pointing at disposed players */
+      clips.current = null;
       wheel?.dispose();
       pad?.dispose();
     };
-  }, [signupRef, signinRef, fx, reducedMotion, onSignup, signinHref, navigate, startSignin]);
+  }, [signupRef, signinRef, fx, clips, reducedMotion, onSignup, signinHref, navigate, startSignin]);
 
   return null;
 }
