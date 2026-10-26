@@ -14,7 +14,6 @@
    the finished hero for a frame before the entrance resets it. */
 
 import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
 import type { RefObject } from "react";
 import type { VaultClipsHandle } from "../lib/vaultScene";
 
@@ -97,16 +96,15 @@ export function Boot({ ready, clips, onEnter, onGone }: BootProps) {
       live.current.onEnter();
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          const el = rootRef.current;
-          if (!alive || !el) return;
-          gsap.to(el, {
-            opacity: 0,
-            duration: FADE,
-            ease: "power2.inOut",
-            onComplete: () => {
-              if (alive) live.current.onGone();
-            },
-          });
+          if (!alive) return;
+          /* a CSS transition plus a timer rather than a tween: the curtain has to
+             come down while the thread is busy decoding the very frames it was
+             waiting for, and a rAF-driven tween can be starved for long enough
+             that the gate appears stuck after it has already opened */
+          rootRef.current?.classList.add("is-lifting");
+          window.setTimeout(() => {
+            if (alive) live.current.onGone();
+          }, FADE * 1000 + 80);
         })
       );
     };
