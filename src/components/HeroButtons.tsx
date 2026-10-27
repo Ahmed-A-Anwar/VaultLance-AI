@@ -41,16 +41,14 @@ const finePointer = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-/* no phone-sized keypad frame set, so the clip is desktop-only and phones keep
-   the flat v2 keys */
-const padViewport = () =>
-  typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
-
 /* ---------- entrance intro ---------- */
 /* the entrance timeline lands at 2.618s; the clips start after it */
 const INTRO_DELAY = 2618;
 /* beat on the lit keypad before the keys run back down */
 const INTRO_HOLD = 618;
+/* how long a tap waits for the frames it is about to play before the route wins:
+   the visitor asked for the motion, but not for a button that never answers */
+const LOAD_GRACE = 4500;
 
 const whenIdle = (cb: () => void) => {
   const w = window as Window & {
@@ -139,10 +137,10 @@ export default function HeroButtons({
       });
     }
 
+    /* phones run the same keypad clip: the phone band crops the frame, but the
+       keypad sits in the middle of it, so the lit keys are what the band shows */
     const padLayer =
-      FX.keypadClip && !reducedMotion && KEYPAD_COUNT > 0 && padViewport()
-        ? fx.current?.getKeypadLayer()
-        : null;
+      FX.keypadClip && !reducedMotion && KEYPAD_COUNT > 0 ? fx.current?.getKeypadLayer() : null;
     if (padLayer?.canvas) {
       pad = createClipPlayer({
         canvas: padLayer.canvas,
@@ -317,10 +315,11 @@ export default function HeroButtons({
     const clickUp = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return onSignup();
-      /* a touch has no hover to preview the turn with, so the tap is the commit:
-         the signup transition is the motion, not a clip played out first. On a
-         pointer device the turn is the hover, and the click lands on it. */
-      if (upTap || !canHover) return onSignup();
+      /* A touch has no hover to preview the turn with, so the tap is preview and
+         commit at once: the wheel turns on the vault, lands, and the route
+         changes after it — the same turn a mouse sees on hover. */
+      const touch = upTap || !canHover;
+      if (touch) hoveringUp = true;
       if (wheel?.ready()) {
         const atEnd = wheel.index() >= wheel.last();
         startWheel();
@@ -330,23 +329,44 @@ export default function HeroButtons({
         }
         wheelNav = true;
         /* the clip reports its landing; this only catches a frame loop that
-           never got there (a tab held in the background through the turn) */
+           never got there (a tab held in the background through the turn). A
+           phone decodes the frames as it plays, so its turn can run long. */
         const turn = ((wheel.last() + 1) / CLIPS.wheel.fps) * 1000;
-        later(() => {
-          if (!wheelNav) return;
-          wheelNav = false;
-          landWheel();
-        }, turn + 2618);
+        later(
+          () => {
+            if (!wheelNav) return;
+            wheelNav = false;
+            landWheel();
+          },
+          turn + 2618 + (touch ? LOAD_GRACE : 0)
+        );
         return;
       }
       requestWheel();
+      if (touch && wheel) {
+        /* frames still on the wire: play them when they land, and leave anyway
+           if they never do */
+        wheelNav = true;
+        const frames = wheel.last() > 0 ? wheel.last() + 1 : WHEEL_FRAMES.length;
+        later(
+          () => {
+            if (!wheelNav) return;
+            wheelNav = false;
+            landWheel();
+          },
+          (frames / CLIPS.wheel.fps) * 1000 + LOAD_GRACE + 2618
+        );
+        return;
+      }
       departUp();
     };
 
     const clickIn = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return goSignin();
-      if (inTap || !canHover) return goSignin();
+      /* the keypad plays out on the vault, then /signin opens on the lit keys */
+      const touch = inTap || !canHover;
+      if (touch) hoveringIn = true;
       /* with the signin flow the clip stops at K1: keys lit and idle, which is
          the frame the form is unlocked over. The code entry from there belongs
          to /signin, not to the hero. */
@@ -360,15 +380,35 @@ export default function HeroButtons({
         }
         padNav = true;
         /* the clip reports its own landing; this only catches a frame loop that
-           never got there (a tab held in the background) */
-        later(() => {
-          if (!padNav) return;
-          padNav = false;
-          goSignin();
-        }, 2618);
+           never got there (a tab held in the background). A phone decodes as it
+           plays, so its keys get longer than the desktop's beat. */
+        const travel = ((target + 1) / CLIPS.keypad.fps) * 1000;
+        later(
+          () => {
+            if (!padNav) return;
+            padNav = false;
+            goSignin();
+          },
+          2618 + (touch ? travel + LOAD_GRACE : 0)
+        );
         return;
       }
       requestPad();
+      if (touch && pad) {
+        /* the keys are still arriving: run them up when they do, and hand over
+           to /signin either way */
+        padNav = true;
+        const frames = target > 0 ? target + 1 : KEYPAD_COUNT;
+        later(
+          () => {
+            if (!padNav) return;
+            padNav = false;
+            goSignin();
+          },
+          (frames / CLIPS.keypad.fps) * 1000 + LOAD_GRACE
+        );
+        return;
+      }
       if (FX.signinFlow) {
         goSignin();
         return;
@@ -446,20 +486,25 @@ export default function HeroButtons({
     };
 
     /* Keypad first, then one wheel turn: the hover amounts only, never the click
-       amount, and nothing here changes how the buttons react afterwards. */
+       amount, and nothing here changes how the buttons react afterwards. A
+       pointer or a tap takes the clips off the demo for good — including a tap
+       that lands mid-phase, which used to leave the demo reversing the very
+       clip the tap was playing. */
+    const tookOver = () => hoveringUp || hoveringIn || wheelNav || padNav;
+
     const runIntro = async () => {
       /* nothing demos itself behind the entry gate: the entrance only starts once
          the gate opens, so the beat is measured from the release, not the mount */
       while (!bootedRef.current) await sleep(100);
       /* the entrance has to land on screen before the demo starts over it */
       await sleep(INTRO_DELAY);
-      if (hoveringUp || hoveringIn) return;
+      if (tookOver()) return;
       console.info("[fx] vault intro: keypad, then one wheel turn");
 
       /* the keys light up and run back down inside 0..K1, so that is all this
          phase needs banked before it starts */
       const padIn = await soon(pad, K1, 6000);
-      if (hoveringUp || hoveringIn) return;
+      if (tookOver()) return;
       if (padIn && pad?.ready() && pad.index() < K1) {
         const arrived = new Promise<void>((res) => {
           padArrive = res;
@@ -474,7 +519,7 @@ export default function HeroButtons({
         await sleep(INTRO_HOLD);
 
         /* the keys go dark at their own pace before the wheel takes over */
-        if (!hoveringUp && !hoveringIn) {
+        if (!tookOver()) {
           const settled = new Promise<void>((res) => {
             padArrive = res;
           });
@@ -485,7 +530,7 @@ export default function HeroButtons({
       }
 
       /* the pointer took over while the keys were lit: leave it alone */
-      if (hoveringUp || hoveringIn) return;
+      if (tookOver()) return;
 
       requestWheel();
       /* the whole turn is drawn, so the wait is on the whole clip — but its
@@ -493,7 +538,7 @@ export default function HeroButtons({
          loop rather than a count up front */
       for (let left = 5000; left > 0; left -= 100) {
         if (wheel && wheel.last() > 0 && wheel.loadedTo() >= wheel.last()) break;
-        if (hoveringUp || hoveringIn) return;
+        if (tookOver()) return;
         await sleep(100);
       }
       if (wheel?.ready() && wheel.last() > 0 && wheel.loadedTo() >= wheel.last()) {
@@ -504,8 +549,8 @@ export default function HeroButtons({
         await Promise.race([arrived, sleep(9000)]);
         wheelArrive = null;
         /* back to closed, so the first real hover starts from the same frame */
-        if (!hoveringUp && !hoveringIn) wheel.reverseTo(0);
-      } else if (pad?.ready() && !hoveringIn) {
+        if (!tookOver()) wheel.reverseTo(0);
+      } else if (pad?.ready() && !tookOver()) {
         /* no wheel clip to take over: dim the keys instead of leaving them lit */
         pad.reverseTo(0);
       }
