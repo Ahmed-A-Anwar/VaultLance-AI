@@ -311,6 +311,10 @@
   white-space: nowrap;
   cursor: pointer;
   overflow: hidden;
+  /* a tap is the press: no 300ms wait to see whether a double tap is a zoom,
+     and no grey flash over the brass */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: box-shadow 0.382s ease, background-color 0.382s ease, border-color 0.382s ease, color 0.382s ease;
 }
 .hero-btn.primary {
@@ -318,8 +322,12 @@
   background: linear-gradient(160deg, var(--hero-brass-light) 0%, var(--hero-brass) 100%);
   box-shadow: 0 13px 34px rgba(184, 137, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
 }
-.hero-btn.primary:hover {
-  box-shadow: 0 18px 44px rgba(184, 137, 58, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+/* hover is for pointers that have one: on a phone the same rule would stick
+   after a tap and read as a state the visitor still has to confirm */
+@media (hover: hover) and (pointer: fine) {
+  .hero-btn.primary:hover {
+    box-shadow: 0 18px 44px rgba(184, 137, 58, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  }
 }
 .hero-btn.glass {
   color: var(--hero-ink);
@@ -329,9 +337,11 @@
   border: 1px solid var(--hero-steel);
   box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
 }
-.hero-btn.glass:hover {
-  border-color: var(--hero-teal);
-  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08), 0 0 0 4px rgba(18, 165, 181, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .hero-btn.glass:hover {
+    border-color: var(--hero-teal);
+    box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08), 0 0 0 4px rgba(18, 165, 181, 0.15);
+  }
 }
 .hero-btn:active {
   transform: scale(0.97);
@@ -358,8 +368,10 @@
   animation: hero-sweep 6.18s linear infinite;
 }
 /* one 1.618s pass on hover, idle pass every 6.18s */
-.hero-btn.primary:hover .hero-shimmer {
-  animation: hero-sweep 6.18s linear infinite, hero-sweep-once 1.618s linear 1;
+@media (hover: hover) and (pointer: fine) {
+  .hero-btn.primary:hover .hero-shimmer {
+    animation: hero-sweep 6.18s linear infinite, hero-sweep-once 1.618s linear 1;
+  }
 }
 @keyframes hero-sweep {
   0% { transform: translateX(-140%); }
@@ -467,23 +479,14 @@
   .hero-eyebrow {
     font-size: 12px;
   }
-  /* the frame is drawn past every edge on phones; fade the crop instead of
-     letting the top and bottom of the image register as a rectangle */
+  /* the phone band crops the frame, so the crop has to be soft — but not with a
+     mask: WebKit can paint a masked-out canvas row black, and a mask on an
+     element GSAP is translating can leave a one-pixel seam where the layer ends
+     (the dark line under the safe). The fade is written into the canvas pixels
+     instead, for the still and for both clips — see canvasFeather. */
   .hero-canvas {
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 21px,
-      #000 calc(100% - 21px),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 21px,
-      #000 calc(100% - 21px),
-      transparent 100%
-    );
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   /* chips scroll as one row instead of stacking */
   .hero-chips {
@@ -679,9 +682,11 @@
   color: var(--hero-slate);
   border-bottom: 1px solid rgba(138, 149, 161, 0.6);
 }
-.boot-skip:hover {
-  color: var(--hero-ink);
-  border-bottom-color: var(--hero-brass);
+@media (hover: hover) and (pointer: fine) {
+  .boot-skip:hover {
+    color: var(--hero-ink);
+    border-bottom-color: var(--hero-brass);
+  }
 }
 
 @media (max-width: 480px) {

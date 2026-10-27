@@ -6,6 +6,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import gsap from "gsap";
 import type { ClipRect } from "../lib/clipPlayer";
+import { featherPhoneBand } from "../lib/canvasFeather";
 
 export interface ClipLayer {
   canvas: HTMLCanvasElement | null;
@@ -143,6 +144,9 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, dx, dy, dw, dh);
+      /* the phone band crops the frame; fade the crop into the page here rather
+         than with a CSS mask (see canvasFeather) */
+      featherPhoneBand(ctx, w, h);
     }
     const rect = rectRef.current;
     if (rect) {

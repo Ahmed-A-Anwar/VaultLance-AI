@@ -42,11 +42,15 @@
 .signup-home svg {
   transition: transform var(--hero-d-236) ease;
 }
-.signup-home:hover {
-  color: var(--hero-ink);
-}
-.signup-home:hover svg {
-  transform: translateX(-3px);
+/* hover only where a pointer can hover: on a phone the state would stick to the
+   last thing tapped */
+@media (hover: hover) and (pointer: fine) {
+  .signup-home:hover {
+    color: var(--hero-ink);
+  }
+  .signup-home:hover svg {
+    transform: translateX(-3px);
+  }
 }
 .signup-home:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -131,9 +135,11 @@
   cursor: pointer;
   transition: color var(--hero-d-236) ease, border-color var(--hero-d-236) ease;
 }
-.signup-chip:hover {
-  color: var(--hero-ink);
-  border-color: var(--hero-ink);
+@media (hover: hover) and (pointer: fine) {
+  .signup-chip:hover {
+    color: var(--hero-ink);
+    border-color: var(--hero-ink);
+  }
 }
 .signup-chip:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -175,8 +181,10 @@
   line-height: 1.4;
   transition: background-color var(--hero-d-382) ease, border-color var(--hero-d-382) ease;
 }
-.role-btn:hover {
-  background: rgba(255, 255, 255, 0.75);
+@media (hover: hover) and (pointer: fine) {
+  .role-btn:hover {
+    background: rgba(255, 255, 255, 0.75);
+  }
 }
 .role-btn[aria-pressed="true"] {
   background: rgba(226, 184, 103, 0.16);
@@ -252,8 +260,10 @@
 .signup-input::placeholder {
   color: var(--hero-slate);
 }
-.signup-input:hover {
-  border-color: var(--hero-ink);
+@media (hover: hover) and (pointer: fine) {
+  .signup-input:hover {
+    border-color: var(--hero-ink);
+  }
 }
 .signup-input:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -338,8 +348,10 @@
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
-.signup-link:hover {
-  color: var(--hero-teal);
+@media (hover: hover) and (pointer: fine) {
+  .signup-link:hover {
+    color: var(--hero-teal);
+  }
 }
 
 .signup-foot {
