@@ -13,6 +13,7 @@ import { CLIPS, FX } from "../config/fx";
 import keypadManifest from "../config/keypad-manifest.json";
 import wheelManifest from "../config/wheel-manifest.json";
 import { createClipPlayer, discoverFrames, type ClipPlayer } from "../lib/clipPlayer";
+import { featherPhoneBand } from "../lib/canvasFeather";
 import { useVaultScene, type VaultClipsHandle } from "../lib/vaultScene";
 
 export interface HeroButtonsProps {
@@ -84,6 +85,12 @@ export default function HeroButtons({
     const signin = signinRef.current;
     if (!up || !signin) return;
     const canHover = finePointer() && !reducedMotion;
+    /* what the last press on each button actually was. A media query cannot be
+       trusted for this: an iPad with a trackpad, a foldable, an in-app browser
+       all report a fine pointer, and then the finger is still the thing tapping.
+       The pointer that opened the press decides. */
+    let upTap = false;
+    let inTap = false;
     const timers: number[] = [];
     const later = (fn: () => void, ms: number) => {
       const id = window.setTimeout(fn, ms);
@@ -119,6 +126,7 @@ export default function HeroButtons({
         canvas: wheelLayer.canvas,
         fps: CLIPS.wheel.fps,
         getRect: wheelLayer.getRect,
+        feather: featherPhoneBand,
         onArrive: () => {
           const settle = wheelArrive;
           wheelArrive = null;
@@ -140,6 +148,7 @@ export default function HeroButtons({
         canvas: padLayer.canvas,
         fps: CLIPS.keypad.fps,
         getRect: padLayer.getRect,
+        feather: featherPhoneBand,
         warning: "[fx] keypad clip unavailable — Sign in keeps the static vault",
         onArrive: () => {
           const settle = padArrive;
@@ -311,7 +320,7 @@ export default function HeroButtons({
       /* a touch has no hover to preview the turn with, so the tap is the commit:
          the signup transition is the motion, not a clip played out first. On a
          pointer device the turn is the hover, and the click lands on it. */
-      if (!canHover) return onSignup();
+      if (upTap || !canHover) return onSignup();
       if (wheel?.ready()) {
         const atEnd = wheel.index() >= wheel.last();
         startWheel();
@@ -337,7 +346,7 @@ export default function HeroButtons({
     const clickIn = (e: MouseEvent) => {
       e.preventDefault();
       if (reducedMotion) return goSignin();
-      if (!canHover) return goSignin();
+      if (inTap || !canHover) return goSignin();
       /* with the signin flow the clip stops at K1: keys lit and idle, which is
          the frame the form is unlocked over. The code entry from there belongs
          to /signin, not to the hero. */
@@ -368,36 +377,47 @@ export default function HeroButtons({
       depart(signinHref);
     };
 
-    /* touch has no hover to preview with, so a tap is the action: the clip is
-       requested on touchstart and the click itself plays it and leaves. A first
-       tap that only armed the button made every phone visitor press twice. */
-    const tapUp = () => {
-      if (canHover || reducedMotion) return;
-      requestWheel();
+    /* hover is the mouse's move only: a finger's pointerenter must not arm the
+       button, or the first tap would preview the turn and the visitor would have
+       to press again. */
+    const mouseOnly = (fn: () => void) => (e: PointerEvent) => {
+      if (e.pointerType === "mouse") fn();
     };
-    const tapIn = () => {
-      if (canHover || reducedMotion) return;
-      requestPad();
-    };
-
+    /* stable wrappers, so the cleanup can take the same ones off again */
+    const enterUpMouse = mouseOnly(enterUp);
+    const leaveUpMouse = mouseOnly(leaveUp);
+    const enterInMouse = mouseOnly(enterIn);
+    const leaveInMouse = mouseOnly(leaveIn);
+    up.addEventListener("pointerenter", enterUpMouse);
+    up.addEventListener("pointerleave", leaveUpMouse);
+    signin.addEventListener("pointerenter", enterInMouse);
+    signin.addEventListener("pointerleave", leaveInMouse);
+    /* keyboard focus previews like a hover, but only where hovering exists */
     if (canHover) {
-      up.addEventListener("mouseenter", enterUp);
-      up.addEventListener("mouseleave", leaveUp);
-      signin.addEventListener("mouseenter", enterIn);
-      signin.addEventListener("mouseleave", leaveIn);
       up.addEventListener("focus", enterUp);
       up.addEventListener("blur", leaveUp);
       signin.addEventListener("focus", enterIn);
       signin.addEventListener("blur", leaveIn);
     }
-    up.addEventListener("pointerdown", () => press(up));
-    up.addEventListener("pointerup", () => release(up));
-    signin.addEventListener("pointerdown", () => press(signin));
-    signin.addEventListener("pointerup", () => release(signin));
+
+    const downUp = (e: PointerEvent) => {
+      upTap = e.pointerType !== "mouse";
+      press(up);
+    };
+    const downIn = (e: PointerEvent) => {
+      inTap = e.pointerType !== "mouse";
+      press(signin);
+    };
+    const upUp = () => release(up);
+    const upIn = () => release(signin);
+    up.addEventListener("pointerdown", downUp);
+    up.addEventListener("pointerup", upUp);
+    up.addEventListener("pointercancel", upUp);
+    signin.addEventListener("pointerdown", downIn);
+    signin.addEventListener("pointerup", upIn);
+    signin.addEventListener("pointercancel", upIn);
     up.addEventListener("click", clickUp);
     signin.addEventListener("click", clickIn);
-    up.addEventListener("touchstart", tapUp, { passive: false });
-    signin.addEventListener("touchstart", tapIn, { passive: false });
 
     /* ---------- first visit: the vault demos itself ---------- */
     /* Counts down only while the tab is on screen: a backgrounded or embedded
@@ -504,18 +524,22 @@ export default function HeroButtons({
       /* the vault outlives this route: anything the hero left lit (keys, glow,
          hinges, the hidden flat keypad) would still be on top of it */
       fx.current?.resetCtas();
-      up.removeEventListener("mouseenter", enterUp);
-      up.removeEventListener("mouseleave", leaveUp);
+      up.removeEventListener("pointerenter", enterUpMouse);
+      up.removeEventListener("pointerleave", leaveUpMouse);
+      signin.removeEventListener("pointerenter", enterInMouse);
+      signin.removeEventListener("pointerleave", leaveInMouse);
       up.removeEventListener("focus", enterUp);
       up.removeEventListener("blur", leaveUp);
-      signin.removeEventListener("mouseenter", enterIn);
-      signin.removeEventListener("mouseleave", leaveIn);
       signin.removeEventListener("focus", enterIn);
       signin.removeEventListener("blur", leaveIn);
+      up.removeEventListener("pointerdown", downUp);
+      up.removeEventListener("pointerup", upUp);
+      up.removeEventListener("pointercancel", upUp);
+      signin.removeEventListener("pointerdown", downIn);
+      signin.removeEventListener("pointerup", upIn);
+      signin.removeEventListener("pointercancel", upIn);
       up.removeEventListener("click", clickUp);
       signin.removeEventListener("click", clickIn);
-      up.removeEventListener("touchstart", tapUp);
-      signin.removeEventListener("touchstart", tapIn);
       /* the gate keeps polling this ref: clearing it retires the measurement
          instead of leaving it pointing at disposed players */
       clips.current = null;

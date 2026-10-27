@@ -27,6 +27,9 @@ export interface ClipPlayerOptions {
   getRect: () => ClipRect | null;
   /* console line used when the frames cannot be loaded */
   warning?: string;
+  /* run after every frame is painted: the phone band fades its canvas edges in
+     pixels rather than with a CSS mask (see canvasFeather) */
+  feather?: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
   onArrive?: (frame: number) => void;
   onHidden?: () => void;
 }
@@ -100,6 +103,7 @@ export function createClipPlayer({
   fps,
   getRect,
   warning = WHEEL_WARNING,
+  feather,
   onArrive,
   onHidden,
 }: ClipPlayerOptions): ClipPlayer {
@@ -186,6 +190,7 @@ export function createClipPlayer({
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(frame, rect.dx, rect.dy, rect.dw, rect.dh);
+    feather?.(ctx, w, h);
     drawnIdx = frameIdx;
     /* which frame is actually painted: the only honest progress signal a test
        (or a person with devtools open) can read off a canvas */

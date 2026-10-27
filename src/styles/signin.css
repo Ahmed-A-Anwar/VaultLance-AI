@@ -43,11 +43,14 @@
 .signin-home svg {
   transition: transform var(--hero-d-236) ease;
 }
-.signin-home:hover {
-  color: var(--hero-ink);
-}
-.signin-home:hover svg {
-  transform: translateX(-3px);
+/* hover only where a pointer can hover */
+@media (hover: hover) and (pointer: fine) {
+  .signin-home:hover {
+    color: var(--hero-ink);
+  }
+  .signin-home:hover svg {
+    transform: translateX(-3px);
+  }
 }
 .signin-home:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -181,8 +184,10 @@
 .signin-input::placeholder {
   color: var(--hero-slate);
 }
-.signin-input:hover {
-  border-color: var(--hero-ink);
+@media (hover: hover) and (pointer: fine) {
+  .signin-input:hover {
+    border-color: var(--hero-ink);
+  }
 }
 .signin-input:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -220,9 +225,11 @@
   cursor: pointer;
   transition: color var(--hero-d-236) ease, background-color var(--hero-d-236) ease;
 }
-.signin-eye:hover {
-  color: var(--hero-ink);
-  background: rgba(255, 255, 255, 0.55);
+@media (hover: hover) and (pointer: fine) {
+  .signin-eye:hover {
+    color: var(--hero-ink);
+    background: rgba(255, 255, 255, 0.55);
+  }
 }
 .signin-eye:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -242,8 +249,10 @@
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
-.signin-forgot:hover {
-  color: var(--hero-ink);
+@media (hover: hover) and (pointer: fine) {
+  .signin-forgot:hover {
+    color: var(--hero-ink);
+  }
 }
 .signin-forgot:focus-visible {
   outline: 3px solid var(--hero-teal);
@@ -304,8 +313,10 @@
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
-.signin-link:hover {
-  color: var(--hero-teal);
+@media (hover: hover) and (pointer: fine) {
+  .signin-link:hover {
+    color: var(--hero-teal);
+  }
 }
 
 .signin-foot {
