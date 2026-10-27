@@ -21,9 +21,13 @@ export type Reply =
    frames in batches of 8 measured ten seconds, the same frames in one sliding
    window about three. A slot frees, the next request starts. */
 const FETCH_WINDOW = 14;
-/* bitmaps decoded at once: enough to keep the pipeline full without holding a
-   long queue of full-resolution surfaces */
-const DECODE_BATCH = 4;
+/* Frames are decoded when the playhead asks for one, never ahead of the ask.
+   Decoding the whole set as it arrived was what fed the old entry-gate count,
+   but the gate now counts frames *fetched*: decoding everything spent the
+   decoder on frames seconds away — and on the other clip — while the playhead
+   waited for the next one, which is why a phone's keypad froze while the wheel
+   decoded behind it. The player asks for a window around the playhead, so that
+   window is the work. */
 
 let urls: string[] = [];
 let blobs: (Blob | null)[] = [];
@@ -32,8 +36,6 @@ let got: boolean[] = [];
    a batch: neither one can stall the other */
 let fetchNext = 0;
 let fetchBusy = 0;
-let decodeNext = 0;
-let decodeBusy = 0;
 
 const post = (reply: Reply, transfer: Transferable[] = []) => {
   (self as unknown as Worker).postMessage(reply, transfer);
@@ -76,29 +78,8 @@ const pumpFetch = () => {
     void getBlob(i).then(() => {
       fetchBusy -= 1;
       pumpFetch();
-      pumpDecode();
     });
   }
-};
-
-/* frames decode in index order: the page counts the contiguous run from zero, so
-   an out-of-order decode would hold its progress back. A frame that fails is
-   stepped over instead of blocking the ones behind it. */
-const pumpDecode = () => {
-  while (decodeBusy < DECODE_BATCH && decodeNext < urls.length && got[decodeNext]) {
-    const i = decodeNext++;
-    decodeBusy += 1;
-    void decodeAndPost(i).then(() => {
-      decodeBusy -= 1;
-      pumpDecode();
-    });
-  }
-};
-
-const run = () => {
-  if (!urls.length) return;
-  pumpFetch();
-  pumpDecode();
 };
 
 self.onmessage = (e: MessageEvent<Request>) => {
@@ -112,9 +93,7 @@ self.onmessage = (e: MessageEvent<Request>) => {
     got = new Array<boolean>(urls.length).fill(false);
     fetchNext = 0;
     fetchBusy = 0;
-    decodeNext = 0;
-    decodeBusy = 0;
-    run();
+    pumpFetch();
     return;
   }
   if (msg.type === "decode") {

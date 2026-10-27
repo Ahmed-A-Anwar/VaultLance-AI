@@ -59,6 +59,12 @@ const BEHIND = 3;
 const REVERSE_AHEAD = 3;
 const REVERSE_BEHIND = 8;
 const FADE = 0.236;
+/* frames kept decoded around the playhead. A 1920x1080 frame is ~8MB of pixels,
+   so a phone that plays a whole clip and keeps every frame would carry hundreds
+   of megabytes and be killed for it; outside the window the bitmap is closed and
+   re-decoded only if the playhead comes back to it. */
+const KEEP_BEHIND = 6;
+const KEEP_AHEAD = 12;
 /* how long a worker gets to announce itself: a module that fails to load (a
    blocked script URL, a stale deploy, a syntax error) never posts anything, and
    waiting on a promise nobody settles would hold the entry gate on zero frames */
@@ -220,6 +226,17 @@ export function createClipPlayer({
     const ahead = bias < 0 ? REVERSE_AHEAD : AHEAD;
     const behind = bias < 0 ? REVERSE_BEHIND : BEHIND;
     for (let i = center - behind; i <= center + ahead; i++) decodeAt(i);
+    trim(center);
+  };
+
+  /* drop the frames the playhead has left behind, and close their pixels */
+  const trim = (center: number) => {
+    for (const [i, frame] of frames) {
+      if (i < center - KEEP_BEHIND || i > center + KEEP_AHEAD) {
+        closeFrame(frame);
+        frames.delete(i);
+      }
+    }
   };
 
   const clear = () => {
@@ -328,10 +345,10 @@ export function createClipPlayer({
     asked.delete(msg.index);
   };
 
-  /* the no-worker path: fetch here, decode here. Each frame is decoded as it
-     arrives rather than around the playhead, because the entry gate counts
-     decoded frames: a lazy path here would never reach the count it waits for
-     and the visitor would sit on the curtain until it timed out. */
+  /* the no-worker path: fetch here, decode here, in order, so the frames the
+     playhead reaches are already bitmaps when there is no worker to decode for
+     it. The gate counts arrived frames, not decoded ones, so this is about
+     playback quality rather than about opening the curtain. */
   const loadInline = async (list: string[]) => {
     const fetchOne = async (i: number) => {
       try {
@@ -500,10 +517,11 @@ export function createClipPlayer({
     hideNow,
     dispose,
     ready: () => loaded,
-    /* contiguous decoded frames: playback runs on frames that are already
-       bitmaps, so this is what the entry gate and the intro wait for */
+    /* contiguous frames that have *arrived*. The frames are decoded around the
+       playhead as it plays, so a decoded count would sit at zero until playback
+       started and the gate and the intro would wait on it forever. */
     loadedTo: () => {
-      for (let i = 0; i < total; i++) if (!frames.has(i)) return i - 1;
+      for (let i = 0; i < total; i++) if (!got[i]) return i - 1;
       return total - 1;
     },
     index: () => Math.round(current),
