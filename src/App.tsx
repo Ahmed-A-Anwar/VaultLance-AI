@@ -11,6 +11,14 @@ const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const ClientFiles = lazy(() => import("./pages/ClientFiles"));
 const Console = lazy(() => import("./pages/Console"));
 const Demo = lazy(() => import("./pages/Demo"));
+/* the client dashboard. One shell for every area, so the rail and the strip
+   never remount between its routes. */
+const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
+const DashboardOverview = lazy(() => import("./pages/dashboard/Overview"));
+const DashboardVaults = lazy(() => import("./pages/dashboard/VaultsPage"));
+const DashboardLedger = lazy(() => import("./pages/dashboard/LedgerPage"));
+const DashboardPayments = lazy(() => import("./pages/dashboard/Payments"));
+const DashboardSettings = lazy(() => import("./pages/dashboard/Settings"));
 
 const Fallback = () => <p role="status" style={{ padding: "var(--s-8)" }}>Loading…</p>;
 
@@ -41,14 +49,17 @@ const routes: RouteObject[] = [
   { path: "/v/:token/files", element: <ClientFiles /> },
   { path: "/console", element: <Console /> },
   { path: "/demo", element: <Demo /> },
-  /* placeholder so a successful mock sign-in lands somewhere real */
+  /* the client dashboard: a guarded shell with one area per route */
   {
     path: "/dashboard",
-    element: (
-      <main id="main" className="wrap" style={{ paddingBlock: "var(--s-20)" }} data-testid="dashboard">
-        <h1>Dashboard</h1>
-      </main>
-    ),
+    element: <DashboardLayout />,
+    children: [
+      { index: true, element: <DashboardOverview /> },
+      { path: "vaults", element: <DashboardVaults /> },
+      { path: "ledger", element: <DashboardLedger /> },
+      { path: "payments", element: <DashboardPayments /> },
+      { path: "settings", element: <DashboardSettings /> },
+    ],
   },
   { path: "*", element: <p className="wrap" style={{ paddingBlock: "var(--s-20)" }}>Nothing here. <a href="/">The instrument is over here.</a></p> },
 ];
