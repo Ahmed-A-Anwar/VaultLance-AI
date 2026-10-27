@@ -1,0 +1,1961 @@
+/* Dashboard — the client's side of the instrument. Golden-system geometry
+   (phi 1.618, Fibonacci spacing) on the hero's own tokens: same ground gradient,
+   same brass, same glass, same durations. Nothing here invents a colour that is
+   not in the tokens or in the dashboard spec. */
+
+.dash {
+  --dash-rail: 89px;
+  --dash-rail-open: 233px;
+  --dash-strip: 55px;
+  --dash-pad: 34px;
+  --dash-gap: 21px;
+  --dash-r: 13px;
+  --dash-glass: rgba(255, 255, 255, 0.35);
+  --dash-glass-strong: rgba(255, 255, 255, 0.55);
+  --dash-hairline: rgba(138, 149, 161, 0.4);
+  --dash-brass-line: rgba(184, 137, 58, 0.55);
+  --dash-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
+  --dash-ease: cubic-bezier(0.215, 0.61, 0.355, 1); /* power3.out */
+  --dash-danger: #c4453d; /* the spec's danger, sparingly */
+
+  min-height: 100svh;
+  display: block;
+  background: linear-gradient(180deg, var(--hero-bg-top) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-bot) 100%);
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+}
+
+.dash :focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+  border-radius: var(--dash-r);
+}
+
+/* ---- skip link ---- */
+.dash-skip {
+  position: fixed;
+  left: var(--dash-gap);
+  top: -89px;
+  z-index: 100;
+  padding: 13px 21px;
+  border-radius: var(--dash-r);
+  background: var(--hero-ink);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: top var(--hero-d-236) var(--dash-ease);
+}
+.dash-skip:focus {
+  top: var(--dash-gap);
+}
+
+/* ---- rail ---- */
+.dash-rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: var(--dash-rail);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dash-gap);
+  padding: 34px 13px;
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-right: 1px solid var(--hero-steel);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+  transition: width var(--hero-d-382) var(--dash-ease);
+  will-change: width;
+}
+/* the brass hairline on the inner edge, and a bolt at each end of it */
+.dash-rail::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--dash-brass-line) 12%, var(--dash-brass-line) 88%, transparent);
+  pointer-events: none;
+}
+.dash-rail:hover,
+.dash-rail:focus-within {
+  width: var(--dash-rail-open);
+}
+.dash-rail-bolt {
+  position: absolute;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  margin-left: -6.5px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 50%;
+  background: var(--dash-glass-strong);
+  pointer-events: none;
+}
+.dash-rail-bolt::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+}
+.dash-rail-bolt-top {
+  top: 13px;
+}
+.dash-rail-bolt-bottom {
+  bottom: 13px;
+}
+
+.dash-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 34px;
+  padding: 0 8px;
+  color: var(--hero-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dash-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass-strong);
+  color: var(--hero-brass);
+}
+.dash-wordmark-text {
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity var(--hero-d-382) var(--dash-ease), transform var(--hero-d-382) var(--dash-ease);
+}
+.dash-rail:hover .dash-wordmark-text,
+.dash-rail:focus-within .dash-wordmark-text {
+  opacity: 1;
+  transform: none;
+}
+
+.dash-nav {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  height: 55px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: var(--dash-r);
+  background: none;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--hero-d-236) var(--dash-ease), color var(--hero-d-236) var(--dash-ease);
+}
+/* the teal underline draws left to right */
+.dash-nav-item::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 8px;
+  height: 1px;
+  background: var(--hero-teal);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--hero-d-382) var(--dash-ease);
+}
+.dash-nav-item:hover {
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--hero-ink);
+}
+.dash-nav-item:hover::after {
+  transform: scaleX(1);
+}
+.dash-nav-item:focus-visible {
+  outline-offset: -3px;
+}
+.dash-nav-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.dash-nav-label {
+  opacity: 0;
+  transition: opacity var(--hero-d-382) var(--dash-ease);
+}
+.dash-rail:hover .dash-nav-label,
+.dash-rail:focus-within .dash-nav-label {
+  opacity: 1;
+}
+.dash-nav-bar {
+  position: absolute;
+  left: 0;
+  top: 13px;
+  bottom: 13px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--hero-brass);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition: opacity var(--hero-d-236) var(--dash-ease), transform var(--hero-d-236) var(--dash-ease);
+}
+.dash-nav-bolt {
+  position: absolute;
+  right: 13px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--hero-d-236) var(--dash-ease), transform var(--hero-d-236) var(--dash-ease);
+}
+.dash-nav-item.is-active {
+  color: var(--hero-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+.dash-nav-item.is-active .dash-nav-bar,
+.dash-nav-item.is-active .dash-nav-bolt {
+  opacity: 1;
+  transform: none;
+}
+
+.dash-rail-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash-user {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 8px;
+  min-height: 34px;
+}
+.dash-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 50%;
+  background: var(--dash-glass-strong);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.dash-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--hero-d-382) var(--dash-ease);
+}
+.dash-rail:hover .dash-user-meta,
+.dash-rail:focus-within .dash-user-meta {
+  opacity: 1;
+}
+.dash-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hero-ink);
+  white-space: nowrap;
+}
+.dash-badge {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  /* the teal hue, darkened to the tint that clears 4.5:1 at 12px (5.77:1) */
+  color: #0a6a74;
+}
+.dash-signout {
+  color: var(--hero-slate);
+}
+
+/* ---- main + top strip ---- */
+.dash-main {
+  margin-left: var(--dash-rail);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dash-strip {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--dash-gap);
+  height: var(--dash-strip);
+  padding: 0 var(--dash-pad);
+  border-bottom: 1px solid var(--dash-hairline);
+}
+.dash-title {
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  /* the strip is 55px: the display face's descenders need the room */
+  padding-bottom: 3px;
+}
+.dash-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 233px;
+}
+.dash-search-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--hero-slate);
+  pointer-events: none;
+}
+.dash-search-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 13px 0 34px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  transition: border-color var(--hero-d-236) var(--dash-ease), background-color var(--hero-d-236) var(--dash-ease);
+}
+.dash-search-input::placeholder {
+  color: var(--hero-slate);
+}
+.dash-search-input:focus {
+  outline: none;
+  border-color: var(--hero-teal);
+  background: var(--dash-glass-strong);
+}
+.dash-search-input:focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 2px;
+}
+.dash-search-input::-webkit-search-cancel-button {
+  filter: grayscale(1);
+}
+.dash-strip-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.dash-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--hero-slate);
+  cursor: pointer;
+  transition: color var(--hero-d-236) var(--dash-ease), border-color var(--hero-d-236) var(--dash-ease);
+}
+.dash-bell:hover {
+  color: var(--hero-ink);
+  border-color: var(--hero-ink);
+}
+.dash-bell-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55);
+}
+/* the one brass action, the hero's own gradient */
+.dash-cta {
+  height: 34px;
+  padding: 0 21px;
+  border: 0;
+  border-radius: var(--dash-r);
+  background: linear-gradient(160deg, var(--hero-brass-light) 0%, var(--hero-brass) 100%);
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 8px 21px rgba(184, 137, 58, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  transition: transform var(--hero-d-236) var(--dash-ease), box-shadow var(--hero-d-382) var(--dash-ease);
+}
+.dash-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 34px rgba(184, 137, 58, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+.dash-cta:active {
+  transform: scale(0.97);
+}
+
+/* ---- body + the two bands ---- */
+.dash-body {
+  flex: 1;
+  min-width: 0;
+  padding: var(--dash-pad);
+  display: flex;
+  flex-direction: column;
+}
+.dash-bands {
+  flex: 1;
+  display: grid;
+  grid-template-rows: minmax(233px, 0.382fr) minmax(382px, 0.618fr);
+  gap: var(--dash-gap);
+  min-height: calc(100svh - var(--dash-strip) - (var(--dash-pad) * 2));
+}
+.dash-bands.is-single {
+  grid-template-rows: 1fr;
+}
+.dash-upper,
+.dash-lower {
+  display: grid;
+  grid-template-columns: 1.618fr 1fr;
+  gap: var(--dash-gap);
+  min-width: 0;
+}
+.dash-lower {
+  align-items: stretch;
+}
+
+/* ---- a plain area (placeholders, freelancer) ---- */
+.dash-plain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 13px;
+  padding: var(--dash-pad);
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--dash-shadow);
+}
+.dash-plain-h {
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  max-width: 34ch;
+}
+
+/* ---- shared bits ---- */
+.dash-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.dash-eyebrow-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+}
+.dash-mono {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--hero-slate);
+}
+.dim {
+  color: var(--hero-slate);
+}
+.dash-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ================================================================ upper band */
+
+.dash-greeting {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 21px;
+  min-width: 0;
+}
+.dash-greeting-h {
+  margin: 0;
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
+  font-size: 42px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  font-variant-ligatures: none;
+  text-wrap: balance;
+}
+.dash-greeting-line {
+  margin: 0;
+}
+
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  align-content: center;
+  min-width: 0;
+}
+.dash-kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: 89px;
+  padding: 4px 13px 6px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+  min-width: 0;
+}
+.dash-kpi::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 13px;
+  bottom: 13px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--kpi-accent, var(--hero-brass));
+}
+.dash-kpi[data-accent="brass"] {
+  --kpi-accent: var(--hero-brass);
+}
+.dash-kpi[data-accent="teal"] {
+  --kpi-accent: var(--hero-teal);
+}
+.dash-kpi[data-accent="success"] {
+  --kpi-accent: var(--hero-success);
+}
+.dash-kpi-ico {
+  color: var(--kpi-accent);
+  line-height: 0;
+  flex: none;
+}
+.dash-kpi-label {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  line-height: 1.1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.dash-kpi-num {
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+
+/* ================================================================= lower band */
+
+.dash-section-h {
+  margin: 0;
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.dash-vaults {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.dash-vaults-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 21px;
+  margin-bottom: 13px;
+  flex-wrap: wrap;
+}
+.dash-chips {
+  display: flex;
+  gap: 8px;
+}
+.dash-chip-filter {
+  height: 21px;
+  padding: 0 13px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: transparent;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--hero-d-236) var(--dash-ease), border-color var(--hero-d-236) var(--dash-ease),
+    background-color var(--hero-d-236) var(--dash-ease);
+}
+.dash-chip-filter:hover {
+  color: var(--hero-ink);
+  border-color: var(--hero-ink);
+}
+.dash-chip-filter[aria-pressed="true"] {
+  color: var(--hero-ink);
+  border-color: var(--hero-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dash-btn.dash-join-cta {
+  display: none;
+  width: 100%;
+  margin-bottom: 13px;
+}
+.dash-vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 0;
+}
+.dash-vault-list-empty {
+  margin: 0;
+}
+
+/* ---- the card ---- */
+.dash-vault {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 13px;
+  height: 144px;
+  padding: 13px 13px 13px 21px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+  transition: transform var(--hero-d-382) var(--dash-ease), box-shadow var(--hero-d-382) var(--dash-ease),
+    opacity var(--hero-d-382) var(--dash-ease);
+}
+.dash-vault:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 13px 34px rgba(14, 21, 32, 0.12);
+}
+.dash-vault[data-status="voided"] {
+  opacity: 0.6;
+}
+.dash-vault-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.dash-vault-head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.dash-vault-project {
+  margin: 0;
+  font-family: var(--hero-font-body);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-vault-freelancer {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--hero-slate);
+  font-size: 14px;
+  min-width: 0;
+}
+.dash-vault-amt {
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--hero-ink);
+  letter-spacing: -0.01em;
+}
+
+.dash-vault-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dash-vault-wheel {
+  color: var(--hero-steel);
+  transition: transform var(--hero-d-618) cubic-bezier(0.215, 0.61, 0.355, 1), color var(--hero-d-382) var(--dash-ease);
+}
+.dash-vault:hover .dash-vault-wheel {
+  transform: rotate(60deg);
+  color: var(--hero-brass);
+}
+/* the boltheads catch the light when the card is under the pointer */
+.dash-vault:hover .dash-step-node {
+  box-shadow: 0 0 0 3px rgba(184, 137, 58, 0.12);
+}
+.dash-vault:hover .dash-step[data-state="current"] .dash-step-node {
+  box-shadow: 0 0 0 4px rgba(184, 137, 58, 0.22), 0 0 21px rgba(184, 137, 58, 0.5);
+}
+.dash-vault-wheel[data-open="true"] {
+  color: var(--hero-success);
+}
+.dash-vault:hover .dash-vault-wheel[data-open="true"] {
+  transform: none;
+  color: var(--hero-success);
+}
+.dash-vault-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.dash-vault-approve {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.dash-vault-void {
+  margin: 0;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+
+/* the green pass when files unlock */
+.dash-vault-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(100deg, transparent 25%, rgba(31, 157, 107, 0.22) 50%, transparent 75%);
+  transform: translateX(-120%);
+}
+.dash-vault[data-anim="unlock"] .dash-vault-sweep {
+  animation: dashSweep 618ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+@keyframes dashSweep {
+  from {
+    opacity: 0;
+    transform: translateX(-120%);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+}
+
+/* ---- status chips: state colour, but the text is a darker tint of it so 12px
+   mono clears 4.5:1 on the 12% fill (measured in the report) ---- */
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 4px 13px;
+  border: 1px solid transparent;
+  border-radius: var(--dash-r);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: dashChipIn var(--hero-d-382) var(--dash-ease) both;
+}
+@keyframes dashChipIn {
+  from {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dash-chip[data-status="awaiting_payment"] {
+  border-color: var(--hero-steel);
+  color: var(--hero-slate);
+}
+.dash-chip[data-status="held"] {
+  background: rgba(184, 137, 58, 0.12);
+  color: #7a551a;
+}
+.dash-chip[data-status="audited"] {
+  background: rgba(18, 165, 181, 0.12);
+  color: #0a6a74;
+}
+.dash-chip[data-status="unlocked"] {
+  background: rgba(31, 157, 107, 0.12);
+  color: #146747;
+}
+.dash-chip[data-status="voided"] {
+  background: rgba(196, 69, 61, 0.12);
+  color: #962c26;
+}
+
+/* ---- the stepper ---- */
+.dash-stepper {
+  display: flex;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.dash-step {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.dash-step::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 13px;
+  width: calc(100% - 13px);
+  height: 1px;
+  background: rgba(138, 149, 161, 0.55);
+}
+.dash-step:last-child::before {
+  display: none;
+}
+.dash-step-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  transition: background-color var(--hero-d-382) var(--dash-ease), border-color var(--hero-d-382) var(--dash-ease),
+    box-shadow var(--hero-d-382) var(--dash-ease);
+}
+.dash-step[data-state="done"] .dash-step-node {
+  border-color: var(--hero-success);
+  background: var(--hero-success);
+}
+.dash-step[data-state="current"] .dash-step-node {
+  border-color: var(--hero-brass);
+  background: var(--hero-brass);
+  box-shadow: 0 0 0 4px rgba(184, 137, 58, 0.18), 0 0 13px rgba(184, 137, 58, 0.45);
+}
+.dash-step[data-state="void"] .dash-step-node {
+  opacity: 0.45;
+}
+.dash-step-label {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  color: var(--hero-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-step[data-state="current"] .dash-step-label {
+  color: var(--hero-ink);
+}
+
+/* ================================================================== buttons */
+
+.dash-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: var(--dash-r);
+  background: none;
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--hero-d-236) var(--dash-ease), box-shadow var(--hero-d-382) var(--dash-ease),
+    border-color var(--hero-d-236) var(--dash-ease), background-color var(--hero-d-236) var(--dash-ease),
+    color var(--hero-d-236) var(--dash-ease);
+}
+.dash-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.dash-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.dash-btn-primary {
+  background: linear-gradient(160deg, var(--hero-brass-light) 0%, var(--hero-brass) 100%);
+  box-shadow: 0 8px 21px rgba(184, 137, 58, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+.dash-btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+  transform: translateX(-100%);
+}
+.dash-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 34px rgba(184, 137, 58, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+.dash-btn-primary:hover:not(:disabled)::before {
+  animation: dashShimmerOnce 1618ms var(--dash-ease) 1;
+}
+.dash-btn-primary:hover:not(:disabled) .dash-btn-arrow {
+  transform: translateX(5px);
+}
+.dash-btn-arrow {
+  transition: transform var(--hero-d-382) var(--dash-ease);
+}
+@keyframes dashShimmerOnce {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+.dash-btn-ghost {
+  border-color: var(--hero-steel);
+  background: rgba(255, 255, 255, 0.35);
+}
+.dash-btn-ghost:hover:not(:disabled) {
+  border-color: var(--hero-teal);
+  box-shadow: 0 0 0 4px rgba(18, 165, 181, 0.15);
+}
+.dash-btn-danger {
+  border-color: rgba(196, 69, 61, 0.6);
+  color: #9c3029;
+  font-weight: 500;
+  font-size: 13px;
+  height: 27px;
+}
+.dash-btn-danger:hover:not(:disabled) {
+  background: rgba(196, 69, 61, 0.08);
+  border-color: var(--dash-danger);
+}
+
+/* ---- the hold ring ---- */
+.dash-hold-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.dash-hold {
+  --hold: 0;
+}
+.dash-hold-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 16px;
+  padding: 3px;
+  pointer-events: none;
+  background: conic-gradient(
+    from -90deg,
+    var(--hero-brass) calc(var(--hold) * 100%),
+    rgba(138, 149, 161, 0.35) 0
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.dash-hold[data-pulse="true"] {
+  animation: dashPulse 382ms var(--dash-ease);
+}
+@keyframes dashPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+/* the no-hold route: in the tab order, visible only when it takes focus */
+.dash-hold-alt:focus {
+  position: absolute;
+  left: 0;
+  bottom: -34px;
+  z-index: 3;
+  width: auto;
+  height: 27px;
+  margin: 0;
+  padding: 0 13px;
+  overflow: visible;
+  clip-path: none;
+  border: 1px solid var(--hero-ink);
+  border-radius: var(--dash-r);
+  background: #fff;
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  color: var(--hero-ink);
+}
+
+.dash-spin {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(14, 21, 32, 0.2);
+  border-top-color: var(--hero-ink);
+  border-radius: 50%;
+  animation: dashSpin 618ms linear infinite;
+}
+@keyframes dashSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================ join + empty */
+
+.dash-join {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 13px;
+  margin: 0 0 13px;
+  animation: dashSlideDown var(--hero-d-382) var(--dash-ease) both;
+}
+@keyframes dashSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dash-join-input {
+  height: 55px;
+  padding: 0 21px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--hero-ink);
+  font-family: var(--hero-font-mono);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+.dash-join-input::placeholder {
+  color: var(--hero-slate);
+  letter-spacing: 0.04em;
+}
+.dash-join-input:focus {
+  outline: none;
+  border-color: var(--hero-teal);
+}
+.dash-join-input[aria-invalid="true"] {
+  border-color: var(--dash-danger);
+}
+.dash-join-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #962c26;
+}
+
+.dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 21px;
+  padding: 34px 0;
+  flex: 1;
+}
+.dash-empty-img {
+  width: 233px;
+  height: auto;
+  border-radius: var(--dash-r);
+  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
+}
+.dash-empty-h {
+  margin: 0;
+  font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-size: 26px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 21ch;
+}
+
+.dash-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 21px;
+  border: 1px solid rgba(196, 69, 61, 0.45);
+  border-radius: var(--dash-r);
+  background: rgba(196, 69, 61, 0.06);
+}
+.dash-error-h {
+  margin: 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* ================================================================ skeletons */
+
+.dash-skel {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(
+    100deg,
+    rgba(138, 149, 161, 0.16) 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(138, 149, 161, 0.16) 70%
+  );
+  background-size: 233% 100%;
+  animation: dashSkel 1618ms linear infinite;
+}
+@keyframes dashSkel {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+.dash-kpi.is-skeleton {
+  justify-content: center;
+  gap: 13px;
+}
+.dash-skel-ico {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+.dash-skel-label {
+  width: 89px;
+  height: 8px;
+}
+.dash-skel-num {
+  width: 55px;
+  height: 21px;
+}
+.dash-vault.is-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 21px;
+  animation: dashSkelFade 618ms var(--dash-ease) both;
+}
+@keyframes dashSkelFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dash-skel-title {
+  width: 34%;
+  height: 16px;
+}
+.dash-skel-line {
+  width: 55%;
+  height: 8px;
+}
+.dash-skel-step {
+  width: 100%;
+  height: 13px;
+  border-radius: 13px;
+}
+.dash-skel-row {
+  width: 100%;
+  height: 34px;
+  margin-bottom: 8px;
+}
+
+/* ============================================================== ledger card */
+
+.dash-ledger {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 233px;
+  padding: 13px 13px 8px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+}
+.dash-ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  margin-bottom: 13px;
+}
+.dash-ledger-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  height: 27px;
+  padding: 0 13px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: transparent;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.dash-ledger-toggle svg {
+  transition: transform var(--hero-d-236) var(--dash-ease);
+}
+.dash-ledger[data-open="true"] .dash-ledger-toggle svg {
+  transform: rotate(180deg);
+}
+.dash-ledger-body-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dash-ledger-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dash-ledger-filter {
+  margin-bottom: 8px;
+}
+.dash-ledger-filter .dash-search-input {
+  width: 100%;
+}
+.dash-ledger-skel {
+  display: flex;
+  flex-direction: column;
+}
+.dash-grid {
+  flex: 1;
+  min-height: 144px;
+  width: 100%;
+}
+.dash-grid-empty {
+  margin: auto 0;
+  padding: 21px 0;
+  text-align: center;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* no default AG Grid blue: the theme params carry the tokens, and these rules
+   finish the job for the parts the theme does not name */
+.dash-grid .ag-root-wrapper {
+  border: 0;
+  background: transparent;
+}
+.dash-grid .ag-header {
+  border-bottom: 1px solid rgba(138, 149, 161, 0.4);
+  background: transparent;
+}
+.dash-grid .ag-header-cell-text {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.dash-grid .ag-header-cell-label {
+  color: var(--hero-slate);
+}
+.dash-grid .ag-cell {
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  color: var(--hero-ink);
+  line-height: 34px;
+}
+.dash-grid .ag-row {
+  border-bottom: 1px solid rgba(138, 149, 161, 0.25);
+  background: transparent;
+  transition: background-color var(--hero-d-236) var(--dash-ease);
+}
+.dash-grid .ag-row-hover,
+.dash-grid .ag-row:hover {
+  background: rgba(18, 165, 181, 0.08);
+}
+.dash-grid .ag-row-selected {
+  background: rgba(18, 165, 181, 0.08) !important;
+}
+.dash-grid .ag-cell-focus:not(.ag-cell-range-selected) {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: -3px;
+  border-radius: 4px;
+}
+.dash-grid .ag-row.dash-row-new {
+  animation: dashRowFlash 1s ease-out both;
+}
+@keyframes dashRowFlash {
+  0% {
+    background: rgba(184, 137, 58, 0.2);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.dash-ledger-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+}
+.dash-ledger-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dash-ledger-type {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-ledger-pp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.dash-ledger-id {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  color: var(--hero-slate);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash-copy {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--hero-slate);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--hero-d-236) var(--dash-ease), border-color var(--hero-d-236) var(--dash-ease);
+}
+.dash-ledger-pp:hover .dash-copy,
+.dash-copy:focus-visible {
+  opacity: 1;
+}
+.dash-copy:hover {
+  border-color: var(--hero-steel);
+  color: var(--hero-ink);
+}
+
+.dash-pop {
+  position: fixed;
+  z-index: 60;
+  width: 258px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.16);
+  animation: dashPop 236ms var(--dash-ease) both;
+}
+@keyframes dashPop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dash-pop-line {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+}
+.dash-pop-line .dim {
+  min-width: 55px;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.dash-pop-note {
+  margin: 0;
+  color: var(--hero-slate);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.dash-pop-close {
+  align-self: flex-end;
+  height: 27px;
+}
+
+/* ================================================================== toasts */
+
+.dash-toasts {
+  position: fixed;
+  right: 13px;
+  bottom: 13px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  max-width: 382px;
+  pointer-events: none;
+}
+.dash-toast {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 13px;
+  padding: 13px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.16);
+  pointer-events: auto;
+  animation: dashToastIn var(--hero-d-382) var(--dash-ease) both;
+}
+@keyframes dashToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dash-toast[data-tone="error"] {
+  border-color: rgba(196, 69, 61, 0.5);
+}
+.dash-toast-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hero-brass);
+}
+.dash-toast[data-tone="success"] .dash-toast-mark {
+  background: var(--hero-success);
+}
+.dash-toast[data-tone="error"] .dash-toast-mark {
+  background: var(--dash-danger);
+}
+.dash-toast-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.dash-toast-action {
+  height: 27px;
+  padding: 0 13px;
+  border: 1px solid var(--hero-ink);
+  border-radius: var(--dash-r);
+  background: transparent;
+  color: var(--hero-ink);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dash-toast-close {
+  width: 21px;
+  height: 21px;
+  border: 0;
+  background: none;
+  color: var(--hero-slate);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* =============================================================== dev panel */
+
+.dash-dev {
+  position: fixed;
+  left: 102px;
+  bottom: 13px;
+  z-index: 65;
+  width: 233px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px;
+  border: 1px dashed var(--hero-slate);
+  border-radius: var(--dash-r);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--dash-shadow);
+}
+.dash-dev-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.dash-dev-select {
+  height: 27px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+}
+.dash-dev-buttons {
+  display: grid;
+  gap: 4px;
+}
+.dash-dev-btn {
+  height: 21px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--hero-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--hero-slate);
+  cursor: pointer;
+}
+.dash-dev-btn:hover {
+  color: var(--hero-ink);
+  border-color: var(--hero-ink);
+}
+
+/* ================================================================ entrance
+   The spec's timeline, expressed in CSS: every stage has the same duration and
+   offset, the cards carry their stagger as an inline animation-delay, and
+   `backwards` fill means the animation hands the element back to its own
+   styles the moment it lands (so hover lifts still work). */
+
+@keyframes dashRailIn {
+  from {
+    transform: translateX(-89px);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes dashRise {
+  from {
+    opacity: 0;
+    transform: translateY(21px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dashFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dash-rail[data-enter="rail"] {
+  animation: dashRailIn 618ms var(--dash-ease) backwards;
+}
+.dash-strip[data-enter="strip"] {
+  animation: dashFadeIn 382ms var(--dash-ease) 236ms backwards;
+}
+.dash-greeting[data-enter="greeting"] {
+  animation: dashRise 618ms var(--dash-ease) backwards;
+}
+.dash-kpi[data-enter="kpi"] {
+  animation: dashRise 618ms var(--dash-ease) 118ms backwards;
+}
+.dash-kpi[data-enter="kpi"]:nth-child(2) {
+  animation-delay: 218ms;
+}
+.dash-kpi[data-enter="kpi"]:nth-child(3) {
+  animation-delay: 318ms;
+}
+.dash-vault[data-enter="vault"] {
+  animation: dashRise 618ms var(--dash-ease) backwards;
+}
+.dash-ledger[data-enter="ledger"] {
+  animation: dashFadeIn 618ms var(--dash-ease) 418ms backwards;
+}
+
+/* ========================================================== reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .dash *,
+  .dash *::before,
+  .dash *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  .dash .dash-spin {
+    animation: dashSpin 618ms linear infinite !important;
+  }
+  .dash-skel {
+    animation: none;
+  }
+  .dash-vault:hover,
+  .dash-vault:hover .dash-vault-wheel {
+    transform: none;
+  }
+}
+
+/* ============================================================== responsive */
+
+/* 1024–1279: the ledger drops under the vault cards, bands relax */
+@media (max-width: 1279px) {
+  .dash-lower {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .dash-upper {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 34px;
+    align-content: start;
+  }
+  .dash-bands {
+    grid-template-rows: minmax(233px, auto) auto;
+  }
+  .dash-ledger {
+    min-height: 233px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .dash-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dash-greeting {
+    gap: 13px;
+  }
+}
+
+/* phones: a bottom tab bar, a snapping KPI row, a disclosure for activity */
+@media (max-width: 767px) {
+  .dash-main {
+    margin-left: 0;
+    padding-bottom: calc(55px + env(safe-area-inset-bottom));
+  }
+  .dash-rail {
+    inset: auto 0 0 0;
+    width: auto;
+    height: calc(55px + env(safe-area-inset-bottom));
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    border-right: 0;
+    border-top: 1px solid var(--hero-steel);
+    transition: none;
+  }
+  .dash-rail::after,
+  .dash-rail-bolt,
+  .dash-wordmark,
+  .dash-rail-foot {
+    display: none;
+  }
+  .dash-nav {
+    flex: 1;
+    flex-direction: row;
+    gap: 0;
+  }
+  .dash-nav li {
+    flex: 1;
+  }
+  .dash-nav li:nth-child(4) {
+    display: none; /* Payments: not in the phone's four */
+  }
+  .dash-nav-item {
+    height: 55px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 4px;
+    border-radius: 0;
+  }
+  .dash-nav-item::after {
+    left: 21px;
+    right: 21px;
+    bottom: 4px;
+  }
+  .dash-nav-label {
+    opacity: 1;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .dash-nav-bar {
+    top: auto;
+    bottom: 0;
+    left: 21px;
+    right: 21px;
+    width: auto;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    transform: scaleX(0.4);
+  }
+  .dash-nav-bolt {
+    display: none;
+  }
+
+  .dash-strip {
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: auto;
+    padding: 13px;
+    gap: 13px;
+    align-items: center;
+  }
+  .dash-title {
+    grid-column: 1;
+  }
+  .dash-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    order: 2;
+  }
+  .dash-strip-actions {
+    grid-column: 2;
+    grid-row: 1;  }
+  .dash-cta {
+    display: none; /* the phone puts the join action at the top of the list */
+  }
+  .dash-btn.dash-join-cta {
+    display: flex;
+  }
+
+  .dash-body {
+    padding: 21px 13px;
+  }
+  .dash-bands {
+    grid-template-rows: auto auto;
+    min-height: 0;
+    gap: 34px;
+  }
+  .dash-upper,
+  .dash-lower {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 21px;
+  }
+  .dash-greeting-h {
+    font-size: 34px;
+  }
+  .dash-kpis {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 13px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dash-kpi {
+    flex: 0 0 233px;
+    scroll-snap-align: start;
+  }
+  .dash-vault {
+    height: auto;
+    min-height: 144px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 13px 13px 13px 21px;
+    gap: 13px;
+  }
+  .dash-vault-side {
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dash-vault-approve {
+    flex: 1 1 auto;
+  }
+  .dash-vault-actions {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .dash-vault-actions .dash-btn {
+    width: 100%;
+  }
+  .dash-vault:hover {
+    transform: none;
+  }
+  /* the stepper stays, its labels go: five words across 360px is a scrum */
+  .dash-step-label {
+    display: none;
+  }
+  .dash-step::before {
+    left: 13px;
+    width: calc(100% - 13px);
+  }
+  .dash-join {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-join-input {
+    height: 55px;
+  }
+  .dash-ledger-toggle {
+    display: inline-flex;
+  }
+  .dash-ledger[data-open="false"] .dash-ledger-body-wrap {
+    display: none;
+  }
+  .dash-ledger {
+    min-height: 0;
+  }
+  .dash-grid {
+    min-height: 233px;
+  }
+  .dash-empty-img {
+    width: 178px;
+  }
+  .dash-toasts {
+    left: 13px;
+    right: 13px;
+    bottom: calc(55px + env(safe-area-inset-bottom) + 13px);
+    max-width: none;
+  }
+  .dash-dev {
+    left: 13px;
+    bottom: calc(55px + env(safe-area-inset-bottom) + 13px);
+    width: calc(100% - 26px);
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-greeting-h {
+    font-size: 28px;
+  }
+}
+
