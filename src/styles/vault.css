@@ -26,7 +26,9 @@
   font-size: 16px;
 }
 
-.room :focus-visible {
+.room :focus-visible,
+.room-state :focus-visible,
+.room-state + .skip:focus-visible {
   outline: 3px solid var(--hero-teal);
   outline-offset: 3px;
   border-radius: var(--room-r);
