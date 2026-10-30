@@ -240,13 +240,13 @@ export async function authorizeVault(id: string): Promise<Vault> {
   });
 }
 
-/* POST /v1/vaults/{id}/audit — the audit itself happens in the playground, so
-   this only returns where to send the client */
+/* POST /v1/vaults/{id}/audit — the audit runs in the room, so this returns
+   where to send the client */
 export async function auditVault(id: string): Promise<{ route: string }> {
   return call(() => {
     const v = find(id);
     expectStatus(v, ["held"], "be audited");
-    return { route: `/playground?vault=${v.id}` };
+    return { route: `/vault/${v.id}` };
   });
 }
 
@@ -337,3 +337,332 @@ export function simulateWebhook(vaultId: string, type: LedgerType): void {
 /* The dev panel's list, and the one place the seed order lives. Exported so the
    panel does not have to guess at ids. */
 export const devVaultIds = () => vaults.map((v) => ({ id: v.id, project: v.project }));
+
+/* ============================================================ audit room ===
+   Everything below feeds /vault/:id. Same clock, same error rate, same event
+   bus: a check run and a chat answer are reads of the audit service, and the
+   decision panel still writes through authorizeVault / approveVault /
+   rejectVault. */
+
+export type CheckResult = "queued" | "running" | "pass" | "warn" | "fail";
+
+export type SourceChip = "TEST LOG" | "BROWSER TEST" | "PIXEL SCAN" | "HTTP PROBE" | "DEMO CACHE";
+
+/* a chip that cites a check: the demo-cache chip is an answer property, not a
+   check source, so the two are kept apart */
+export type CheckSource = Exclude<SourceChip, "DEMO CACHE">;
+
+export interface CheckRow {
+  label: string;
+  value: string;
+}
+
+export interface VaultCheck {
+  id: string;
+  name: string;
+  detail: string;
+  source: CheckSource;
+  /* the result the check lands on when it runs */
+  result: Exclude<CheckResult, "queued" | "running">;
+  state: CheckResult;
+  rows: CheckRow[];
+  swatch?: string;
+}
+
+export interface VaultFile {
+  id: string;
+  name: string;
+  kind: "file" | "folder" | "url";
+  meta: string;
+  url?: string;
+  children?: string[];
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "ai" | "user";
+  text: string;
+  sources: SourceChip[];
+  cached: boolean;
+  at: number;
+}
+
+export interface VaultDetail {
+  vault: Vault;
+  files: VaultFile[];
+  checks: VaultCheck[];
+  messages: ChatMessage[];
+  suggestions: string[];
+  questionsUsed: number;
+  questionLimit: number;
+}
+
+export const QUESTION_LIMIT = 15;
+
+/* ------------------------------------------------------------ room seed --- */
+
+type Seed = Pick<VaultDetail, "files" | "checks" | "suggestions">;
+
+const ROOM_SEED: Record<string, Seed> = {
+  v_booking_app: {
+    suggestions: [
+      "Does registration and checkout work?",
+      "Which tests covered the payment step?",
+      "Anything broken in the staging build?",
+    ],
+    files: [
+      { id: "f_staging", name: "staging.booking-demo.app", kind: "url", meta: "LIVE", url: "https://staging.booking-demo.app" },
+      { id: "f_src", name: "/src", kind: "folder", meta: "42 files", children: ["app/ · 12 files", "components/ · 18 files", "lib/ · 12 files"] },
+      { id: "f_tests", name: "/tests", kind: "folder", meta: "12 files", children: ["e2e/ · 7 files", "unit/ · 5 files"], },
+      { id: "f_pkg", name: "package.json", kind: "file", meta: "2 KB" },
+      { id: "f_log", name: "test-log.xml", kind: "file", meta: "18 KB" },
+    ],
+    checks: [
+      {
+        id: "c_integration",
+        name: "Integration tests",
+        detail: "5 of 5 passed",
+        source: "TEST LOG",
+        result: "pass",
+        state: "queued",
+        rows: [
+          { label: "registers a new account", value: "passed" },
+          { label: "signs in with a held session", value: "passed" },
+          { label: "adds a booking slot", value: "passed" },
+          { label: "captures the payment", value: "passed" },
+          { label: "writes the confirmation email", value: "passed" },
+        ],
+      },
+      {
+        id: "c_registration",
+        name: "Registration flow",
+        detail: "HTTP 200 in 412 ms",
+        source: "HTTP PROBE",
+        result: "pass",
+        state: "queued",
+        rows: [
+          { label: "endpoint", value: "POST /api/register" },
+          { label: "status", value: "200 OK" },
+          { label: "ttfb", value: "412 ms" },
+        ],
+      },
+      {
+        id: "c_checkout",
+        name: "Checkout flow",
+        detail: "Completes in the browser",
+        source: "BROWSER TEST",
+        result: "pass",
+        state: "queued",
+        rows: [
+          { label: "steps", value: "7 of 7" },
+          { label: "console errors", value: "0" },
+          { label: "viewport", value: "1440 x 900" },
+        ],
+      },
+      {
+        id: "c_secrets",
+        name: "No exposed secrets",
+        detail: "Bundle is clean",
+        source: "TEST LOG",
+        result: "pass",
+        state: "queued",
+        rows: [
+          { label: "pattern hits", value: "0" },
+          { label: "files scanned", value: "42" },
+        ],
+      },
+    ],
+  },
+  v_logo_pack: {
+    suggestions: [
+      "Is the background transparent?",
+      "Does the navy match #000080?",
+      "What resolution are the exports?",
+    ],
+    files: [
+      { id: "f_primary_png", name: "logo-primary.png", kind: "file", meta: "2.1 MB" },
+      { id: "f_primary_pdf", name: "logo-primary.pdf", kind: "file", meta: "480 KB" },
+      { id: "f_mono", name: "logo-mono.png", kind: "file", meta: "1.4 MB" },
+      { id: "f_guide", name: "brand-guide.pdf", kind: "file", meta: "3.2 MB" },
+    ],
+    checks: [
+      {
+        id: "c_alpha",
+        name: "Transparent background",
+        detail: "Alpha channel present",
+        source: "PIXEL SCAN",
+        result: "pass",
+        state: "queued",
+        rows: [
+          { label: "corners", value: "alpha 0" },
+          { label: "channel", value: "RGBA" },
+        ],
+      },
+      {
+        id: "c_color",
+        name: "Primary color",
+        detail: "Matches #000080",
+        source: "PIXEL SCAN",
+        result: "pass",
+        state: "queued",
+        swatch: "#000080",
+        rows: [
+          { label: "sampled", value: "#000080" },
+          { label: "delta", value: "0.4 per channel" },
+        ],
+      },
+      {
+        id: "c_resolution",
+        name: "Resolution",
+        detail: "4000 x 4000",
+        source: "PIXEL SCAN",
+        result: "pass",
+        state: "queued",
+        rows: [
+          { label: "pixels", value: "4000 x 4000" },
+          { label: "dpi", value: "300 at 13in" },
+        ],
+      },
+      {
+        id: "c_safe_area",
+        name: "Safe-area padding",
+        detail: "4% · below the 8% we recommend",
+        source: "PIXEL SCAN",
+        result: "warn",
+        state: "queued",
+        rows: [
+          { label: "measured", value: "4%" },
+          { label: "recommended", value: "8%" },
+          { label: "effect", value: "tight at small sizes" },
+        ],
+      },
+    ],
+  },
+};
+
+const GENERIC_SEED: Seed = {
+  suggestions: ["What was delivered?", "Are there any warnings?", "Is the build ready to ship?"],
+  files: [
+    { id: "g_src", name: "delivery.zip", kind: "file", meta: "8.4 MB" },
+    { id: "g_docs", name: "/docs", kind: "folder", meta: "3 files", children: ["README.md", "notes.md", "changelog.md"] },
+    { id: "g_readme", name: "README.md", kind: "file", meta: "6 KB" },
+  ],
+  checks: [
+    { id: "g_tests", name: "Build" , detail: "Compiles clean", source: "TEST LOG", result: "pass", state: "queued", rows: [{ label: "errors", value: "0" }] },
+    { id: "g_links", name: "Link probe", detail: "All links answer 200", source: "HTTP PROBE", result: "pass", state: "queued", rows: [{ label: "links", value: "14" }] },
+    { id: "g_visual", name: "Visual pass", detail: "No layout breaks", source: "BROWSER TEST", result: "pass", state: "queued", rows: [{ label: "viewports", value: "3" }] },
+  ],
+};
+
+const seedFor = (id: string): Seed => ROOM_SEED[id] ?? GENERIC_SEED;
+
+/* the audit's own state, kept in memory beside the vaults */
+const checkedAt = new Map<string, number>();
+const questionsUsed = new Map<string, number>();
+
+/* GET /v1/vaults/{id} */
+export async function getVaultDetail(id: string): Promise<VaultDetail> {
+  return call(() => {
+    const v = find(id);
+    const seed = seedFor(id);
+    /* a vault that already passed its audit opens with the results in place */
+    const settled = v.status === "audited" || v.status === "unlocked";
+    return {
+      vault: { ...v },
+      files: seed.files.map((f) => ({ ...f })),
+      checks: seed.checks.map((c) => ({ ...c, state: settled ? c.result : "queued", rows: c.rows.map((r) => ({ ...r })) })),
+      messages: [],
+      suggestions: [...seed.suggestions],
+      questionsUsed: questionsUsed.get(id) ?? 0,
+      questionLimit: QUESTION_LIMIT,
+    };
+  });
+}
+
+/* GET /v1/vaults/{id}/files */
+export async function listFiles(id: string): Promise<VaultFile[]> {
+  return call(() => {
+    find(id);
+    return seedFor(id).files.map((f) => ({ ...f }));
+  });
+}
+
+/* POST /v1/vaults/{id}/checks:run — resolves with every result, and calls back
+   per check so the panel can move one card at a time. On the last result the
+   vault is audited and the event bus hears about it. */
+export async function runChecks(
+  id: string,
+  onProgress?: (checkId: string, state: CheckResult) => void
+): Promise<VaultCheck[]> {
+  const v = find(id);
+  expectStatus(v, ["held"], "be audited");
+  const seed = seedFor(id).checks;
+  const timings = [618, 1000, 1618, 1000];
+  const done: VaultCheck[] = [];
+
+  for (let i = 0; i < seed.length; i++) {
+    const def = seed[i];
+    onProgress?.(def.id, "running");
+    await wait(timings[i % timings.length]);
+    if (Math.random() < FAIL_RATE) {
+      onProgress?.(def.id, "queued");
+      throw new ApiError("network", "A check could not reach the audit runner.");
+    }
+    onProgress?.(def.id, def.result);
+    done.push({ ...def, state: def.result, rows: def.rows.map((r) => ({ ...r })) });
+  }
+
+  setStatus(id, "audited");
+  checkedAt.set(id, Date.now());
+  emit("AUDIT.COMPLETED", id, "Audit run finished, report ready", { paypalId: v.paypalOrderId });
+  return done;
+}
+
+/* POST /v1/vaults/{id}/chat — server-sent answer. The demo matches keywords
+   instead of calling a model, and always reports itself as a cached answer. */
+export async function askAI(
+  id: string,
+  question: string,
+  onToken: (chunk: string) => void
+): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
+  const v = find(id);
+  await wait(latency());
+  if (Math.random() < FAIL_RATE) throw new ApiError("network", "The audit agent did not answer.");
+
+  const answer = answerFor(v, question);
+  /* 40 characters a second, the way a model trickles tokens */
+  for (const char of answer.text) {
+    onToken(char);
+    await wait(25);
+  }
+  questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
+  return { text: answer.text, sources: answer.sources, cached: true };
+}
+
+function answerFor(v: Vault, question: string): { text: string; sources: SourceChip[] } {
+  const q = question.toLowerCase();
+
+  if (v.id === "v_booking_app" && /register|checkout|bug|test|work/.test(q)) {
+    return {
+      text:
+        "I analyzed the 5 integration tests covering registration and payment capture. All passed with zero errors. I also loaded the staging flow in a browser and it completed.",
+      sources: ["TEST LOG", "BROWSER TEST", "DEMO CACHE"],
+    };
+  }
+
+  if (v.id === "v_logo_pack" && /color|colour|hex|navy|#000080|transparent|background/.test(q)) {
+    return {
+      text:
+        "The primary PNG has a fully transparent alpha channel. I extracted the main color and it matches #000080 exactly.",
+      sources: ["PIXEL SCAN", "DEMO CACHE"],
+    };
+  }
+
+  return {
+    text: "I can check test results, staging behavior, color values and transparency. Try one of the suggestions.",
+    sources: ["DEMO CACHE"],
+  };
+}
+
+/* the room's receipt line: when the capture happened, for the unlocked panel */
+export const capturedAt = (id: string) => checkedAt.get(id) ?? undefined;

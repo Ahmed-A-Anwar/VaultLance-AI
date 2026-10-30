@@ -8,7 +8,6 @@ import {
   approveVault,
   auditVault,
   authorizeVault,
-  markAudited,
   rejectVault,
   type Vault,
   type VaultStatus,
@@ -19,6 +18,7 @@ import { Stepper } from "./Stepper";
 import { PadlockOpen, Wheel } from "./icons";
 import { useDashData } from "./data";
 import { useToast } from "../shared/Toasts";
+import { useNavigate } from "react-router-dom";
 
 const CHIP: Record<VaultStatus, string> = {
   awaiting_payment: "awaiting payment",
@@ -43,6 +43,7 @@ export function VaultCard({
 }) {
   const { putVault } = useDashData();
   const toast = useToast();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState<Busy>(null);
   const [rejectHover, setRejectHover] = useState(false);
   const [anim, setAnim] = useState<"" | "unlock" | "void">("");
@@ -76,13 +77,10 @@ export function VaultCard({
         putVault(next);
         toast({ message: `${next.project}: ${usd.format(next.amountUSD)} is held.`, tone: "success" });
       } else if (kind === "audit") {
-        /* The audit itself lives in the playground, which is outside this
-           build. The API still returns its route; with no route to visit the
-           card runs the audit dev-helper so the demo reaches the decision. */
-        await auditVault(vault.id);
-        const next = await markAudited(vault.id);
-        putVault(next);
-        toast({ message: "Audit finished. It is ready for your decision.", tone: "success" });
+        /* the audit is a room of its own now; the api says where it lives */
+        const { route } = await auditVault(vault.id);
+        navigate(route);
+        return;
       } else if (kind === "approve") {
         /* the ledger raises the toast for the capture, so it is not said twice */
         putVault(await approveVault(vault.id));
