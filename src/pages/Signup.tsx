@@ -3,26 +3,38 @@
    to its left. The card joins the running transition when it is entered from the
    hero, and simply renders final on a direct load.
 
-   Two steps: role, then details. Submit is local only — no network calls. */
+   Two steps: role, then details. Submit is local only — no network calls; the
+   values go through the shared schema in lib/validations/auth.ts and the clean
+   body is held for the API that replaces it. */
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import gsap from "gsap";
 import { Link } from "react-router-dom";
 import { useVaultScene } from "../lib/vaultScene";
 import { SignupStepper, type Phase } from "../components/signup/SignupStepper";
 import { ROLE_NAME, type Role } from "../components/signup/stepper-content";
+import {
+  signupSchema,
+  toSignupPayload,
+  type SignupInput,
+  type SignupPayload,
+  type SignupValues,
+} from "../lib/validations/auth";
 
 type Step = 1 | 2 | 3;
 
-interface Values {
-  name: string;
-  email: string;
-  password: string;
-  paypal: string;
-}
+/* the field keys are the schema's; the DOM ids keep their older names so the
+   e2e scripts and any saved links still find the inputs */
+const FIELD_ID = {
+  fullName: "name",
+  email: "email",
+  password: "password",
+  paypalEmail: "paypal",
+} as const;
 
-const EMPTY: Values = { name: "", email: "", password: "", paypal: "" };
+type FieldName = keyof typeof FIELD_ID;
 
 const CHECK = (
   <svg className="role-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"
@@ -67,8 +79,21 @@ export default function Signup() {
   const [role, setRole] = useState<Role | null>(null);
   const [preview, setPreview] = useState<Role | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
-  const [values, setValues] = useState<Values>(EMPTY);
-  const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({});
+  const { control, register, handleSubmit, setValue, getValues, clearErrors, trigger, formState } =
+    useForm<SignupInput, unknown, SignupValues>({
+      resolver: zodResolver(signupSchema),
+      /* errors arrive under a field when it is left, which is when a message is
+         read rather than argued with */
+      mode: "onBlur",
+      defaultValues: { fullName: "", email: "", password: "", role: "client", paypalEmail: "" },
+    });
+  const { errors } = formState;
+  /* the submit gate is checked against the live values, not formState.isValid:
+     with mode "onBlur" that flag only catches up when a field loses focus, so
+     filling the last field and clicking would hit a dead button */
+  const canSubmit = signupSchema.safeParse(useWatch({ control })).success;
+  /* the clean body a real submit would post; nothing sensitive is logged */
+  const payload = useRef<SignupPayload | null>(null);
   const moving = useRef(false);
   const stepRef = useRef<Step>(1);
   const queued = useRef<{ step: Step; dir: 1 | -1 } | null>(null);
@@ -144,10 +169,17 @@ export default function Signup() {
     });
   };
 
-  /* selecting a role locks the path, then steps forward on the next beat */
+  /* selecting a role locks the path, then steps forward on the next beat. The
+     role also decides whether a payout address is required, so a switch drops
+     the old one and re-checks only the fields that already hold a value. */
   const pickRole = (next: Role) => {
     setRole(next);
     setPreview(null);
+    setValue("role", next, { shouldValidate: true });
+    setValue("paypalEmail", "", { shouldValidate: false });
+    clearErrors("paypalEmail");
+    const filled = (Object.keys(FIELD_ID) as FieldName[]).filter((key) => getValues(key) !== "");
+    if (filled.length) void trigger(filled);
     if (advance.current) window.clearTimeout(advance.current);
     if (reduced) {
       move(2, 1);
@@ -156,70 +188,53 @@ export default function Signup() {
     advance.current = window.setTimeout(() => move(2, 1), 236);
   };
 
-  const set = (key: keyof Values) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValues((v) => ({ ...v, [key]: e.target.value }));
-    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
-  };
-
-  const validate = (): boolean => {
-    const next: Partial<Record<keyof Values, string>> = {};
-    if (!values.name.trim()) next.name = "Enter the name on your account.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()))
-      next.email = "Enter a valid email address.";
-    if (values.password.length < 8) next.password = "Use at least 8 characters.";
-    if (role === "freelancer" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.paypal.trim()))
-      next.paypal = "Enter the PayPal email your payout goes to.";
-    setErrors(next);
-    const first = Object.keys(next)[0];
-    if (first) {
-      const el = document.querySelector<HTMLInputElement>(`#signup-${first}`);
-      el?.focus();
-      return false;
-    }
-    return true;
-  };
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (step !== 2 || !validate()) return;
-    console.info("[signup] submit", { role, ...values });
+  const submit = handleSubmit((values) => {
+    payload.current = toSignupPayload(values);
     /* the path lights first; the success card follows it */
     setPhase("done");
-  };
+  });
 
   const field = (
-    key: keyof Values,
+    name: FieldName,
     label: string,
     type: string,
     opts: { autoComplete?: string; helper?: string; ref?: React.Ref<HTMLInputElement> } = {}
-  ) => (
-    <div className="signup-field" key={key}>
-      <label className="signup-label" htmlFor={`signup-${key}`}>
-        {label}
-      </label>
-      <input
-        ref={opts.ref}
-        id={`signup-${key}`}
-        className="signup-input"
-        type={type}
-        value={values[key]}
-        onChange={set(key)}
-        autoComplete={opts.autoComplete}
-        aria-invalid={errors[key] ? true : undefined}
-        aria-describedby={errors[key] ? `signup-${key}-err` : opts.helper ? `signup-${key}-help` : undefined}
-      />
-      {opts.helper && !errors[key] && (
-        <p className="signup-help" id={`signup-${key}-help`}>
-          {opts.helper}
-        </p>
-      )}
-      {errors[key] && (
-        <p className="signup-err" id={`signup-${key}-err`}>
-          {errors[key]}
-        </p>
-      )}
-    </div>
-  );
+  ) => {
+    const id = `signup-${FIELD_ID[name]}`;
+    const message = errors[name]?.message;
+    const { ref: registerRef, ...control } = register(name);
+    return (
+      <div className="signup-field" key={name}>
+        <label className="signup-label" htmlFor={id}>
+          {label}
+        </label>
+        <input
+          {...control}
+          ref={(el) => {
+            registerRef(el);
+            if (typeof opts.ref === "function") opts.ref(el);
+            else if (opts.ref) opts.ref.current = el;
+          }}
+          id={id}
+          className="signup-input"
+          type={type}
+          autoComplete={opts.autoComplete}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message ? `${id}-err` : opts.helper ? `${id}-help` : undefined}
+        />
+        {opts.helper && !message && (
+          <p className="signup-help" id={`${id}-help`}>
+            {opts.helper}
+          </p>
+        )}
+        {message && (
+          <p className="signup-err" id={`${id}-err`}>
+            {message}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <main id="main" className="signup-layout">
@@ -256,7 +271,12 @@ export default function Signup() {
               <button
                 type="button"
                 className="signup-chip"
-                onClick={() => move(1, -1)}
+                onClick={() => {
+                  /* the payout address belongs to the role being left behind */
+                  setValue("paypalEmail", "", { shouldValidate: false });
+                  clearErrors("paypalEmail");
+                  move(1, -1);
+                }}
                 data-testid="signup-change-role"
               >
                 Change role
@@ -312,16 +332,24 @@ export default function Signup() {
 
           {step === 2 && (
             <form className="signup-form" onSubmit={submit} noValidate>
-              {field("name", "Full name", "text", { autoComplete: "name", ref: nameRef })}
+              {field("fullName", "Full name", "text", { autoComplete: "name", ref: nameRef })}
               {field("email", "Email", "email", { autoComplete: "email" })}
-              {field("password", "Password", "password", { autoComplete: "new-password" })}
+              {field("password", "Password", "password", {
+                autoComplete: "new-password",
+                helper: "12+ characters, mixing case, a number and a symbol.",
+              })}
               {role === "freelancer" &&
-                field("paypal", "PayPal email", "email", {
+                field("paypalEmail", "PayPal email", "email", {
                   autoComplete: "email",
                   helper: "Where your payout goes.",
                 })}
 
-              <button className="hero-btn primary signup-submit" type="submit" data-testid="signup-submit">
+              <button
+                className="hero-btn primary signup-submit"
+                type="submit"
+                disabled={!canSubmit}
+                data-testid="signup-submit"
+              >
                 <span className="hero-btn-label">Create my vault</span>
               </button>
 

@@ -166,7 +166,7 @@ const stepAt = await page.evaluate(() => document.querySelector(".signup-sub").t
 /* fill and submit: the nodes light in sequence, then the success card */
 await page.fill("#signup-name", "Ada Lovelace");
 await page.fill("#signup-email", "ada@example.com");
-await page.fill("#signup-password", "analytical-engine");
+await page.fill("#signup-password", "Analytical1!engine");
 if (await page.$("#signup-paypal")) await page.fill("#signup-paypal", "ada@example.com");
 const litAt = [];
 const submitAt = Date.now();
@@ -196,7 +196,7 @@ const rmStep = await rm.evaluate(() => ({
 }));
 await rm.fill("#signup-name", "Ada");
 await rm.fill("#signup-email", "ada@example.com");
-await rm.fill("#signup-password", "analytical-engine");
+await rm.fill("#signup-password", "Analytical1!engine");
 if (await rm.$("#signup-paypal")) await rm.fill("#signup-paypal", "ada@example.com");
 await rm.click('[data-testid="signup-submit"]');
 await rm.waitForTimeout(200);

@@ -291,6 +291,12 @@
   width: 100%;
   margin-top: 0;
 }
+/* the button stays disabled until the schema passes, so it has to look it */
+.signup-submit[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
 .signup-note {
   margin: -3px 0 0;
   text-align: center;
