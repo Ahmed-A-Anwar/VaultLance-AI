@@ -10,7 +10,7 @@ import { TopStrip } from "../../components/dashboard/TopStrip";
 import { DashUiProvider, useDashUi } from "../../components/dashboard/ui";
 import { DashDataProvider } from "../../components/dashboard/data";
 import { SessionProvider, useSession } from "../../components/dashboard/session";
-import { ToastProvider } from "../../components/dashboard/Toasts";
+import { ToastProvider } from "../../components/shared/Toasts";
 import { DevPanel } from "../../components/dashboard/DevPanel";
 import { FreelancerView } from "./Freelancer";
 import "../../styles/dashboard.css";

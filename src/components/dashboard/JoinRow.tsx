@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, joinVault } from "../../lib/api";
 import { useDashData } from "./data";
-import { useToast } from "./Toasts";
+import { useToast } from "../shared/Toasts";
 
 export function JoinRow({ onDone }: { onDone?: () => void }) {
   const { reload } = useDashData();
