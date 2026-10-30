@@ -17,11 +17,30 @@ const DOT: Record<string, string> = {
 };
 
 export function ChecksPanel() {
-  const { checks, running, runAll, progress, status, detail } = useRoom();
+  const { checks, running, runAll, progress, status, detail, reject } = useRoom();
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(null);
   const [announce, setAnnounce] = useState("");
+  const [menu, setMenu] = useState(false);
+  const [armed, setArmed] = useState(false);
   const seen = useRef(new Set<string>());
+
+  /* on a phone the decision panel is a bar, so the void lives here */
+  const voidHold = async () => {
+    if (!armed) {
+      setArmed(true);
+      window.setTimeout(() => setArmed(false), 3000);
+      return;
+    }
+    setArmed(false);
+    setMenu(false);
+    try {
+      await reject();
+      toast({ message: "Hold voided. Funds returned.", tone: "info" });
+    } catch (e) {
+      toast({ message: e instanceof Error ? e.message : "The hold was not voided.", tone: "error" });
+    }
+  };
 
   /* one line per finished check, into a single polite region */
   useEffect(() => {
@@ -69,6 +88,27 @@ export function ChecksPanel() {
           {running ? <Spinner className="room-run-spin" width="14" height="14" /> : <Play width="13" height="13" />}
           {running ? "Running…" : done ? "Re-run" : "Run all checks"}
         </button>
+
+        {(status === "held" || status === "audited") && (
+          <div className="room-more-wrap">
+            <button
+              type="button"
+              className="room-more"
+              aria-label="More audit actions"
+              aria-expanded={menu}
+              onClick={() => setMenu((v) => !v)}
+            >
+              <span aria-hidden="true">···</span>
+            </button>
+            {menu && (
+              <div className="room-more-menu" role="menu">
+                <button type="button" role="menuitem" className="room-more-void" onClick={() => void voidHold()}>
+                  {armed ? "Confirm void" : "Reject & void"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="room-progress" role="progressbar" aria-valuemin={0} aria-valuemax={checks.length} aria-valuenow={Math.round(progress * checks.length)} aria-label="Checks finished">

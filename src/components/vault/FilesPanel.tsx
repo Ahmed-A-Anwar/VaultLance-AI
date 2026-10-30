@@ -58,7 +58,7 @@ export function FilesPanel() {
                       ) : (
                         <span className="room-file-meta">{file.meta}</span>
                       )}
-                      {unlocked && file.kind !== "url" && (
+                      {unlocked && file.kind === "file" && (
                         <button
                           type="button"
                           className="room-dl"

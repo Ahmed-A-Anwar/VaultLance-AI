@@ -1094,6 +1094,52 @@
   animation: roomSpin 1s linear infinite;
 }
 
+/* the phone's overflow menu: void lives here when the decision is a bar */
+.room-more-wrap {
+  display: none;
+  position: relative;
+}
+.room-more {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--room-r);
+  background: transparent;
+  color: var(--hero-slate);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.room-more-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  padding: 4px;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--room-r);
+  background: rgba(240, 244, 245, 0.98);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.14);
+}
+.room-more-void {
+  height: 34px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9c3029;
+  font-family: var(--room-sans);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.room-more-void:hover {
+  background: rgba(196, 69, 61, 0.08);
+}
+
 .room-progress {
   position: relative;
   height: 4px;
@@ -1901,6 +1947,15 @@
     display: flex;
     max-height: none;
     padding: 13px;
+  }
+  .room-files-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding-right: 0;
+  }
+  .room-more-wrap {
+    display: block;
   }
   .room-figure {
     width: 178px;
