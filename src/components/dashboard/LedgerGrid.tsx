@@ -282,7 +282,9 @@ export function LedgerGrid({ full = false, events, vaults }: { full?: boolean; e
             }}
           >
             <p className="dash-eyebrow">
-              <span className="dash-eyebrow-mark" aria-hidden="true" />
+              {/* the same dot the grid draws for this type, not the brass
+                  eyebrow mark: one event, one colour, wherever it appears */}
+              <span className="dash-ledger-dot" style={{ background: TYPE_DOT[pop.row.type] }} aria-hidden="true" />
               {pop.row.type}
             </p>
             <p className="dash-pop-line">

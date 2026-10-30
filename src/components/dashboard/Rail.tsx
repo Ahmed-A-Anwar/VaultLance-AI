@@ -4,13 +4,13 @@
    each end of it. */
 
 import { Link, NavLink } from "react-router-dom";
-import { Bell, CardIcon, Gear, Grid, Rows, SignOut, VaultGlyph } from "./icons";
+import { Bell, CardIcon, Gear, Grid, Ledger, SignOut, VaultGlyph } from "./icons";
 import { displayName, initials, type useSession } from "./session";
 
 const ITEMS = [
   { to: "/dashboard", label: "Overview", Icon: Grid, end: true },
   { to: "/dashboard/vaults", label: "Vaults", Icon: VaultGlyph, end: false },
-  { to: "/dashboard/ledger", label: "Ledger", Icon: Rows, end: false },
+  { to: "/dashboard/ledger", label: "Ledger", Icon: Ledger, end: false },
   { to: "/dashboard/payments", label: "Payments", Icon: CardIcon, end: false },
   { to: "/dashboard/settings", label: "Settings", Icon: Gear, end: false },
 ];

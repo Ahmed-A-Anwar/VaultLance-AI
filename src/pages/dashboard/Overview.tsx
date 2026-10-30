@@ -9,14 +9,18 @@ import { useDashData } from "../../components/dashboard/data";
 import { displayName, useSession } from "../../components/dashboard/session";
 
 export default function Overview() {
-  const { kpis } = useDashData();
+  const { kpis, error } = useDashData();
   const { session } = useSession();
   const firstName = session ? displayName(session.email).split(" ")[0] : "there";
 
   return (
     <div className="dash-bands">
       <div className="dash-upper">
-        <Greeting firstName={firstName} audited={kpis?.awaitingReview ?? 0} />
+        <Greeting
+          firstName={firstName}
+          audited={kpis ? kpis.awaitingReview : null}
+          failed={!kpis && !!error}
+        />
         <Kpis />
       </div>
       <div className="dash-lower">
