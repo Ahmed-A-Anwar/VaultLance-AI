@@ -1,0 +1,626 @@
+{
+  "info": {
+    "_postman_id": "f4b12bde-66de-40b7-a89b-61dc4dc8862d",
+    "name": "VaultLance PayPal Tests",
+    "description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "59335977",
+    "_collection_link": "https://go.postman.co/collection/59335977-f4b12bde-66de-40b7-a89b-61dc4dc8862d?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Payout",
+      "item": [
+        {
+          "name": "10 - Create Payout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Payout API returned an accepted response\", function () {\r\n  pm.expect([200, 201]).to.include(pm.response.code);\r\n});\r\n\r\nconst response = pm.response.json();\r\n\r\npm.test(\"Payout batch ID exists\", function () {\r\n  pm.expect(response.batch_header).to.exist;\r\n  pm.expect(response.batch_header.payout_batch_id).to.be.a(\"string\");\r\n});\r\n\r\npm.test(\"Initial batch status is valid\", function () {\r\n  const status = response.batch_header.batch_status;\r\n\r\n  pm.expect([\r\n    \"PENDING\",\r\n    \"PROCESSING\",\r\n    \"SUCCESS\",\r\n    \"DENIED\"\r\n  ]).to.include(status);\r\n});\r\n\r\nif (response.batch_header?.payout_batch_id) {\r\n  pm.environment.set(\r\n    \"payout_batch_id\",\r\n    response.batch_header.payout_batch_id\r\n  );\r\n\r\n  console.log(\r\n    \"Payout batch ID:\",\r\n    response.batch_header.payout_batch_id\r\n  );\r\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "PayPal-Request-Id",
+                "value": "vaultlance-payout-request-001"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"sender_batch_header\": {\r\n    \"sender_batch_id\": \"vaultlance-batch-001\",\r\n    \"email_subject\": \"VaultLance payout\",\r\n    \"email_message\": \"Your deliverables were approved.\"\r\n  },\r\n  \"items\": [\r\n    {\r\n      \"recipient_type\": \"EMAIL\",\r\n      \"receiver\": \"{{freelancer_email}}\",\r\n      \"amount\": {\r\n        \"value\": \"9.00\",\r\n        \"currency\": \"USD\"\r\n      },\r\n      \"note\": \"vault-demo-001 payout\",\r\n      \"sender_item_id\": \"vault-demo-001-payout-001\"\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/payments/payouts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "payments",
+                "payouts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11 - Get Payout Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Payout status request succeeded\", function () {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\nconst response = pm.response.json();\r\n\r\npm.test(\"Batch header exists\", function () {\r\n  pm.expect(response.batch_header).to.exist;\r\n});\r\n\r\npm.test(\"Batch status is recognized\", function () {\r\n  pm.expect([\r\n    \"PENDING\",\r\n    \"PROCESSING\",\r\n    \"SUCCESS\",\r\n    \"DENIED\",\r\n    \"CANCELED\"\r\n  ]).to.include(response.batch_header.batch_status);\r\n});\r\n\r\nconst items = response.items || [];\r\n\r\npm.test(\"At least one payout item is returned\", function () {\r\n  pm.expect(items.length).to.be.greaterThan(0);\r\n});\r\n\r\nif (items.length > 0) {\r\n  const itemStatus = items[0].transaction_status;\r\n\r\n  pm.test(\"First payout item has a recognized status\", function () {\r\n    pm.expect([\r\n      \"PENDING\",\r\n      \"SUCCESS\",\r\n      \"FAILED\",\r\n      \"UNCLAIMED\",\r\n      \"RETURNED\",\r\n      \"BLOCKED\",\r\n      \"REFUNDED\",\r\n      \"REVERSED\",\r\n      \"ONHOLD\"\r\n    ]).to.include(itemStatus);\r\n  });\r\n\r\n  console.log(\"Batch status:\", response.batch_header.batch_status);\r\n  console.log(\"Item status:\", itemStatus);\r\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/payments/payouts/{{payout_batch_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "payments",
+                "payouts",
+                "{{payout_batch_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Get Access Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\npm.test(\"Access token request succeeded\", function () {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Access token exists\", function () {\r\n  pm.expect(response.access_token).to.be.a(\"string\");\r\n  pm.expect(response.access_token.length).to.be.greaterThan(10);\r\n});\r\n\r\npm.environment.set(\"access_token\", response.access_token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "basic",
+          "basic": [
+            {
+              "key": "username",
+              "value": "{{client_id}}",
+              "type": "string"
+            },
+            {
+              "key": "password",
+              "value": "{{client_secret}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "client_credentials"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/oauth2/token",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "oauth2",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Create Authorize Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\npm.test(\"Order created successfully\", function () {\r\n  pm.response.to.have.status(201);\r\n});\r\n\r\npm.test(\"Order ID exists\", function () {\r\n  pm.expect(response.id).to.be.a(\"string\");\r\n});\r\n\r\npm.test(\"Order status is CREATED\", function () {\r\n  pm.expect(response.status).to.eql(\"CREATED\");\r\n});\r\n\r\npm.environment.set(\"order_id\", response.id);\r\n\r\nconst approvalLink = response.links?.find(function (link) {\r\n  return link.rel === \"payer-action\" || link.rel === \"approve\";\r\n});\r\n\r\npm.test(\"Buyer approval URL exists\", function () {\r\n  pm.expect(approvalLink).to.exist;\r\n  pm.expect(approvalLink.href).to.be.a(\"string\");\r\n});\r\n\r\nif (approvalLink) {\r\n  pm.environment.set(\"approve_url\", approvalLink.href);\r\n  console.log(\"Approval URL:\", approvalLink.href);\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Prefer",
+            "value": "return=representation"
+          },
+          {
+            "key": "PayPal-Request-Id",
+            "value": "vaultlance-create-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"intent\": \"AUTHORIZE\",\r\n  \"purchase_units\": [\r\n    {\r\n      \"reference_id\": \"vault-demo-001\",\r\n      \"description\": \"VaultLance AI digital deliverables\",\r\n      \"custom_id\": \"vault-demo-001\",\r\n      \"invoice_id\": \"vault-demo-001-order-001\",\r\n      \"amount\": {\r\n        \"currency_code\": \"USD\",\r\n        \"value\": \"10.00\"\r\n      }\r\n    }\r\n  ],\r\n  \"payment_source\": {\r\n    \"paypal\": {\r\n      \"experience_context\": {\r\n        \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\",\r\n        \"brand_name\": \"VaultLance AI\",\r\n        \"locale\": \"en-US\",\r\n        \"landing_page\": \"LOGIN\",\r\n        \"shipping_preference\": \"NO_SHIPPING\",\r\n        \"user_action\": \"CONTINUE\",\r\n        \"return_url\": \"https://example.com/paypal/success\",\r\n        \"cancel_url\": \"https://example.com/paypal/cancel\"\r\n      }\r\n    }\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/v2/checkout/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "checkout",
+            "orders"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Get Order Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/v2/checkout/orders/{{order_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "checkout",
+            "orders",
+            "{{order_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Authorize Approved Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\npm.test(\"Order authorization succeeded\", function () {\r\n  pm.expect([200, 201]).to.include(pm.response.code);\r\n});\r\n\r\nconst authorization =\r\n  response.purchase_units?.[0]?.payments?.authorizations?.[0];\r\n\r\npm.test(\"Authorization object exists\", function () {\r\n  pm.expect(authorization).to.exist;\r\n});\r\n\r\npm.test(\"Authorization ID exists\", function () {\r\n  pm.expect(authorization.id).to.be.a(\"string\");\r\n});\r\n\r\nif (authorization) {\r\n  pm.environment.set(\"authorization_id\", authorization.id);\r\n  console.log(\"Authorization ID:\", authorization.id);\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Prefer",
+            "value": "return=representation"
+          },
+          {
+            "key": "PayPal-Request-Id",
+            "value": "vaultlance-authorize-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/v2/checkout/orders/{{order_id}}/authorize",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "checkout",
+            "orders",
+            "{{order_id}}",
+            "authorize"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Capture Authorization",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\npm.test(\"Capture request succeeded\", function () {\r\n  pm.expect([200, 201]).to.include(pm.response.code);\r\n});\r\n\r\npm.test(\"Capture status is COMPLETED\", function () {\r\n  pm.expect(response.status).to.eql(\"COMPLETED\");\r\n});\r\n\r\npm.test(\"Captured amount is USD 10.00\", function () {\r\n  pm.expect(response.amount.currency_code).to.eql(\"USD\");\r\n  pm.expect(response.amount.value).to.eql(\"10.00\");\r\n});\r\n\r\npm.test(\"Capture ID exists\", function () {\r\n  pm.expect(response.id).to.be.a(\"string\");\r\n  pm.expect(response.id.length).to.be.greaterThan(5);\r\n});\r\n\r\npm.environment.set(\"capture_id\", response.id);\r\nconsole.log(\"Capture ID saved:\", response.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Prefer",
+            "value": "return=representation"
+          },
+          {
+            "key": "PayPal-Request-Id",
+            "value": "vaultlance-capture-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"amount\": {\r\n    \"currency_code\": \"USD\",\r\n    \"value\": \"10.00\"\r\n  },\r\n  \"final_capture\": true,\r\n  \"note_to_payer\": \"VaultLance deliverables approved.\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/v2/payments/authorizations/{{authorization_id}}/capture",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "payments",
+            "authorizations",
+            "{{authorization_id}}",
+            "capture"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Create Order for Void",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let response;\r\n\r\npm.test(\"Response body is valid JSON\", function () {\r\n  response = pm.response.json();\r\n  pm.expect(response).to.be.an(\"object\");\r\n});\r\n\r\n/*\r\n * A newly created PayPal order normally returns 201.\r\n * PayPal can return 200 when an idempotent request retrieves\r\n * the result of a previously processed request.\r\n */\r\npm.test(\"Order request succeeded\", function () {\r\n  pm.expect([200, 201]).to.include(pm.response.code);\r\n});\r\n\r\npm.test(\"Order ID exists\", function () {\r\n  pm.expect(response.id).to.be.a(\"string\");\r\n  pm.expect(response.id.length).to.be.greaterThan(5);\r\n});\r\n\r\n/*\r\n * PayPal currently returned PAYER_ACTION_REQUIRED in your test.\r\n * CREATED may also appear depending on the request/response flow.\r\n */\r\npm.test(\"Order is waiting for buyer approval\", function () {\r\n  pm.expect([\r\n    \"CREATED\",\r\n    \"PAYER_ACTION_REQUIRED\"\r\n  ]).to.include(response.status);\r\n});\r\n\r\npm.test(\"Order intent is AUTHORIZE\", function () {\r\n  pm.expect(response.intent).to.eql(\"AUTHORIZE\");\r\n});\r\n\r\npm.test(\"Order amount is USD 10.00\", function () {\r\n  const amount = response.purchase_units?.[0]?.amount;\r\n\r\n  pm.expect(amount).to.exist;\r\n  pm.expect(amount.currency_code).to.eql(\"USD\");\r\n  pm.expect(amount.value).to.eql(\"10.00\");\r\n});\r\n\r\npm.test(\"This is the void-test vault\", function () {\r\n  const purchaseUnit = response.purchase_units?.[0];\r\n\r\n  pm.expect(purchaseUnit).to.exist;\r\n  pm.expect(purchaseUnit.reference_id).to.eql(\"vault-demo-002\");\r\n  pm.expect(purchaseUnit.custom_id).to.eql(\"vault-demo-002\");\r\n  pm.expect(purchaseUnit.invoice_id).to.eql(\r\n    \"vault-demo-002-void-001\"\r\n  );\r\n});\r\n\r\nconst approvalLink = response.links?.find(function (link) {\r\n  return link.rel === \"payer-action\" || link.rel === \"approve\";\r\n});\r\n\r\npm.test(\"Buyer approval URL exists\", function () {\r\n  pm.expect(approvalLink).to.exist;\r\n  pm.expect(approvalLink.href).to.be.a(\"string\");\r\n  pm.expect(approvalLink.href).to.include(\r\n    \"sandbox.paypal.com\"\r\n  );\r\n});\r\n\r\npm.environment.set(\"order_id\", response.id);\r\n\r\nif (approvalLink) {\r\n  pm.environment.set(\"approve_url\", approvalLink.href);\r\n}\r\n\r\nconsole.log(\"Void-flow order ID:\", response.id);\r\nconsole.log(\"Order status:\", response.status);\r\nconsole.log(\"Approval URL:\", approvalLink?.href);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Prefer",
+            "value": "return=representation"
+          },
+          {
+            "key": "PayPal-Request-Id",
+            "value": "vaultlance-create-void-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"intent\": \"AUTHORIZE\",\r\n  \"purchase_units\": [\r\n    {\r\n      \"reference_id\": \"vault-demo-002\",\r\n      \"description\": \"VaultLance AI digital deliverables\",\r\n      \"custom_id\": \"vault-demo-002\",\r\n      \"invoice_id\": \"vault-demo-002-void-001\",\r\n      \"amount\": {\r\n        \"currency_code\": \"USD\",\r\n        \"value\": \"10.00\"\r\n      }\r\n    }\r\n  ],\r\n  \"payment_source\": {\r\n    \"paypal\": {\r\n      \"experience_context\": {\r\n        \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\",\r\n        \"brand_name\": \"VaultLance AI\",\r\n        \"locale\": \"en-US\",\r\n        \"landing_page\": \"LOGIN\",\r\n        \"shipping_preference\": \"NO_SHIPPING\",\r\n        \"user_action\": \"CONTINUE\",\r\n        \"return_url\": \"https://example.com/paypal/success\",\r\n        \"cancel_url\": \"https://example.com/paypal/cancel\"\r\n      }\r\n    }\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/v2/checkout/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "checkout",
+            "orders"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 - Authorize Order for Void",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\npm.test(\"Authorization request succeeded\", function () {\r\n  pm.expect([200, 201]).to.include(pm.response.code);\r\n});\r\n\r\nconst authorization =\r\n  response.purchase_units?.[0]?.payments?.authorizations?.[0];\r\n\r\npm.test(\"Authorization exists\", function () {\r\n  pm.expect(authorization).to.exist;\r\n});\r\n\r\npm.test(\"Authorization ID exists\", function () {\r\n  pm.expect(authorization.id).to.be.a(\"string\");\r\n  pm.expect(authorization.id.length).to.be.greaterThan(5);\r\n});\r\n\r\npm.test(\"Authorization status is CREATED\", function () {\r\n  pm.expect(authorization.status).to.eql(\"CREATED\");\r\n});\r\n\r\npm.test(\"Authorization amount is USD 10.00\", function () {\r\n  pm.expect(authorization.amount.currency_code).to.eql(\"USD\");\r\n  pm.expect(authorization.amount.value).to.eql(\"10.00\");\r\n});\r\n\r\nif (authorization) {\r\n  pm.environment.set(\"authorization_id\", authorization.id);\r\n}\r\n\r\nconsole.log(\"Void-flow authorization ID:\", authorization?.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Prefer",
+            "value": "return=representation"
+          },
+          {
+            "key": "PayPal-Request-Id",
+            "value": "vaultlance-authorize-void-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/v2/checkout/orders/{{order_id}}/authorize",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "checkout",
+            "orders",
+            "{{order_id}}",
+            "authorize"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 - Void Authorization",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Void request succeeded\", function () {\r\n  pm.expect([200, 204]).to.include(pm.response.code);\r\n});\r\n\r\nif (pm.response.code === 200 && pm.response.text().trim()) {\r\n  const response = pm.response.json();\r\n\r\n  pm.test(\"Authorization status is VOIDED\", function () {\r\n    pm.expect(response.status).to.eql(\"VOIDED\");\r\n  });\r\n}\r\n\r\nif (pm.response.code === 204) {\r\n  console.log(\"Authorization voided successfully. Empty body is expected.\");\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "PayPal-Request-Id",
+            "value": "vaultlance-void-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/v2/payments/authorizations/{{authorization_id}}/void",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "payments",
+            "authorizations",
+            "{{authorization_id}}",
+            "void"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 - Get Authorization Details",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\npm.test(\"Authorization details returned\", function () {\r\n  pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Authorization status is VOIDED\", function () {\r\n  pm.expect(response.status).to.eql(\"VOIDED\");\r\n});\r\n\r\npm.test(\"Authorization amount is USD 10.00\", function () {\r\n  pm.expect(response.amount.currency_code).to.eql(\"USD\");\r\n  pm.expect(response.amount.value).to.eql(\"10.00\");\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/v2/payments/authorizations/{{authorization_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v2",
+            "payments",
+            "authorizations",
+            "{{authorization_id}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
