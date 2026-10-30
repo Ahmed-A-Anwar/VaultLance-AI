@@ -1,6 +1,9 @@
-/* Toasts.tsx — one toast system for the dashboard: bottom right, 13px from the
-   edges, at most three stacked, five seconds each, paused while the pointer is
-   over them. Errors can carry a Retry action. */
+/* Toasts.tsx — one toast system for the client surfaces: bottom right, 13px from
+   the edges, at most three stacked, five seconds each, paused while the pointer
+   is over them. Errors can carry a Retry action.
+
+   Shared by the dashboard shell and the audit room; the styles live in
+   shared.css beside the chip and the hold. */
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
