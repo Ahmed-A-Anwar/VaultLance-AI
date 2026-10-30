@@ -10,7 +10,7 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-communi
 import type { ColDef, ICellRendererParams, RowClickedEvent } from "ag-grid-community";
 import type { LedgerEvent, Vault } from "../../lib/api";
 import { Copy } from "./icons";
-import { useToast } from "./Toasts";
+import { useToast } from "../shared/Toasts";
 import { useDashData } from "./data";
 
 ModuleRegistry.registerModules([AllCommunityModule]);

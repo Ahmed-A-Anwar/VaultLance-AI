@@ -5,7 +5,11 @@
    does not re-render sixty times a second.
 
    Screen readers get the same power without a hold: a "Confirm approval" button
-   that is hidden until it takes focus. */
+   that is hidden until it takes focus.
+
+   Shared by the client dashboard's vault cards and the audit room's decision
+   panel. The host supplies its own visual class; the ring, the clock and the
+   aria contract live here, once. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -18,11 +22,18 @@ export function HoldButton({
   disabled,
   pending,
   done,
+  className,
+  label = "Hold to approve & pay",
+  pendingLabel = "Approving…",
 }: {
   onConfirm: () => void;
   disabled?: boolean;
   pending?: boolean;
   done?: boolean;
+  /* the host's own class, appended to the button */
+  className?: string;
+  label?: string;
+  pendingLabel?: string;
 }) {
   const ring = useRef<HTMLSpanElement>(null);
   const raf = useRef(0);
@@ -83,13 +94,13 @@ export function HoldButton({
 
   useEffect(() => stop, [stop]);
 
-  const label = done ? "Approved" : holding ? "Keep holding…" : "Hold to approve & pay";
+  const text = done ? "Approved" : holding ? "Keep holding…" : label;
 
   return (
     <div className="dash-hold-wrap">
       <button
         type="button"
-        className="dash-btn dash-btn-primary dash-hold"
+        className={`dash-btn dash-btn-primary dash-hold${className ? ` ${className}` : ""}`}
         data-pulse={pulse ? "true" : undefined}
         disabled={disabled || pending || done}
         aria-describedby="dash-hold-help"
@@ -114,7 +125,7 @@ export function HoldButton({
         onBlur={cancel}
       >
         <span ref={ring} className="dash-hold-ring" aria-hidden="true" />
-        <span className="dash-btn-label">{pending ? "Approving…" : label}</span>
+        <span className="dash-btn-label">{pending ? pendingLabel : text}</span>
         {pending && <span className="dash-spin" aria-hidden="true" />}
       </button>
 
