@@ -8,3 +8,7 @@ dev.log
 backup/
 .DS_Store
 /freebuff-sites-build/
+.env
+.env.*
+!.env.example
+node_modules/
