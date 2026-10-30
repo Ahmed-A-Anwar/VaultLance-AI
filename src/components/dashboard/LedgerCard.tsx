@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "./icons";
 import { LedgerGrid } from "./LedgerGrid";
 import { useDashData } from "./data";
-import { useToast } from "./Toasts";
+import { useToast } from "../shared/Toasts";
 
 export function LedgerCard({ full = false, heading = "h2" }: { full?: boolean; heading?: "h1" | "h2" }) {
   const { events, vaults, loading, error, reload, latestEvent } = useDashData();
