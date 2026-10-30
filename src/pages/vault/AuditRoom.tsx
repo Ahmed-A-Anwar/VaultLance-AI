@@ -234,7 +234,7 @@ function RoomSkeleton() {
           ))}
         </div>
       </div>
-      <div className="room-main">
+      <div className="room-main" data-tab="chat">
         <div className="room-panel room-files">
           <span className="room-skel room-skel-figure" />
           <span className="room-skel room-skel-h" />
