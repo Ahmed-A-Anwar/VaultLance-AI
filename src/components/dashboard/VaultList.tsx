@@ -77,7 +77,7 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
     <section className="dash-vaults" aria-labelledby="dash-vaults-h">
       <div className="dash-vaults-head">
         <Heading id="dash-vaults-h" className="dash-section-h">
-          Needs your decision
+          Your vaults
         </Heading>
         <div className="dash-chips" role="group" aria-label="Filter vaults">
           {FILTERS.map(({ key, label }) => (
@@ -95,7 +95,7 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
       </div>
 
       {/* phones get the join action here, at the top of the list */}
-      <button type="button" className="dash-btn dash-btn-primary dash-join-cta" onClick={() => setJoinOpen(true)}>
+      <button type="button" className="dash-btn dash-btn-ghost dash-join-cta" onClick={() => setJoinOpen(true)}>
         <span className="dash-btn-label">Join a vault</span>
       </button>
 
@@ -125,8 +125,16 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
 
       {empty && (
         <div className="dash-empty">
-          <img className="dash-empty-img" src="/vault-frames/f_001.webp" alt="" width={233} height={233} />
-          <p className="dash-empty-h">No vaults yet. Join one with a code.</p>
+          {/* the frame is a 1920x1080 render with the vault in its middle third:
+              the figure crops to the vault and the image blends into the page,
+              so there is no grey box and no halo to see */}
+          <figure className="dash-empty-fig">
+            <img className="dash-empty-img" src="/vault-frames/f_001.webp" alt="" aria-hidden="true" />
+          </figure>
+          <div className="dash-empty-copy">
+            <p className="dash-empty-h">No vaults yet</p>
+            <p className="dash-empty-sub">Join one with an invite code.</p>
+          </div>
         </div>
       )}
 
@@ -143,7 +151,7 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
               }}
             />
           ))}
-          {visible.length === 0 && !loading && (
+          {visible.length === 0 && !loading && !error && (
             <p className="dash-mono dim dash-vault-list-empty">Nothing matches this view.</p>
           )}
         </div>

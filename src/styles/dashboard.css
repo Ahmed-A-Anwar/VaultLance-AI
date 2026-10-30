@@ -18,6 +18,15 @@
   --dash-ease: cubic-bezier(0.215, 0.61, 0.355, 1); /* power3.out */
   --dash-danger: #c4453d; /* the spec's danger, sparingly */
 
+  /* the body area: what is left of the viewport under the strip */
+  --dash-view: calc(100svh - var(--dash-strip) - (var(--dash-pad) * 2));
+  /* the greeting band is exactly as tall as its content (the 89px KPI card),
+     so the 0.382 split no longer parks ~100px of nothing above and below it */
+  --dash-upper: 89px;
+  /* what the lower band keeps in view: the ledger card's height, and the floor
+     for the vault column, so the two bottoms agree */
+  --dash-lower-h: calc(var(--dash-view) - var(--dash-upper) - var(--dash-gap));
+
   min-height: 100svh;
   display: block;
   background: linear-gradient(180deg, var(--hero-bg-top) 0%, var(--hero-bg-mid) 50%, var(--hero-bg-bot) 100%);
@@ -60,13 +69,13 @@
   flex-direction: column;
   gap: var(--dash-gap);
   padding: 34px 13px;
-  background: var(--dash-glass);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.42);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
+  backdrop-filter: blur(12px) saturate(1.05);
   border-right: 1px solid var(--hero-steel);
   box-shadow: var(--dash-shadow);
   overflow: hidden;
-  transition: width var(--hero-d-382) var(--dash-ease);
+  transition: width var(--hero-d-382) var(--dash-ease), background-color var(--hero-d-382) var(--dash-ease);
   will-change: width;
 }
 /* the brass hairline on the inner edge, and a bolt at each end of it */
@@ -80,9 +89,15 @@
   background: linear-gradient(180deg, transparent, var(--dash-brass-line) 12%, var(--dash-brass-line) 88%, transparent);
   pointer-events: none;
 }
+/* expanded, the rail is an overlay: the page slides under it, so it frosts up
+   to nearly opaque. At 35% the headline behind it read through the labels. */
 .dash-rail:hover,
 .dash-rail:focus-within {
   width: var(--dash-rail-open);
+  background: rgba(228, 234, 235, 0.94);
+  -webkit-backdrop-filter: blur(21px) saturate(1.1);
+  backdrop-filter: blur(21px) saturate(1.1);
+  box-shadow: 0 13px 34px rgba(14, 21, 32, 0.16);
 }
 .dash-rail-bolt {
   position: absolute;
@@ -401,27 +416,30 @@
   background: var(--hero-brass);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55);
 }
-/* the one brass action, the hero's own gradient */
+/* joining is chrome, not money: glass, so the brass stays on authorize and
+   approve, the two buttons that move funds */
 .dash-cta {
   height: 34px;
   padding: 0 21px;
-  border: 0;
+  border: 1px solid var(--hero-steel);
   border-radius: var(--dash-r);
-  background: linear-gradient(160deg, var(--hero-brass-light) 0%, var(--hero-brass) 100%);
+  background: rgba(255, 255, 255, 0.42);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   color: var(--hero-ink);
   font-family: var(--hero-font-body);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 8px 21px rgba(184, 137, 58, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
-  transition: transform var(--hero-d-236) var(--dash-ease), box-shadow var(--hero-d-382) var(--dash-ease);
+  transition: transform var(--hero-d-236) var(--dash-ease), border-color var(--hero-d-236) var(--dash-ease),
+    box-shadow var(--hero-d-382) var(--dash-ease), background-color var(--hero-d-236) var(--dash-ease);
 }
 .dash-cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 13px 34px rgba(184, 137, 58, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  border-color: var(--hero-teal);
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 4px rgba(18, 165, 181, 0.15), 0 8px 21px rgba(14, 21, 32, 0.08);
 }
 .dash-cta:active {
   transform: scale(0.97);
@@ -435,12 +453,15 @@
   display: flex;
   flex-direction: column;
 }
+/* the greeting hugs its content; the vaults and the ledger get everything
+   else. The lower row never dips below the viewport's remainder, and grows
+   with the cards instead of letting them spill out of a fixed 61.8%. */
 .dash-bands {
   flex: 1;
   display: grid;
-  grid-template-rows: minmax(233px, 0.382fr) minmax(382px, 0.618fr);
+  grid-template-rows: var(--dash-upper) minmax(var(--dash-lower-h), auto);
   gap: var(--dash-gap);
-  min-height: calc(100svh - var(--dash-strip) - (var(--dash-pad) * 2));
+  min-height: var(--dash-view);
 }
 .dash-bands.is-single {
   grid-template-rows: 1fr;
@@ -451,6 +472,10 @@
   grid-template-columns: 1.618fr 1fr;
   gap: var(--dash-gap);
   min-width: 0;
+}
+.dash-upper {
+  min-height: var(--dash-upper);
+  align-items: center;
 }
 .dash-lower {
   align-items: stretch;
@@ -527,8 +552,13 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 21px;
+  gap: 13px;
   min-width: 0;
+}
+.dash-greeting-skel {
+  width: 233px;
+  max-width: 100%;
+  height: 12px;
 }
 .dash-greeting-h {
   margin: 0;
@@ -552,14 +582,17 @@
   align-content: center;
   min-width: 0;
 }
+/* icon and label share the top line, so the label always has the whole card
+   width, the number sits on one baseline across the three, and the card has
+   room to breathe */
 .dash-kpi {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: 8px;
   height: 89px;
-  padding: 4px 13px 6px;
+  padding: 13px;
   border: 1px solid var(--hero-steel);
   border-radius: var(--dash-r);
   background: var(--dash-glass);
@@ -588,6 +621,12 @@
 .dash-kpi[data-accent="success"] {
   --kpi-accent: var(--hero-success);
 }
+.dash-kpi-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .dash-kpi-ico {
   color: var(--kpi-accent);
   line-height: 0;
@@ -597,9 +636,12 @@
   font-family: var(--hero-font-mono);
   font-size: 12px;
   line-height: 1.1;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--hero-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dash-kpi-num {
   font-family: var(--hero-font-display);
@@ -1165,13 +1207,42 @@
   gap: 21px;
   padding: 34px 0;
   flex: 1;
+  text-align: center;
+}
+/* The frame is a 1920x1080 studio render with the vault in its middle third.
+   The figure shows that third only, so the vault reads at 233px instead of
+   90px, and `darken` melts the pale studio grey into the page gradient: no
+   box edge, and none of the smudge the radial mask left behind. */
+/* a plate, not a halo: the frame's own studio grey stays, bounded by the same
+   13px radius and steel hairline as everything else on the page */
+.dash-empty-fig {
+  --empty: 233px;
+  position: relative;
+  flex: none;
+  margin: 0;
+  width: var(--empty);
+  height: var(--empty);
+  overflow: hidden;
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--dash-r);
+  background: var(--dash-glass);
+  box-shadow: var(--dash-shadow);
 }
 .dash-empty-img {
-  width: 233px;
-  height: auto;
-  border-radius: var(--dash-r);
-  -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* the vault sits in the middle ~31% of the frame: 2.35 is the zoom that
+     fills the plate without touching its edges */
+  width: calc(var(--empty) * 2.35);
+  max-width: none;
+  transform: translate(-50%, -50%);
+}
+.dash-empty-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 .dash-empty-h {
   margin: 0;
@@ -1179,8 +1250,14 @@
   font-variation-settings: normal;
   font-size: 26px;
   font-weight: 600;
-  text-align: center;
-  max-width: 21ch;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.dash-empty-sub {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--hero-slate);
+  font-size: 14px;
 }
 
 .dash-error {
@@ -1274,11 +1351,20 @@
 
 /* ============================================================== ledger card */
 
+/* It stays where it is. The card is pinned under the strip while the vault
+   cards scroll beside it, and it takes exactly the viewport's remainder, so
+   its bottom lands with the viewport's rather than floating short of the
+   cards. */
 .dash-ledger {
+  position: sticky;
+  top: calc(var(--dash-strip) + var(--dash-pad));
+  align-self: start;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 233px;
+  height: var(--dash-lower-h);
+  max-height: var(--dash-lower-h);
   padding: 13px 13px 8px;
   border: 1px solid var(--hero-steel);
   border-radius: var(--dash-r);
@@ -1287,6 +1373,13 @@
   backdrop-filter: blur(12px);
   box-shadow: var(--dash-shadow);
   overflow: hidden;
+}
+/* the full-page routes give the card the whole area: no pinning, no height */
+.dash-bands.is-single .dash-ledger {
+  position: static;
+  align-self: stretch;
+  height: auto;
+  max-height: none;
 }
 .dash-ledger-head {
   display: flex;
@@ -1392,10 +1485,15 @@
 .dash-grid .ag-row-selected {
   background: rgba(18, 165, 181, 0.08) !important;
 }
-.dash-grid .ag-cell-focus:not(.ag-cell-range-selected) {
-  outline: 3px solid var(--hero-teal);
+/* the grid's default focus is a hard teal rectangle around the whole cell:
+   soften it to a rounded ring, inset so it never touches the row rule */
+.dash-grid .ag-cell-focus,
+.dash-grid .ag-cell-focus:not(.ag-cell-range-selected),
+.dash-grid .ag-cell:focus-within {
+  outline: 2px solid rgba(18, 165, 181, 0.55);
   outline-offset: -3px;
-  border-radius: 4px;
+  border-radius: 8px;
+  background: rgba(18, 165, 181, 0.06);
 }
 .dash-grid .ag-row.dash-row-new {
   animation: dashRowFlash 1s ease-out both;
@@ -1469,6 +1567,11 @@
 }
 
 .dash-pop {
+  /* portalled to <body>, so it sits outside .dash and inherits none of its
+     tokens: the square corners were var(--dash-r) resolving to nothing */
+  --dash-r: 13px;
+  --dash-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --dash-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
   position: fixed;
   z-index: 60;
   width: 258px;
@@ -1478,10 +1581,12 @@
   padding: 13px;
   border: 1px solid var(--hero-steel);
   border-radius: var(--dash-r);
-  background: rgba(255, 255, 255, 0.94);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.16);
+  /* the same glass as the cards, dialled up until the text underneath is only
+     a suggestion of a colour */
+  background: rgba(238, 242, 243, 0.92);
+  -webkit-backdrop-filter: blur(21px) saturate(1.08);
+  backdrop-filter: blur(21px) saturate(1.08);
+  box-shadow: 0 13px 34px rgba(14, 21, 32, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   animation: dashPop 236ms var(--dash-ease) both;
 }
 @keyframes dashPop {
@@ -1521,6 +1626,11 @@
 /* ================================================================== toasts */
 
 .dash-toasts {
+  /* the toast stack renders above .dash, not inside it, so it has to carry the
+     same tokens itself: without them the cards were square and unstyled */
+  --dash-r: 13px;
+  --dash-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --dash-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
   position: fixed;
   right: 13px;
   bottom: 13px;
@@ -1540,10 +1650,10 @@
   padding: 13px;
   border: 1px solid var(--hero-steel);
   border-radius: var(--dash-r);
-  background: rgba(255, 255, 255, 0.94);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.16);
+  background: rgba(240, 244, 245, 0.93);
+  -webkit-backdrop-filter: blur(21px) saturate(1.08);
+  backdrop-filter: blur(21px) saturate(1.08);
+  box-shadow: 0 13px 34px rgba(14, 21, 32, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   pointer-events: auto;
   animation: dashToastIn var(--hero-d-382) var(--dash-ease) both;
 }
@@ -1610,12 +1720,17 @@
   width: 233px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 13px;
   padding: 13px;
-  border: 1px dashed var(--hero-slate);
+  border: 1px solid var(--hero-steel);
   border-radius: var(--dash-r);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--dash-shadow);
+  background: rgba(240, 244, 245, 0.94);
+  -webkit-backdrop-filter: blur(21px) saturate(1.08);
+  backdrop-filter: blur(21px) saturate(1.08);
+  box-shadow: 0 13px 34px rgba(14, 21, 32, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  /* the one dashed thing left: a hairline under the eyebrow says "dev", the
+     whole box no longer does */
+  border-bottom: 2px solid var(--dash-brass-line);
 }
 .dash-dev-label {
   display: flex;
@@ -1629,9 +1744,11 @@
 }
 .dash-dev-select {
   height: 27px;
+  padding: 0 8px;
   border: 1px solid var(--hero-steel);
   border-radius: 8px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--hero-ink);
   font-family: var(--hero-font-body);
   font-size: 13px;
 }
@@ -1640,15 +1757,18 @@
   gap: 4px;
 }
 .dash-dev-btn {
-  height: 21px;
+  height: 27px;
+  padding: 0 8px;
   border: 1px solid var(--hero-steel);
-  border-radius: 4px;
-  background: transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.45);
   font-family: var(--hero-font-mono);
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--hero-slate);
+  text-align: left;
   cursor: pointer;
+  transition: color var(--hero-d-236) var(--dash-ease), border-color var(--hero-d-236) var(--dash-ease);
 }
 .dash-dev-btn:hover {
   color: var(--hero-ink);
@@ -1747,11 +1867,18 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 34px;
     align-content: start;
+    align-items: start;
+    min-height: 0;
   }
   .dash-bands {
-    grid-template-rows: minmax(233px, auto) auto;
+    grid-template-rows: auto auto;
+    min-height: 0;
   }
+  /* stacked, there is no column to pin beside: the ledger is just a card */
   .dash-ledger {
+    position: static;
+    height: auto;
+    max-height: none;
     min-height: 233px;
   }
 }
@@ -1781,7 +1908,18 @@
     padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     border-right: 0;
     border-top: 1px solid var(--hero-steel);
+    background: rgba(233, 238, 239, 0.96);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
     transition: none;
+  }
+  /* a tap leaves :hover behind on touch: the bar must not expand into the
+     overlay it is on desktop */
+  .dash-rail:hover,
+  .dash-rail:focus-within {
+    width: auto;
+    background: rgba(233, 238, 239, 0.96);
+    box-shadow: 0 -8px 21px rgba(14, 21, 32, 0.08);
   }
   .dash-rail::after,
   .dash-rail-bolt,
@@ -1937,8 +2075,8 @@
   .dash-grid {
     min-height: 233px;
   }
-  .dash-empty-img {
-    width: 178px;
+  .dash-empty-fig {
+    --empty: 178px;
   }
   .dash-toasts {
     left: 13px;

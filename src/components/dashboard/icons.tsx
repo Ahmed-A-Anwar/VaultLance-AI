@@ -36,12 +36,13 @@ export const Grid = (p: P) => (
   </svg>
 );
 
-export const Rows = (p: P) => (
+/* the ledger: a bound book with a margin rule and three entries. Three plain
+   lines read as a hamburger, so the spine and the entries carry the meaning. */
+export const Ledger = (p: P) => (
   <svg {...base(p)}>
-    <path d="M2 4.2h12M2 8h12M2 11.8h12" />
-    <circle cx="4" cy="4.2" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="4" cy="8" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="4" cy="11.8" r="0.9" fill="currentColor" stroke="none" />
+    <rect x="2.6" y="1.9" width="10.8" height="12.2" rx="1.7" />
+    <path d="M6.2 1.9v12.2" />
+    <path d="M8.2 5.6h3.2M8.2 8h3.2M8.2 10.4h1.8" strokeWidth="1.3" />
   </svg>
 );
 
