@@ -4,24 +4,36 @@
 import { Bell, Search } from "./icons";
 import { useDashUi } from "./ui";
 
-export function TopStrip({ title, onJoin }: { title: string; onJoin: () => void }) {
+export function TopStrip({
+  title,
+  onJoin,
+  showSearch = true,
+}: {
+  title: string;
+  onJoin: () => void;
+  /* only the areas that list vaults have anything to search: Ledger, Payments
+     and Settings drop the field and the strip tightens to two columns */
+  showSearch?: boolean;
+}) {
   const { query, setQuery, unread, markRead } = useDashUi();
 
   return (
-    <header className="dash-strip" data-enter="strip">
+    <header className="dash-strip" data-enter="strip" data-search={showSearch ? "on" : "off"}>
       <p className="dash-title">{title}</p>
 
-      <div className="dash-search">
-        <Search className="dash-search-icon" width="16" height="16" />
-        <input
-          className="dash-search-input"
-          type="search"
-          placeholder="Search vaults"
-          aria-label="Search vaults"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
+      {showSearch && (
+        <div className="dash-search">
+          <Search className="dash-search-icon" width="16" height="16" />
+          <input
+            className="dash-search-input"
+            type="search"
+            placeholder="Search vaults"
+            aria-label="Search vaults"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="dash-strip-actions">
         <button

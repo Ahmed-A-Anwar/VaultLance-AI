@@ -332,6 +332,11 @@
   padding: 0 var(--dash-pad);
   border-bottom: 1px solid var(--dash-hairline);
 }
+/* no vault list on the page, so no vault search: two columns keep the title
+   left and the actions hard right */
+.dash-strip[data-search="off"] {
+  grid-template-columns: 1fr auto;
+}
 .dash-title {
   font-family: var(--hero-font-display);
   font-variation-settings: normal;

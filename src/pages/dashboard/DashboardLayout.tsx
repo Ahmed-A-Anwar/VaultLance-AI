@@ -28,6 +28,9 @@ export function titleFor(pathname: string): string {
   return hit?.[1] ?? "Overview";
 }
 
+/* the strip's vault search earns its place only where vaults are listed */
+const NO_SEARCH = new Set(["/dashboard/ledger", "/dashboard/payments", "/dashboard/settings"]);
+
 function Surface() {
   const { session, signOut } = useSession();
   const { setJoinOpen } = useDashUi();
@@ -44,6 +47,8 @@ function Surface() {
     () => (session?.role === "freelancer" ? "Freelancer" : titleFor(location.pathname)),
     [location.pathname, session?.role]
   );
+
+  const showSearch = !NO_SEARCH.has(location.pathname);
 
   if (!session) return leaving.current ? null : <Navigate to="/signin" replace />;
 
@@ -70,7 +75,7 @@ function Surface() {
       />
 
       <div className="dash-main">
-        <TopStrip title={title} onJoin={join} />
+        <TopStrip title={title} onJoin={join} showSearch={showSearch} />
         <main id="main" className="dash-body">
           {session.role === "freelancer" ? <FreelancerView email={session.email} /> : <Outlet />}
         </main>
