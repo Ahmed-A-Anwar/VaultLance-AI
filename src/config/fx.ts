@@ -12,6 +12,14 @@ export const FX = {
   wheelClip: true,
   keypadClip: true,
   signinFlow: true,
+  /* forgotFlow true hands the "Forgot password?" link on /signin over to the
+     reset flow: it points at /forgot-password and carries a typed address
+     across. false restores the old placeholder href ("#").
+
+     mockErrors true lets the reset screens fail on 5% of submissions, so the
+     failure paths stay reachable. false makes every submission succeed. */
+  forgotFlow: true,
+  mockErrors: true,
 };
 
 export const CLIPS = {

@@ -77,6 +77,71 @@ export function passwordError(value: string): string | null {
   return value.length < MIN_PASSWORD ? `Use at least ${MIN_PASSWORD} characters.` : null;
 }
 
+/* ---- password reset (mock) ----
+   Local only, like everything else in this file. Each function is named after the
+   call it will make once the backend exists:
+
+     requestReset(email)            -> POST /v1/auth/forgot-password
+     verifyResetToken(token)        -> GET  /v1/auth/reset-password/validate
+     resetPassword(token, password) -> POST /v1/auth/reset-password
+
+   Nothing here says whether an address has an account: the request screen has to
+   answer the same way either way. */
+
+export const RESEND_SECONDS = 55;
+export const RESET_LINK_MINUTES = 30;
+/* the link the dev banner under the card opens */
+export const MOCK_RESET_LINK = "/reset-password?token=demo-valid";
+
+export const RESET_EMAIL_EMPTY = "Enter your email.";
+export const RESET_EMAIL_BAD = "Enter a valid email address.";
+export const RESET_SEND_ERROR = "Couldn't send. Try again.";
+export const RESET_TOO_MANY = `Too many attempts. Try again in ${RESEND_SECONDS} seconds.`;
+export const RESET_MISMATCH = "Passwords don't match.";
+export const MAX_RESET_SENDS = 3;
+
+/* the reset screen asks for the same address rule, with its own empty message */
+export function resetEmailError(value: string): string | null {
+  if (!value.trim()) return RESET_EMAIL_EMPTY;
+  return EMAIL_RE.test(value.trim()) ? null : RESET_EMAIL_BAD;
+}
+
+/* how many requests this tab has made: three is the sandbox's limit */
+let resetSends = 0;
+export const resetSendCount = () => resetSends;
+export const noteResetSend = () => (resetSends += 1);
+
+/* the answer is always the same, and it never names an account */
+export function requestReset(email: string): { ok: true } | { ok: false; error: string } {
+  /* the address is what the real call will send; nothing local reads it */
+  void email;
+  return { ok: true };
+}
+
+export type ResetTokenState = "valid" | "expired" | "invalid";
+
+/* demo-valid and demo-expired are the two readable tokens; anything else is
+   refused, including no token at all */
+export function verifyResetToken(token: string | null): ResetTokenState {
+  if (token === "demo-valid") return "valid";
+  if (token === "demo-expired") return "expired";
+  return "invalid";
+}
+
+export function resetPassword(
+  token: string | null,
+  password: string
+): { ok: true } | { ok: false; error: string } {
+  const state = verifyResetToken(token);
+  if (state !== "valid") {
+    return { ok: false, error: state === "expired" ? "This link has expired." : "This link isn't valid." };
+  }
+  if (password.length < MIN_PASSWORD) {
+    return { ok: false, error: `Use at least ${MIN_PASSWORD} characters.` };
+  }
+  return { ok: true };
+}
+
 /* the mock: "fail@" is always refused, anything else that validates is accepted.
    A successful sign-in also opens the dashboard session, which is what the
    /dashboard guard reads on the next route. */

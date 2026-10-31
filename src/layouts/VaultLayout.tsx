@@ -25,8 +25,15 @@ export const SIGNUP_X = 76.4;
 /* the same column as /signup: the two decks are one place, crossfaded */
 export const SIGNIN_X = 76.4;
 
-/* the two form decks live at the same anchor, so only the card changes */
-const DECK: Record<string, number> = { "/signup": SIGNUP_X, "/signin": SIGNIN_X };
+/* the form decks live at the same anchor, so only the card changes. The reset
+   screens are decks too: opened from /signin, they leave the vault exactly where
+   it stands. */
+const DECK: Record<string, number> = {
+  "/signup": SIGNUP_X,
+  "/signin": SIGNIN_X,
+  "/forgot-password": SIGNIN_X,
+  "/reset-password": SIGNIN_X,
+};
 const anchorFor = (pathname: string) => DECK[pathname] ?? HERO_X;
 const isDeck = (pathname: string) => pathname in DECK;
 
@@ -496,15 +503,20 @@ export default function VaultLayout() {
       }
       cardMode.current = "instant";
 
-      const dest = to === "/signin" ? 1 : -1;
+      /* /signin and the reset screens arrive from the right, /signup from the left */
+      const dest = to === "/signup" ? -1 : 1;
       const old = outgoing.current;
       outgoing.current = null;
       const next = cardRef.current;
 
-      /* the keypad follows the deck: lit on /signin, dark again on /signup */
+      /* the keypad follows the deck: lit on /signin, dark again on /signup. The
+         reset screens open from /signin, so moving between them leaves the lit
+         keypad exactly where it is. */
       if (to === "/signin") {
         if (reduced) void padHold();
         else void padWave();
+      } else if (to === "/forgot-password" || to === "/reset-password") {
+        /* nothing to change on the vault */
       } else if (reduced) {
         fx.current?.setKeypadClipActive(false);
         fx.current?.resetCtas();

@@ -1,0 +1,428 @@
+/* auth.css — what the reset screens add on top of /signin's sheet. The card, the
+   fields, the strip, the wordmark and the brass primary are the classes from
+   signin.css and hero.css; only what is genuinely new lives here: the status
+   tones, the five-bolt meter, the keypad overlays, the drain lines and the dev
+   banner.
+
+   Text colours. Three of the token colours are too light to carry small text on
+   this glass — success #1F9D6B lands at 2.97:1 and is used here for fills and
+   rings only; the two given darker variants (#0A6A74 teal, #7A551A brass) and
+   --failed (#9B1C16) carry the small text, with --auth-success-text the one
+   value invented for this page so a met requirement clears 4.5:1. The ratios are
+   in the report. */
+
+:root {
+  /* the smaller, darker success: 5.62:1 on the card's glass */
+  --auth-success-text: #0f6b49;
+}
+
+/* the spec's card shadow (and the only line where these cards differ from
+   /signin's, whose sheet is out of scope) */
+.signin-card.auth-card {
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
+}
+
+/* ---- status tones ---- */
+.auth-status[data-tone="teal"] {
+  color: var(--auth-teal-text, #0a6a74);
+}
+.auth-status[data-tone="teal"] .signin-status-dot {
+  background: var(--hero-teal);
+}
+.auth-status[data-tone="success"] {
+  color: var(--auth-success-text);
+}
+.auth-status[data-tone="success"] .signin-status-dot {
+  background: var(--hero-success);
+  box-shadow: 0 0 13px rgba(31, 157, 107, 0.55);
+}
+.auth-status[data-tone="danger"] {
+  color: var(--failed);
+}
+.auth-status[data-tone="danger"] .signin-status-dot {
+  background: var(--failed);
+  box-shadow: 0 0 13px rgba(155, 28, 22, 0.45);
+}
+.auth-status[data-pulse="1"] .signin-status-dot {
+  animation: signin-pulse 2.618s ease-in-out infinite;
+}
+
+/* ---- small print ---- */
+.auth-hint,
+.auth-mono {
+  margin: 0;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  line-height: 1.618;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.auth-hint {
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* ---- stacks ---- */
+.auth-actions {
+  display: grid;
+  gap: 13px;
+}
+.auth-body {
+  display: grid;
+  gap: 13px;
+}
+/* the card's content, swapped between states */
+.auth-swap {
+  display: grid;
+}
+
+/* the brass primary: lift, arrow nudge and shadow are this page's own, so the
+   shared button keeps its own timing everywhere else */
+.auth-card .hero-btn {
+  transition: transform var(--hero-d-236) ease, box-shadow var(--hero-d-382) ease,
+    background-color var(--hero-d-382) ease, border-color var(--hero-d-382) ease, color var(--hero-d-382) ease;
+}
+.auth-card .hero-btn.primary .auth-arrow {
+  transition: transform var(--hero-d-382) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .auth-card .hero-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 21px 55px rgba(184, 137, 58, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  }
+  .auth-card .hero-btn.primary:hover .auth-arrow {
+    transform: translateX(3px);
+  }
+}
+.auth-card .hero-btn:active {
+  transform: scale(0.97);
+}
+.auth-card :where(a, button, input):focus-visible {
+  outline: 3px solid var(--hero-teal);
+  outline-offset: 3px;
+}
+
+/* the secondary control: the glass button, full width, mono label */
+.auth-card .hero-btn.glass.auth-secondary {
+  width: 100%;
+}
+.auth-secondary .hero-btn-label {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.auth-card .hero-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.auth-card .hero-btn[disabled]:hover {
+  transform: none;
+}
+
+/* the ghost link under the primary */
+.auth-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  border-radius: 8px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .auth-ghost:hover {
+    color: var(--hero-ink);
+  }
+}
+.auth-ghost svg {
+  transition: transform var(--hero-d-236) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .auth-ghost:hover svg {
+    transform: translateX(-3px);
+  }
+}
+
+/* the two-second drain under the button that changes a state by itself */
+.auth-drain {
+  position: relative;
+  height: 2px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: rgba(138, 149, 161, 0.35);
+  overflow: hidden;
+}
+.auth-drain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  animation: auth-drain var(--auth-drain, 55s) linear forwards;
+}
+.auth-drain[data-tone="teal"]::after {
+  background: var(--hero-teal);
+}
+.auth-drain[data-tone="brass"]::after {
+  background: var(--hero-brass);
+}
+@keyframes auth-drain {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* ---- the sent state ---- */
+.auth-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(18, 165, 181, 0.12);
+  color: var(--hero-teal);
+}
+.auth-icon[data-tone="success"] {
+  background: rgba(31, 157, 107, 0.12);
+  color: var(--auth-success-text);
+}
+.auth-icon svg {
+  width: 26px;
+  height: 26px;
+}
+/* the mark draws itself in: 0.618s, once */
+.auth-icon .auth-draw {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: auth-draw var(--hero-d-618) ease-out forwards;
+}
+@keyframes auth-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.auth-email {
+  font-family: var(--hero-font-mono);
+  font-size: 13px;
+  color: var(--hero-ink);
+  overflow-wrap: anywhere;
+}
+
+.auth-count {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+/* the ready pulse: a ring that says the control is back without moving it */
+.auth-card .hero-btn.auth-pulse {
+  animation: auth-ring var(--hero-d-382) ease-out 1;
+}
+@keyframes auth-ring {
+  0% { box-shadow: 0 0 0 0 rgba(18, 165, 181, 0.55); }
+  100% { box-shadow: 0 0 0 13px rgba(18, 165, 181, 0); }
+}
+
+/* ---- strength meter ---- */
+.auth-meter {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 4px;
+}
+.auth-bolts {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* the 1px steel line the five bolts are threaded on */
+.auth-bolts::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: 50%;
+  height: 1px;
+  background: var(--hero-steel);
+}
+.auth-bolt-track {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 1px solid var(--hero-steel);
+  background: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+}
+.auth-bolt {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(160deg, var(--hero-brass-light) 0%, var(--hero-brass) 100%);
+  box-shadow: 0 0 8px rgba(226, 184, 103, 0.75);
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: transform var(--hero-d-236) ease, opacity var(--hero-d-236) ease;
+}
+.auth-bolt[data-on="1"] {
+  opacity: 1;
+  transform: translateX(0);
+}
+.auth-grade {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+.auth-grade[data-tone="danger"] { color: var(--failed); }
+.auth-grade[data-tone="brass"] { color: #7a551a; }
+.auth-grade[data-tone="teal"] { color: #0a6a74; }
+.auth-grade[data-tone="success"] { color: var(--auth-success-text); }
+
+/* ---- requirements ---- */
+.auth-reqs {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.auth-req {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--hero-slate);
+}
+.auth-req-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid var(--hero-steel);
+  color: transparent;
+}
+.auth-req[data-met="1"] {
+  color: var(--auth-success-text);
+}
+.auth-req[data-met="1"] .auth-req-mark {
+  border-color: var(--auth-success-text);
+  color: var(--auth-success-text);
+}
+
+/* ---- keypad overlays ---- */
+.auth-pad {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.auth-pad-teal,
+.auth-pad-red {
+  position: fixed;
+  border-radius: 13px;
+  opacity: 0;
+  pointer-events: none;
+}
+.auth-pad-teal {
+  background: var(--hero-teal);
+  mix-blend-mode: screen;
+}
+.auth-pad-red {
+  background: #c4453d;
+  mix-blend-mode: multiply;
+}
+.auth-pad-led {
+  position: fixed;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--hero-success);
+  box-shadow: 0 0 13px rgba(31, 157, 107, 0.9);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- the dev helper: dev builds only ---- */
+.auth-dev {
+  margin: 21px 0 0;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 13px;
+  border: 1px solid var(--hero-steel);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.auth-dev-label {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: #7a551a;
+}
+.auth-dev-link {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--hero-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* ---- phones: the meter keeps one row, the strip is already inline ---- */
+@media (max-width: 767px) {
+  .signin-layout.auth-layout {
+    min-height: 100svh;
+  }
+  .auth-meter {
+    gap: 8px;
+  }
+  .auth-bolts {
+    gap: 8px;
+  }
+  .auth-bolt-track {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card .hero-btn,
+  .auth-bolt,
+  .auth-ghost svg,
+  .signin-home svg {
+    transition: none;
+  }
+  .auth-icon .auth-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .auth-card .hero-shimmer {
+    display: none;
+  }
+  .auth-card .hero-btn.auth-pulse {
+    animation: none;
+  }
+  .auth-status[data-pulse="1"] .signin-status-dot {
+    animation: none;
+  }
+  /* a countdown still drains, it just does not glide */
+  .auth-drain::after {
+    animation-timing-function: steps(55, end);
+  }
+}
