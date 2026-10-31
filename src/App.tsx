@@ -7,6 +7,7 @@ const Signup = lazy(() => import("./pages/Signup"));
 const Signin = lazy(() => import("./pages/Signin"));
 /* the reset flow: its own card in the same deck column, on the same vault */
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 const VaultNew = lazy(() => import("./pages/VaultNew"));
 /* the audit room owns /vault/:id now: it is the client's side of the escrow */
 const AuditRoom = lazy(() => import("./pages/vault/AuditRoom"));
@@ -59,6 +60,7 @@ const routes: RouteObject[] = [
       { path: "/signup", element: <Signup /> },
       { path: "/signin", element: <Signin /> },
       { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/reset-password", element: <ResetPassword /> },
     ],
   },
   { path: "/vault/new", element: <VaultNew /> },
