@@ -184,6 +184,7 @@
 .auth-icon {
   width: 55px;
   height: 55px;
+  margin-bottom: 21px;
   border-radius: 50%;
   display: grid;
   place-items: center;

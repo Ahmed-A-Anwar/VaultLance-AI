@@ -4,7 +4,7 @@
    show/hide toggle) gets the wrapper that reserves room for it. */
 
 import { forwardRef } from "react";
-import type { ReactNode } from "react";
+import type { FocusEvent, ReactNode } from "react";
 
 export interface AuthFieldProps {
   id: string;
@@ -13,7 +13,7 @@ export interface AuthFieldProps {
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
-  onFocus?: () => void;
+  onFocus?: (e: FocusEvent<HTMLInputElement>) => void;
   /* the message under the field, already worded */
   error?: string | null;
   /* a submit failure is the only error a screen reader interrupts for */
