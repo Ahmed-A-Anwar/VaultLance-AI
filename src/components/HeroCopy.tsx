@@ -1,10 +1,9 @@
-/* HeroCopy.tsx — eyebrow, split headline, body, CTAs, micro-note and chips.
-   Copy is spec-exact. The headline is one h1: the split spans are aria-hidden
-   and the full sentence lives in a visually hidden span.
+/* HeroCopy.tsx — split headline, body and CTAs. Copy is spec-exact. The
+   headline is one h1: the split spans are aria-hidden and the full sentence
+   lives in a visually hidden span.
 
-   DOM order is buttons, note, body, chips; CSS `order` puts them in reading
-   order on desktop (body before the buttons) and on mobile (buttons before the
-   note, note before the body). */
+   DOM order is buttons, body; CSS `order` puts them in reading order on desktop
+   (body before the buttons) and on mobile (buttons before the body). */
 
 import { forwardRef } from "react";
 import type { RefObject } from "react";
@@ -13,13 +12,10 @@ export interface HeroCopyProps {
   headline: string;
   signupHref: string;
   signinHref: string;
-  eyebrowRef: RefObject<HTMLParagraphElement | null>;
   headlineRef: RefObject<HTMLHeadingElement | null>;
   bodyRef: RefObject<HTMLParagraphElement | null>;
   ctaBlockRef: RefObject<HTMLDivElement | null>;
   buttonsRef: RefObject<HTMLDivElement | null>;
-  microRef: RefObject<HTMLParagraphElement | null>;
-  chipsRef: RefObject<HTMLUListElement | null>;
   signupRef: RefObject<HTMLAnchorElement | null>;
   signinRef: RefObject<HTMLAnchorElement | null>;
 }
@@ -29,13 +25,10 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
     headline,
     signupHref,
     signinHref,
-    eyebrowRef,
     headlineRef,
     bodyRef,
     ctaBlockRef,
     buttonsRef,
-    microRef,
-    chipsRef,
     signupRef,
     signinRef,
   },
@@ -45,10 +38,6 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
 
   return (
     <div className="hero-copy" ref={ref}>
-      <p className="hero-eyebrow" ref={eyebrowRef}>
-        AI-AUDITED ESCROW FOR DIGITAL FREELANCE WORK
-      </p>
-
       <h1 className="hero-h1" ref={headlineRef}>
         <span className="sr-only">Pay for work you&rsquo;ve actually tested.</span>
         {words.map((word, i) => (
@@ -91,19 +80,9 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
         </div>
       </div>
 
-      <p className="hero-micro" ref={microRef}>
-        SANDBOX DEMO · NO REAL MONEY
-      </p>
-
       <p className="hero-body" ref={bodyRef}>
         {"VaultLance AI is an escrow agent that securely hosts freelance digital deliverables from web apps to brand design assets, allowing clients to interrogate the work through live staging tests and visual AI analysis, giving them the confidence to authorize the PayPal payment that instantly unlocks their files."}
       </p>
-
-      <ul className="hero-chips" ref={chipsRef}>
-        <li className="hero-chip">FUNDS HELD, NOT SPENT</li>
-        <li className="hero-chip">REAL CHECKS, NOT CLAIMS</li>
-        <li className="hero-chip">FILES UNLOCK ON CAPTURE</li>
-      </ul>
     </div>
   );
 });

@@ -9,13 +9,10 @@ export interface HeroTimelineTargets {
   copy: HTMLElement | null;
   stage: HTMLElement | null;
   rim: HTMLElement | null;
-  eyebrow: HTMLElement | null;
   headline: HTMLElement | null;
   body: HTMLElement | null;
   ctaBlock: HTMLElement | null;
   buttons: HTMLElement | null;
-  micro: HTMLElement | null;
-  chips: HTMLElement | null;
   keypadGlow: HTMLElement | null;
 }
 
@@ -31,15 +28,15 @@ export interface HeroTimeline {
 }
 
 export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTimelineOptions): HeroTimeline {
-  const { page, copy, stage, rim, eyebrow, headline, body, buttons, micro, chips, keypadGlow } = targets;
+  const { page, copy, stage, rim, headline, body, buttons, keypadGlow } = targets;
   let intro: gsap.core.Timeline | null = null;
   let idle: gsap.core.Timeline | null = null;
   let raf = 0;
   let headRaf = 0;
 
   const finalState = () => {
-    gsap.set([page, stage, eyebrow, body, buttons, micro, chips].filter(Boolean), { clearProps: "all" });
-    gsap.set([stage, eyebrow, body, buttons, micro, chips].filter(Boolean), { opacity: 1, x: 0, y: 0, scale: 1 });
+    gsap.set([page, stage, body, buttons].filter(Boolean), { clearProps: "all" });
+    gsap.set([stage, body, buttons].filter(Boolean), { opacity: 1, x: 0, y: 0, scale: 1 });
     if (headline) {
       gsap.set(headline.querySelectorAll(".word-inner"), { opacity: 1, yPercent: 0, clearProps: "transform" });
     }
@@ -49,10 +46,7 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     if (page) gsap.set(page, { opacity: 0 });
     if (stage) gsap.set(stage, { y: 34, opacity: 0, scale: 0.97 });
     if (rim) gsap.set(rim, { opacity: 0 });
-    if (eyebrow) gsap.set(eyebrow, { y: 13, opacity: 0 });
     if (body) gsap.set(body, { y: 21, opacity: 0 });
-    if (micro) gsap.set(micro, { opacity: 0 });
-    if (chips) gsap.set(chips, { opacity: 0 });
     if (headline) gsap.set(headline.querySelectorAll(".word-inner"), { yPercent: 100, opacity: 0 });
     if (buttons) gsap.set(buttons.querySelectorAll(".hero-btn"), { y: 21, opacity: 0 });
 
@@ -61,7 +55,6 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     if (page) tl.to(page, { opacity: 1, duration: 0.618 }, 0);
     tl.to(stage, { y: 0, opacity: 1, scale: 1, duration: 1.618, ease: "expo.out" }, 0);
     tl.to(rim, { opacity: 1, duration: 0.618, ease: "power2.out" }, 0.236);
-    tl.to(eyebrow, { y: 0, opacity: 1, duration: 0.382 }, 0.382);
     if (headline) {
       tl.to(headline.querySelectorAll(".word-inner"), {
         yPercent: 0,
@@ -79,7 +72,6 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
         stagger: 0.236,
       }, 1.382);
     }
-    tl.to([micro, chips].filter(Boolean), { opacity: 1, duration: 0.618, stagger: 0.1 }, 1.618);
     tl.call(startIdle, undefined, 2.618);
     intro = tl;
   };

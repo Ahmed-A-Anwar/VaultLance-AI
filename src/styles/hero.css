@@ -204,25 +204,12 @@
   min-height: 100svh;
   will-change: transform, opacity;
 }
-/* reading order on desktop: eyebrow, headline, body, buttons, note, chips.
-   The DOM keeps the CTAs before the note and the body so the mobile column can
-   seat them directly under the headline without moving any copy. */
-.hero-eyebrow { order: 1; margin: 0; }
-.hero-h1 { order: 2; }
-.hero-body { order: 3; margin: 0; }
-.hero-cta-block { order: 4; }
-.hero-micro { order: 5; }
-.hero-chips { order: 6; }
-.hero-eyebrow,
-.hero-micro,
-.hero-chip {
-  font-family: var(--hero-font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--hero-slate);
-}
+/* reading order on desktop: headline, body, buttons. The DOM keeps the CTAs
+   before the body so the mobile column can seat them directly under the
+   headline without moving any copy. */
+.hero-h1 { order: 1; }
+.hero-body { order: 2; margin: 0; }
+.hero-cta-block { order: 3; }
 .hero-h1 {
   font-family: var(--hero-font-display);
   font-weight: 600;
@@ -267,30 +254,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 21px;
-}
-.hero-micro {
-  margin-top: 21px;
-}
-.hero-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 13px;
-  list-style: none;
-  padding: 0;
-  margin-top: 13px;
-}
-/* on the desktop column the note and the chips only take the width they need,
-   which is how they were sized inside the old CTA grid */
-@media (min-width: 1024px) {
-  .hero-micro,
-  .hero-chips {
-    width: fit-content;
-  }
-}
-.hero-chip {
-  border: 1px solid var(--hero-steel);
-  border-radius: 13px;
-  padding: 6px 10px;
 }
 
 /* ---- buttons ---- */
@@ -447,37 +410,22 @@
   .hero-copy {
     padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
   }
-  /* reading order: eyebrow, headline, buttons, note, body, chips */
-  .hero-eyebrow {
+  /* reading order: headline, buttons, body */
+  .hero-h1 {
     order: 1;
     margin: 0;
-  }
-  .hero-h1 {
-    order: 2;
-    margin: 13px 0 0;
     font-size: 42px;
     line-height: 1.05;
   }
   .hero-cta-block {
-    order: 3;
+    order: 2;
     margin-top: 21px;
   }
-  .hero-micro {
-    order: 4;
-    margin-top: 13px;
-  }
   .hero-body {
-    order: 5;
+    order: 3;
     margin-top: 34px;
     font-size: 16px;
     line-height: 1.618;
-  }
-  .hero-chips {
-    order: 6;
-    margin-top: 34px;
-  }
-  .hero-eyebrow {
-    font-size: 12px;
   }
   /* the phone band crops the frame, so the crop has to be soft — but not with a
      mask: WebKit can paint a masked-out canvas row black, and a mask on an
@@ -487,25 +435,6 @@
   .hero-canvas {
     -webkit-mask-image: none;
     mask-image: none;
-  }
-  /* chips scroll as one row instead of stacking */
-  .hero-chips {
-    flex-wrap: nowrap;
-    gap: 8px;
-    width: auto;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .hero-chips::-webkit-scrollbar {
-    display: none;
-  }
-  .hero-chip {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
   }
 }
 

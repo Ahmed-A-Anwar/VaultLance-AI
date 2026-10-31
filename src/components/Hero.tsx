@@ -30,25 +30,19 @@ export function Hero() {
   } = useVaultScene();
 
   const copyRef = useRef<HTMLDivElement | null>(null);
-  const eyebrowRef = useRef<HTMLParagraphElement | null>(null);
   const headlineRef = useRef<HTMLHeadingElement | null>(null);
   const bodyRef = useRef<HTMLParagraphElement | null>(null);
   const ctaBlockRef = useRef<HTMLDivElement | null>(null);
   const buttonsRef = useRef<HTMLDivElement | null>(null);
-  const microRef = useRef<HTMLParagraphElement | null>(null);
-  const chipsRef = useRef<HTMLUListElement | null>(null);
 
   /* the way back: the copy is set to its exit pose before paint, then returns on
      the same beat the vault slides home */
   useLayoutEffect(() => {
     if (!ready || !returning) return;
     const items = [
-      eyebrowRef.current,
       headlineRef.current,
       ctaBlockRef.current,
-      microRef.current,
       bodyRef.current,
-      chipsRef.current,
     ].filter(Boolean) as HTMLElement[];
     // phones return from below, desktop from the left (the same axis as the exit)
     const vertical = window.innerWidth < 768;
@@ -88,13 +82,10 @@ export function Hero() {
         copy: copyRef.current,
         stage: stageWrapRef.current,
         rim: rimRef.current,
-        eyebrow: eyebrowRef.current,
         headline: headlineRef.current,
         body: bodyRef.current,
         ctaBlock: ctaBlockRef.current,
         buttons: buttonsRef.current,
-        micro: microRef.current,
-        chips: chipsRef.current,
         keypadGlow: glowRef.current,
       },
     });
@@ -111,13 +102,10 @@ export function Hero() {
           headline="Pay for work you've actually tested."
           signupHref="/signup"
           signinHref={SIGNIN_HREF}
-          eyebrowRef={eyebrowRef}
           headlineRef={headlineRef}
           bodyRef={bodyRef}
           ctaBlockRef={ctaBlockRef}
           buttonsRef={buttonsRef}
-          microRef={microRef}
-          chipsRef={chipsRef}
           signupRef={signupRef}
           signinRef={signinRef}
         />
