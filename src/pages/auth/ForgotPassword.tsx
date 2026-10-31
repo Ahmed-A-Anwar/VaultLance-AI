@@ -379,9 +379,6 @@ function RequestScreen() {
                   <p className="auth-count" data-testid="forgot-count">{`TRY AGAIN IN ${cooldown}S`}</p>
                 )}
 
-                <p className="auth-mono" data-reveal>
-                  SANDBOX DEMO · NO REAL EMAIL IS SENT.
-                </p>
               </form>
             </div>
           )}
