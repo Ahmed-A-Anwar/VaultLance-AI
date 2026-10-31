@@ -97,6 +97,33 @@ export default function Signin() {
     fx.current?.signInHover(true);
   }, [fx, reduced, padFail]);
 
+  /* the hero's Sign in connector, picking up at the password field and running
+     out to the keypad. The card slides in on the way over, so the near end is
+     retraced until it lands, and again whenever the window is resized. */
+  useEffect(() => {
+    const field = passwordRef.current;
+    if (!field) return;
+    const start = performance.now();
+    let raf = 0;
+    const trace = () => {
+      fx.current?.connectorFrom(field);
+      if (performance.now() - start < 1400) raf = requestAnimationFrame(trace);
+    };
+    trace();
+    /* a resize can land before the card has reflowed, so trace again once the
+       frame has laid out */
+    const onResize = () => {
+      fx.current?.connectorFrom(field);
+      requestAnimationFrame(() => fx.current?.connectorFrom(field));
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      fx.current?.connectorFrom(null);
+    };
+  }, [fx]);
+
   const fieldError = {
     email: errors.email ?? null,
     password: errors.password ?? null,
@@ -304,9 +331,6 @@ export default function Signin() {
             </p>
           )}
 
-          <p className="signin-note" data-reveal>
-            SANDBOX DEMO · NO REAL MONEY
-          </p>
         </form>
 
         <p className="signin-foot" data-reveal>

@@ -17,6 +17,9 @@ export interface VaultFx {
   signUpHover: (on: boolean) => void;
   signInHover: (on: boolean) => void;
   signInClick: () => void;
+  /* /signin: the Sign in connector, run from the form's password field to the
+     keypad and held there while the card is on screen; null clears it */
+  connectorFrom: (el: HTMLElement | null) => void;
   /* the clip canvases live inside the float + parallax wrapper; the drawn rect
      is the same box the static frame was painted into */
   getClipLayer: () => ClipLayer;
@@ -80,6 +83,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const ledRef = useRef<HTMLDivElement | null>(null);
   const seamRef = useRef<SVGPathElement | null>(null);
   const connectorRef = useRef<SVGPathElement | null>(null);
+  /* the form field the connector starts from on /signin, when there is one */
+  const formAnchorRef = useRef<HTMLElement | null>(null);
   const keypadElRef = useRef<HTMLDivElement | null>(null);
   const keypadClipRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -161,6 +166,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       rect.dataset.rect = JSON.stringify(next);
       rect.dataset.painted = "1";
     }
+    /* a form's connector is measured off this rect, so it follows every paint */
+    if (formAnchorRef.current) holdConnector();
   }, [anchor]);
 
   useEffect(() => {
@@ -213,6 +220,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         gsap.killTweensOf(connectorRef.current);
         connectorRef.current.removeAttribute("d");
       }
+      formAnchorRef.current = null;
       if (seamRef.current) {
         gsap.killTweensOf(seamRef.current);
         gsap.set(seamRef.current, { stroke: "rgba(226,184,103,0)", strokeWidth: 2 });
@@ -281,6 +289,17 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         );
         gsap.to(bar, { opacity: on ? 1 : 0, duration: on ? 0.236 : 0.382, ease: "power2.out" });
       });
+    },
+    connectorFrom(el) {
+      formAnchorRef.current = el;
+      const path = connectorRef.current;
+      if (!path) return;
+      gsap.killTweensOf(path);
+      if (!el) {
+        path.removeAttribute("d");
+        return;
+      }
+      holdConnector();
     },
     signInHover(on) {
       if (glowRef?.current) {
@@ -363,20 +382,51 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     },
   }));
 
-  function drawConnector(on: boolean) {
+  /* the connector's near end: the hero's Sign in button, or the form field the
+     /signin card hands over. A field is joined at its own edge, so the line
+     starts where the input ends rather than under its glass. */
+  function connectorStart(): { el: HTMLElement; edge: "center" | "edge" } | null {
+    if (formAnchorRef.current) return { el: formAnchorRef.current, edge: "edge" };
+    const from = signinAnchorRef?.current;
+    return from ? { el: from, edge: "center" } : null;
+  }
+
+  /* lay the connector from its near end to the keypad and return it, or null
+     when either end cannot be measured */
+  function traceConnector(): SVGPathElement | null {
     const path = connectorRef.current;
     const stage = stageRef.current;
     const rect = rectRef.current;
-    const from = signinAnchorRef?.current;
-    if (!path || !stage || !rect || !from) return;
+    const from = connectorStart();
+    if (!path || !stage || !rect || !from) return null;
     const s = stage.getBoundingClientRect();
     const r = rect.getBoundingClientRect();
-    const b = from.getBoundingClientRect();
-    const x1 = ((b.left + b.width / 2 - s.left) / s.width) * 100;
+    const b = from.el.getBoundingClientRect();
+    if (!s.width || !s.height || !r.width || !r.height || !b.width) return null;
+    const x1 =
+      (((from.edge === "edge" ? b.right : b.left + b.width / 2) - s.left) / s.width) * 100;
     const y1 = ((b.top + b.height / 2 - s.top) / s.height) * 100;
     const x2 = ((r.left + r.width * (KEYPAD.x / 100) - s.left) / s.width) * 100;
     const y2 = ((r.top + r.height * (KEYPAD.y / 100) - s.top) / s.height) * 100;
     path.setAttribute("d", `M ${x1} ${y1} C ${x1 + 12} ${y1}, ${x2 - 14} ${y2}, ${x2} ${y2}`);
+    return path;
+  }
+
+  /* the connector from a form field, fully drawn: the card is already sliding
+     the near end in, so there is no draw-in of its own. Called again on every
+     paint, since a direct load can ask for it before the rect is measured. */
+  function holdConnector() {
+    const path = traceConnector();
+    if (!path) return;
+    const len = path.getTotalLength();
+    if (len <= 0) return;
+    path.style.strokeDasharray = `${len}`;
+    path.style.strokeDashoffset = "0";
+  }
+
+  function drawConnector(on: boolean) {
+    const path = traceConnector();
+    if (!path) return;
     if (typeof path.getTotalLength === "function" && path.getTotalLength() > 0) {
       const len = path.getTotalLength();
       path.style.strokeDasharray = `${len}`;

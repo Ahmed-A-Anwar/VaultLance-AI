@@ -298,15 +298,6 @@
   mix-blend-mode: multiply;
   pointer-events: none;
 }
-.signin-note {
-  margin: 0;
-  text-align: center;
-  font-family: var(--hero-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  color: var(--hero-slate);
-}
-
 .signin-link {
   color: var(--hero-ink);
   text-decoration: underline;
