@@ -20,6 +20,9 @@ export const FX = {
      failure paths stay reachable. false makes every submission succeed. */
   forgotFlow: true,
   mockErrors: true,
+  /* settingsPage true mounts the client settings page at /dashboard/settings.
+     false restores the blank area the dashboard shipped with. */
+  settingsPage: true,
 };
 
 export const CLIPS = {

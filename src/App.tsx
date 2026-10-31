@@ -22,7 +22,9 @@ const DashboardOverview = lazy(() => import("./pages/dashboard/Overview"));
 const DashboardVaults = lazy(() => import("./pages/dashboard/VaultsPage"));
 const DashboardLedger = lazy(() => import("./pages/dashboard/LedgerPage"));
 const DashboardPayments = lazy(() => import("./pages/dashboard/Payments"));
-const DashboardSettings = lazy(() => import("./pages/dashboard/Settings"));
+/* the settings route keeps its old placeholder inside the new page's flag, so
+   FX.settingsPage = false restores the blank area without a route change */
+const DashboardSettings = lazy(() => import("./pages/dashboard/settings/SettingsPage"));
 
 const Fallback = () => <p role="status" style={{ padding: "var(--s-8)" }}>Loading…</p>;
 
