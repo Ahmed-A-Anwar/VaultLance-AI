@@ -12,8 +12,12 @@
    in the report. */
 
 :root {
-  /* the smaller, darker success: 5.62:1 on the card's glass */
+  /* the smaller, darker success: 4.55:1 on the sampled card glass */
   --auth-success-text: #0f6b49;
+  /* the audit room's #0A6A74 measures 4.40:1 over this glass, so the teal that
+     carries small text is one step darker (4.90:1); #12A5B5 and #0A6A74 still
+     do the fills, rings and borders */
+  --auth-teal-text: #09636f;
 }
 
 /* the spec's card shadow (and the only line where these cards differ from
@@ -23,8 +27,13 @@
 }
 
 /* ---- status tones ---- */
+/* the base dot is teal, so the resting state has to say steel explicitly */
+.auth-status[data-tone="steel"] .signin-status-dot {
+  background: var(--hero-steel);
+  box-shadow: none;
+}
 .auth-status[data-tone="teal"] {
-  color: var(--auth-teal-text, #0a6a74);
+  color: var(--auth-teal-text);
 }
 .auth-status[data-tone="teal"] .signin-status-dot {
   background: var(--hero-teal);
@@ -285,7 +294,7 @@
 }
 .auth-grade[data-tone="danger"] { color: var(--failed); }
 .auth-grade[data-tone="brass"] { color: #7a551a; }
-.auth-grade[data-tone="teal"] { color: #0a6a74; }
+.auth-grade[data-tone="teal"] { color: var(--auth-teal-text); }
 .auth-grade[data-tone="success"] { color: var(--auth-success-text); }
 
 /* ---- requirements ---- */

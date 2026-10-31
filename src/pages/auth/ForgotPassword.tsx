@@ -347,6 +347,8 @@ function RequestScreen() {
                     if (failure) setFailure(null);
                   }}
                   onBlur={() => setError(resetEmailError(email))}
+                  /* a phone keyboard must not sit over the button below */
+                  onFocus={(e) => e.currentTarget.scrollIntoView({ block: "center" })}
                   error={error}
                   alert={!!failure}
                   autoComplete="email"

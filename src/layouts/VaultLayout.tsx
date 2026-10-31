@@ -45,6 +45,10 @@ const T_CARD_KIDS = 1;
 /* deck to deck: the two cards swap across the same column */
 const T_SWAP = 0.382;
 const SWAP_X = 34;
+/* phones move the decks up the page instead: same 34, longer beat, and the card
+   rises into place rather than sliding sideways */
+const SWAP_Y = 34;
+const T_SWAP_UP = 0.618;
 
 /* phones get the vertical version of the same move: the copy leaves downward and
    the form rises in; the vault never slides sideways */
@@ -537,15 +541,20 @@ export default function VaultLayout() {
           if (timeline.current === tl) timeline.current = null;
         },
       });
+      const vertical = isVertical();
+      const dx = vertical ? 0 : SWAP_X * dest;
+      const dy = vertical ? SWAP_Y * dest : 0;
+      const dur = vertical ? T_SWAP_UP : T_SWAP;
+
       if (old) {
         park(old.el, old.rect);
         document.body.appendChild(old.el);
-        tl.to(old.el, { x: -SWAP_X * dest, opacity: 0, duration: T_SWAP, ease: "power3.in" }, 0);
+        tl.to(old.el, { x: -dx, y: -dy, opacity: 0, duration: dur, ease: "power3.in" }, 0);
       }
       if (next) {
-        gsap.set(next, { x: SWAP_X * dest, opacity: 0 });
-        tl.to(next, { x: 0, opacity: 1, duration: T_SWAP, ease: "power3.out" }, 0);
-        tl.call(() => gsap.set(next, { clearProps: "transform,opacity" }), undefined, T_SWAP);
+        gsap.set(next, { x: dx, y: dy, opacity: 0 });
+        tl.to(next, { x: 0, y: 0, opacity: 1, duration: dur, ease: "power3.out" }, 0);
+        tl.call(() => gsap.set(next, { clearProps: "transform,opacity" }), undefined, dur);
       }
       timeline.current = tl;
     },

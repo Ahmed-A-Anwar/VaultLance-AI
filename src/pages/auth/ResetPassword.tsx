@@ -79,6 +79,7 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
   const [live, setLive] = useState("");
   const [cancelled, setCancelled] = useState(false);
 
+  const swapIn = useRef(false);
   const swapRef = useRef<HTMLDivElement | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
   const flashRef = useRef<PadFlashHandle | null>(null);
@@ -122,6 +123,15 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
     if (done) heading.current?.focus();
   }, [done]);
 
+  /* the incoming content, once the swap has happened */
+  useLayoutEffect(() => {
+    if (!swapIn.current) return;
+    swapIn.current = false;
+    const el = swapRef.current;
+    if (!el || reduced) return;
+    gsap.fromTo(el, { x: -21, opacity: 0 }, { x: 0, opacity: 1, duration: SWAP, ease: "power2.out" });
+  }, [done, reduced]);
+
   useEffect(() => {
     if (!rejecting) return;
     const id = window.setTimeout(() => setRejecting(false), REJECT_HOLD);
@@ -145,6 +155,8 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
     };
   }, [done, cancelled, navigate]);
 
+  /* the state changes on a timer, not on the tween's callback; the incoming half
+     then arrives from x -21, the way /forgot-password swaps */
   const swapTo = (next: boolean) => {
     const el = swapRef.current;
     if (!el || reduced) {
@@ -152,7 +164,10 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
       return;
     }
     gsap.to(el, { opacity: 0, duration: SWAP, ease: "power2.out" });
-    window.setTimeout(() => setDone(next), SWAP * 1000);
+    window.setTimeout(() => {
+      swapIn.current = true;
+      setDone(next);
+    }, SWAP * 1000);
   };
 
   const shake = () => {
