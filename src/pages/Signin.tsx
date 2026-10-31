@@ -11,6 +11,7 @@ import gsap from "gsap";
 import { Link, useNavigate } from "react-router-dom";
 import { useVaultScene } from "../lib/vaultScene";
 import { emailError, passwordError, signIn } from "../lib/mockAuth";
+import { FX } from "../config/fx";
 import "../styles/signin.css";
 
 type Status = "ready" | "rejected" | "accepted";
@@ -308,9 +309,22 @@ export default function Signin() {
           </div>
 
           <div className="signin-row" data-reveal>
-            <a className="signin-forgot" href="#" data-testid="signin-forgot">
-              Forgot password?
-            </a>
+            {/* the reset flow, carrying an address that already validates. With
+                FX.forgotFlow off this stays the old placeholder link. */}
+            {FX.forgotFlow ? (
+              <Link
+                className="signin-forgot"
+                to="/forgot-password"
+                state={emailError(email) === null && email ? { email } : undefined}
+                data-testid="signin-forgot"
+              >
+                Forgot password?
+              </Link>
+            ) : (
+              <a className="signin-forgot" href="#" data-testid="signin-forgot">
+                Forgot password?
+              </a>
+            )}
           </div>
 
           <button
