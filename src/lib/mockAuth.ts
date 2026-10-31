@@ -16,6 +16,10 @@ export interface Session {
   email: string;
   role: Role;
   since: number;
+  /* the name the account holder chose in Settings; absent means "derive it from
+     the address", which is what the rail and the greeting did before settings
+     existed */
+  name?: string;
 }
 
 export type SigninResult = { ok: true; role: Role } | { ok: false; error: string };
@@ -38,6 +42,7 @@ export function readSession(): Session | null {
       email: parsed.email,
       role: parsed.role === "freelancer" ? "freelancer" : roleFor(parsed.email),
       since: typeof parsed.since === "number" ? parsed.since : Date.now(),
+      ...(typeof parsed.name === "string" && parsed.name.trim() ? { name: parsed.name } : {}),
     };
   } catch {
     return null;
@@ -75,6 +80,19 @@ export function emailError(value: string): string | null {
 export function passwordError(value: string): string | null {
   if (!value) return "Enter your password.";
   return value.length < MIN_PASSWORD ? `Use at least ${MIN_PASSWORD} characters.` : null;
+}
+
+/* ---- change password (mock) ----
+
+     checkCurrentPassword(current) -> POST /v1/auth/change-password
+
+   "wrong" is always refused so the failure path stays reachable; every other
+   value passes. Nothing here stores the new password: this is a sandbox. */
+
+export const WRONG_CURRENT_PASSWORD = "Current password is wrong.";
+
+export function checkCurrentPassword(current: string): boolean {
+  return current.trim().toLowerCase() !== "wrong";
 }
 
 /* ---- password reset (mock) ----

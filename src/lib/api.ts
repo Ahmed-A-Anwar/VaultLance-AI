@@ -7,6 +7,17 @@
    behind the same function signatures. Each function names the endpoint it will
    call once this is no longer a mock. */
 
+import { FX } from "../config/fx";
+import {
+  MIN_PASSWORD,
+  WRONG_CURRENT_PASSWORD,
+  checkCurrentPassword,
+  clearSession,
+  readSession,
+  roleFor,
+  type Role,
+} from "./mockAuth";
+
 export type VaultStatus = "awaiting_payment" | "held" | "audited" | "unlocked" | "voided";
 
 export interface Vault {
@@ -666,3 +677,303 @@ function answerFor(v: Vault, question: string): { text: string; sources: SourceC
 
 /* the room's receipt line: when the capture happened, for the unlocked panel */
 export const capturedAt = (id: string) => checkedAt.get(id) ?? undefined;
+
+/* ================================================================ settings ===
+   The client's account: profile, notifications, password, sessions, 2FA and the
+   two destructive actions. Same seam as everything above — the same clock, the
+   same optional failure behind FX.mockErrors — and the same promise: each
+   function names the endpoint it will call once this is not a mock.
+
+   Only the mutable half lives in the store. The address and the role are read
+   from the signed-in session on every call, so Settings can never drift from
+   what the rail and the guard believe. */
+
+export type MotionPref = "system" | "reduce" | "full";
+
+export interface AccountProfile {
+  fullName: string;
+  email: string;
+  role: Role;
+  memberSince: string;
+  /* freelancers are paid here; clients never see the field */
+  paypalEmail: string | null;
+}
+
+export type NotifKey =
+  | "payment_authorized"
+  | "audit_completed"
+  | "payment_captured"
+  | "files_unlocked"
+  | "hold_voided"
+  | "weekly_summary";
+
+export interface NotifPref {
+  email: boolean;
+  inapp: boolean;
+}
+
+export type NotificationPrefs = Record<NotifKey, NotifPref>;
+
+export interface LoginSession {
+  id: string;
+  device: string;
+  place: string;
+  lastActive: string;
+  current: boolean;
+}
+
+export interface AccountSettings {
+  profile: AccountProfile;
+  notifications: NotificationPrefs;
+  motion: MotionPref;
+  mfaOn: boolean;
+}
+
+export const SETTINGS_MEMBER_SINCE = "OCT 2026";
+export const TWO_FACTOR_SECRET = "DEMO-2FA-KEY";
+export const TWO_FACTOR_CODE = "123456";
+export const TWO_FACTOR_BAD_CODE = "Code didn't match.";
+export const DELETE_BLOCKED = "Resolve these vaults first. Your held funds must be approved or voided.";
+
+export const NOTIF_DEFAULTS: NotificationPrefs = {
+  payment_authorized: { email: true, inapp: true },
+  audit_completed: { email: true, inapp: true },
+  payment_captured: { email: true, inapp: true },
+  files_unlocked: { email: true, inapp: true },
+  hold_voided: { email: true, inapp: true },
+  /* one email a week; there is no in-app digest to toggle */
+  weekly_summary: { email: true, inapp: false },
+};
+
+const SESSION_SEED: LoginSession[] = [
+  { id: "s_this", device: "Chrome on Windows", place: "Cairo", lastActive: "this device", current: true },
+  { id: "s_iphone", device: "Safari on iPhone", place: "Cairo", lastActive: "2 days ago", current: false },
+  { id: "s_mac", device: "Firefox on macOS", place: "Alexandria", lastActive: "9 days ago", current: false },
+];
+
+/* the seeded name, when Settings has never been saved in this tab */
+const nameFrom = (email: string) => {
+  const local = email.split("@")[0]?.replace(/[._-]+/g, " ").trim() || "Client";
+  return local.replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const SETTINGS_KEY = "vl.settings";
+
+interface SettingsStore {
+  fullName: string;
+  notifications: NotificationPrefs;
+  motion: MotionPref;
+  mfaOn: boolean;
+}
+
+const accountEmail = () => readSession()?.email ?? "client@vaultlance.demo";
+const accountRole = (): Role => readSession()?.role ?? roleFor(accountEmail());
+
+const copyNotifs = (n: NotificationPrefs): NotificationPrefs =>
+  Object.fromEntries(Object.entries(n).map(([k, v]) => [k, { ...v }])) as NotificationPrefs;
+
+let store: SettingsStore | null = null;
+/* the sessions live beside the vaults so a password change and a revoke share
+   one list */
+let sessions: LoginSession[] = SESSION_SEED.map((row) => ({ ...row }));
+
+/* the store is memory plus a try/catch mirror, exactly like the session: a
+   private window loses it and the page still renders */
+function load(): SettingsStore {
+  if (store) return store;
+  const base: SettingsStore = {
+    fullName: nameFrom(accountEmail()),
+    notifications: copyNotifs(NOTIF_DEFAULTS),
+    motion: "system",
+    mfaOn: false,
+  };
+  try {
+    const raw = window.sessionStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw) as Partial<SettingsStore>;
+      if (typeof saved.fullName === "string" && saved.fullName.trim()) base.fullName = saved.fullName;
+      if (saved.notifications) base.notifications = { ...copyNotifs(NOTIF_DEFAULTS), ...saved.notifications };
+      if (saved.motion === "system" || saved.motion === "reduce" || saved.motion === "full") base.motion = saved.motion;
+      if (typeof saved.mfaOn === "boolean") base.mfaOn = saved.mfaOn;
+    }
+  } catch {
+    /* an unreadable mirror is the same as an empty one */
+  }
+  store = base;
+  return base;
+}
+
+function persist(): void {
+  if (!store) return;
+  try {
+    window.sessionStorage.setItem(SETTINGS_KEY, JSON.stringify(store));
+  } catch {
+    /* the context still holds it for this tab */
+  }
+}
+
+/* Settings writes go through here: the mock's failure rate is opt-in, so the
+   save paths only fail when FX.mockErrors is on */
+async function settingsCall<T>(fn: () => T): Promise<T> {
+  await wait(latency());
+  if (FX.mockErrors && Math.random() < FAIL_RATE) {
+    throw new ApiError("network", "The request did not reach the server.");
+  }
+  return fn();
+}
+
+const profileOf = (s: SettingsStore): AccountProfile => ({
+  fullName: s.fullName,
+  email: accountEmail(),
+  role: accountRole(),
+  memberSince: SETTINGS_MEMBER_SINCE,
+  paypalEmail: accountRole() === "freelancer" ? "payouts@vaultlance.demo" : null,
+});
+
+/* GET /v1/me/settings */
+export async function getSettings(): Promise<AccountSettings> {
+  return settingsCall(() => {
+    const s = load();
+    return {
+      profile: profileOf(s),
+      notifications: copyNotifs(s.notifications),
+      motion: s.motion,
+      mfaOn: s.mfaOn,
+    };
+  });
+}
+
+/* PATCH /v1/me */
+export async function updateProfile(patch: { fullName: string }): Promise<AccountProfile> {
+  return settingsCall(() => {
+    const name = patch.fullName.trim();
+    if (name.length < 2) throw new ApiError("state", "Name needs at least 2 characters.");
+    if (name.length > 60) throw new ApiError("state", "Name can be at most 60 characters.");
+    const s = load();
+    s.fullName = name;
+    persist();
+    return profileOf(s);
+  });
+}
+
+/* PATCH /v1/me/preferences — the motion choice is a profile preference, not a
+   notification one, so it travels on its own call. */
+export async function updatePreferences(patch: { motion: MotionPref }): Promise<{ motion: MotionPref }> {
+  return settingsCall(() => {
+    const s = load();
+    s.motion = patch.motion;
+    persist();
+    return { motion: s.motion };
+  });
+}
+
+/* PUT /v1/me/notifications */
+export async function updateNotifications(prefs: NotificationPrefs): Promise<NotificationPrefs> {
+  return settingsCall(() => {
+    const s = load();
+    s.notifications = copyNotifs(prefs);
+    persist();
+    return copyNotifs(s.notifications);
+  });
+}
+
+/* POST /v1/auth/change-password */
+export async function changePassword(
+  current: string,
+  next: string
+): Promise<{ sessions: LoginSession[] }> {
+  return settingsCall(() => {
+    if (!checkCurrentPassword(current)) throw new ApiError("state", WRONG_CURRENT_PASSWORD);
+    if (next.length < MIN_PASSWORD) throw new ApiError("state", `Use at least ${MIN_PASSWORD} characters.`);
+    /* the real service revokes every other session on a password change; the
+       mock drops them here so the list tells the same story */
+    sessions = sessions.filter((row) => row.current);
+    return { sessions: sessions.map((row) => ({ ...row })) };
+  });
+}
+
+/* GET /v1/me/sessions */
+export async function listSessions(): Promise<LoginSession[]> {
+  return settingsCall(() => sessions.map((row) => ({ ...row })));
+}
+
+/* DELETE /v1/me/sessions/{id} */
+export async function revokeSession(id: string): Promise<LoginSession[]> {
+  return settingsCall(() => {
+    const row = sessions.find((s) => s.id === id);
+    if (!row) throw new ApiError("not_found", "That session is already gone.");
+    if (row.current) throw new ApiError("state", "This device cannot be revoked from here.");
+    sessions = sessions.filter((s) => s.id !== id);
+    return sessions.map((s) => ({ ...s }));
+  });
+}
+
+/* DELETE /v1/me/sessions (every session but this one) */
+export async function revokeOtherSessions(): Promise<LoginSession[]> {
+  return settingsCall(() => {
+    sessions = sessions.filter((s) => s.current);
+    return sessions.map((s) => ({ ...s }));
+  });
+}
+
+/* POST /v1/me/mfa/enroll */
+export async function startTwoFactor(): Promise<{ secret: string }> {
+  return settingsCall(() => ({ secret: TWO_FACTOR_SECRET }));
+}
+
+/* POST /v1/me/mfa/verify */
+export async function confirmTwoFactor(code: string): Promise<{ mfaOn: true }> {
+  return settingsCall(() => {
+    if (code.trim() !== TWO_FACTOR_CODE) throw new ApiError("state", TWO_FACTOR_BAD_CODE);
+    const s = load();
+    s.mfaOn = true;
+    persist();
+    return { mfaOn: true as const };
+  });
+}
+
+/* DELETE /v1/me/mfa */
+export async function disableTwoFactor(): Promise<{ mfaOn: false }> {
+  return settingsCall(() => {
+    const s = load();
+    s.mfaOn = false;
+    persist();
+    return { mfaOn: false as const };
+  });
+}
+
+/* GET /v1/me/export — the real service streams a file; the mock builds it here */
+export async function exportData(): Promise<Blob> {
+  return settingsCall(() => {
+    const s = load();
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      sandbox: true,
+      profile: profileOf(s),
+      notifications: s.notifications,
+      vaults: vaults.map((v) => ({ ...v })),
+      events: events.map((e) => ({ ...e })),
+    };
+    return new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  });
+}
+
+/* DELETE /v1/me — refused while any vault is held or audited */
+export async function deleteAccount(emailConfirm: string): Promise<void> {
+  return settingsCall(() => {
+    const held = vaults.filter((v) => v.status === "held" || v.status === "audited");
+    if (held.length) throw new ApiError("state", DELETE_BLOCKED);
+    if (emailConfirm.trim().toLowerCase() !== accountEmail().toLowerCase()) {
+      throw new ApiError("state", "That email doesn't match this account.");
+    }
+    clearSession();
+  });
+}
+
+/* GET /v1/me/delete-blockers — the vaults standing between the client and
+   deletion, with their ids so the modal can link to the audit room */
+export async function listDeleteBlockers(): Promise<Vault[]> {
+  return settingsCall(() =>
+    vaults.filter((v) => v.status === "held" || v.status === "audited").map((v) => ({ ...v }))
+  );
+}
