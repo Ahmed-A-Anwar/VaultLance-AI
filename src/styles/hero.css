@@ -54,33 +54,20 @@
   position: absolute;
   inset: 0;
   display: block;
-  /* Feather the drawn frame into the page gradient. The left fade starts at the
-     drawn image's own edge (--draw-left, written by the paint pass) and runs
-     144px, so the photo's cut is faded rather than showing as a pale band where
-     the shifted canvas begins. */
-  /* both spellings: without the prefixed one, WebKit builds that do not know the
-     unprefixed property drop the feather entirely and the frame's cut lands as a
-     hard line under the vault */
-  -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      transparent var(--draw-left, 0px),
-      #000 calc(var(--draw-left, 0px) + 144px),
-      #000 88%,
-      transparent 100%
-    ),
-    linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
-  mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      transparent var(--draw-left, 0px),
-      #000 calc(var(--draw-left, 0px) + 144px),
-      #000 88%,
-      transparent 100%
-    ),
-    linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
+  /* No left-edge mask here. The frame's cut is faded over 144px in the paint
+     pass instead (see HeroVault.paint): a mask on this canvas was applied once
+     and never re-applied when the cut moved, so the fade it described never
+     rendered and the cut stood as a pale vertical band. */
+}
+/* the frame's top and bottom edges fade into the page gradient on one layer
+   here, the wrapper, which is not the canvas the paint pass owns. Phones draw
+   their own crop fade into the pixels (see canvasFeather), so this starts at
+   768. */
+@media (min-width: 768px) {
+  .hero-stage-wrap {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  }
 }
 .hero-rim {
   position: absolute;
@@ -463,11 +450,8 @@
      mask: WebKit can paint a masked-out canvas row black, and a mask on an
      element GSAP is translating can leave a one-pixel seam where the layer ends
      (the dark line under the safe). The fade is written into the canvas pixels
-     instead, for the still and for both clips — see canvasFeather. */
-  .hero-canvas {
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
+     instead, for the still and for both clips — see canvasFeather. The wrapper's
+     top/bottom feather starts at 768 for the same reason. */
 }
 
 /* ---- entry gate ----

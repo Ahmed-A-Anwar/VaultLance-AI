@@ -6,7 +6,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import gsap from "gsap";
 import type { ClipRect } from "../lib/clipPlayer";
-import { featherPhoneBand } from "../lib/canvasFeather";
+import { featherCut, featherPhoneBand } from "../lib/canvasFeather";
 
 export interface ClipLayer {
   canvas: HTMLCanvasElement | null;
@@ -139,9 +139,6 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    /* the canvas starts the photo's left fade at the drawn edge, not at the
-       canvas edge, so the frame's cut never shows as a vertical band */
-    canvas.style.setProperty("--draw-left", `${dx.toFixed(1)}px`);
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -149,6 +146,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, dx, dy, dw, dh);
+      /* the frame's own cut on the left, faded into the page (see featherCut) */
+      featherCut(ctx, dx, w, h);
       /* the phone band crops the frame; fade the crop into the page here rather
          than with a CSS mask (see canvasFeather) */
       featherPhoneBand(ctx, w, h);
