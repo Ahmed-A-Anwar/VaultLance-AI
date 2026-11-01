@@ -39,7 +39,7 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
   return (
     <div className="hero-copy" ref={ref}>
       <h1 className="hero-h1" ref={headlineRef}>
-        <span className="sr-only">Pay for work you&rsquo;ve actually tested.</span>
+        <span className="sr-only">{headline}</span>
         {words.map((word, i) => (
           <span className="word" key={i} aria-hidden="true">
             <span className="word-inner">{word}</span>
@@ -81,7 +81,7 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
       </div>
 
       <p className="hero-body" ref={bodyRef}>
-        {"VaultLance AI is an escrow agent that securely hosts freelance digital deliverables from web apps to brand design assets, allowing clients to interrogate the work through live staging tests and visual AI analysis, giving them the confidence to authorize the PayPal payment that instantly unlocks their files."}
+        {"VaultLance AI is an escrow platform for digital deliverables. Freelancers upload code or design files; clients test them live via AI analysis. Files unlock only after PayPal payment is captured, protecting both sides from non-payment and incomplete work."}
       </p>
     </div>
   );

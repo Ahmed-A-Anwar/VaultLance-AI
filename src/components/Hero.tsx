@@ -99,7 +99,7 @@ export function Hero() {
       <main id="main" className="hero-layout">
         <HeroCopy
           ref={copyRef}
-          headline="Pay for work you've actually tested."
+          headline="Freelancers deliver. Clients verify. Money moves fairly."
           signupHref="/signup"
           signinHref={SIGNIN_HREF}
           headlineRef={headlineRef}
