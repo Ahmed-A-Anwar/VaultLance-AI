@@ -240,6 +240,13 @@
   margin-bottom: -0.15em;
   will-change: transform, opacity;
 }
+/* the payoff line: the dark brass the audit room uses for small brass text,
+   which is the one brass that holds contrast on the page gradient. No italic:
+   the project ships no Fraunces italic file, and a synthesised slant is not the
+   face's own. */
+.h1-accent {
+  color: #7a551a;
+}
 /* only under 360px may a line break; from 360 up the sentences are the lines */
 @media (max-width: 359px) {
   .h1-line {

@@ -45,7 +45,8 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
         <span className="sr-only">{headline}</span>
         {lines.map((line, i) => (
           <span className="h1-line" key={i} aria-hidden="true">
-            {line}
+            {/* the payoff line carries the accent; lines 1 and 2 stay ink */}
+            {i === lines.length - 1 ? <span className="h1-accent">{line}</span> : line}
           </span>
         ))}
       </h1>
