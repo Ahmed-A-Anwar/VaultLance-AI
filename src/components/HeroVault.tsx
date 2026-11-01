@@ -3,10 +3,10 @@
    CTA buttons (keypad cascade, door-seam light, hinge glint). The Sign up vault
    reaction is the wheel clip, which draws on its own canvas here. */
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import type { ClipRect } from "../lib/clipPlayer";
-import { featherPhoneBand } from "../lib/canvasFeather";
+import { featherCut, featherPhoneBand } from "../lib/canvasFeather";
 
 export interface ClipLayer {
   canvas: HTMLCanvasElement | null;
@@ -59,6 +59,7 @@ const WHEEL_Y = 49.72;
 /* vault body inside f_001.webp, as a fraction of the frame: the solid shell
    spans x 655-1244 and y 221-848 on the 1920x1080 frame (threshold cut 120 of
    255 on a 198.7 backdrop, which drops the contact shadow) */
+const VAULT_BODY_LEFT = 655 / 1920;
 const FRAME_ASPECT = 16 / 9;
 const VAULT_FW = 0.3073;
 const VAULT_FH = 0.5815;
@@ -66,6 +67,27 @@ const VAULT_CX = 0.4945;
 const VAULT_CY = 0.4950;
 /* the phone breakpoint, kept in step with the max-width: 767px block in hero.css */
 const PHONE_MAX = 767;
+
+/* The desktop frame's drawn rect: cover-fit the frame into the stage, cap its
+   width, then pin the wheel to the golden point. The frame is 16:9, so this is
+   the same answer before the image has decoded as after — which is what lets
+   --vault-left be written in the same layout pass as the first paint, instead
+   of one frame later. */
+function desktopRect(w: number, h: number, imgW: number, imgH: number, vw: number, vh: number, anchor: boolean) {
+  let scale = Math.max(w / imgW, h / imgH);
+  const maxDrawnW = vw * 1.12;
+  if (imgW * scale > maxDrawnW) scale = maxDrawnW / imgW;
+  const dw = imgW * scale;
+  const dh = imgH * scale;
+  let dx = (w - dw) / 2;
+  let dy = (h - dh) / 2;
+  if (anchor && vw >= 1024) {
+    // pin the wheel to the golden point: x 61.8% of viewport, y 50%
+    dx += vw * 0.618 - (dx + dw * (WHEEL_X / 100));
+    dy += vh * 0.5 - (dy + dh * (WHEEL_Y / 100));
+  }
+  return { dx, dy, dw, dh };
+}
 
 const KEYPAD = { x: 59.6, y: 50.0, w: 3.2, h: 6.5 };
 const SEAM =
@@ -92,6 +114,42 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const lastRect = useRef<ClipRect | null>(null);
   /* the frame the base canvas is painted with: f_001, or the landed wheel */
   const heldRef = useRef<HTMLImageElement | null>(null);
+
+  /* --vault-left: where the vault body starts on the page, which is what limits
+     the headline's size. A resize arrives as a burst of paints, so only the last
+     one is written, 150ms on; the first paint writes at once so nothing is laid
+     out against the fallback number. */
+  const leftTimer = useRef<number | undefined>(undefined);
+  const leftWritten = useRef(false);
+  const queueVaultLeft = useCallback((x: number) => {
+    const write = () => {
+      leftWritten.current = true;
+      document.documentElement.style.setProperty("--vault-left", `${x.toFixed(1)}px`);
+    };
+    if (!leftWritten.current) {
+      write();
+      return;
+    }
+    if (leftTimer.current) window.clearTimeout(leftTimer.current);
+    leftTimer.current = window.setTimeout(write, 150);
+  }, []);
+  useEffect(() => () => {
+    if (leftTimer.current) window.clearTimeout(leftTimer.current);
+  }, []);
+
+  useLayoutEffect(() => {
+    /* Before the frame decodes: derive the rect from the 16:9 frame's own aspect
+       so the headline's size (--h1-max, off --vault-left) is already final in
+       this paint. Without it the headline is laid out at the fallback size and
+       then re-fitted, which is a visible shift on first load. */
+    const stage = stageRef.current;
+    if (!stage || window.innerWidth <= PHONE_MAX) return;
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    if (w <= 0 || h <= 0) return;
+    const r = desktopRect(w, h, 1920, 1080, window.innerWidth, window.innerHeight, anchor);
+    queueVaultLeft(r.dx + r.dw * VAULT_BODY_LEFT);
+  }, [anchor, queueVaultLeft]);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -120,28 +178,23 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       dx = w / 2 - dw * VAULT_CX;
       dy = h / 2 - dh * VAULT_CY;
     } else {
-      let scale = Math.max(w / img.width, h / img.height);
       /* cap the drawn width so the vault never reaches into the 38.2% text column */
-      const maxDrawnW = window.innerWidth * 1.12;
-      if (img.width * scale > maxDrawnW) scale = maxDrawnW / img.width;
-      dw = img.width * scale;
-      dh = img.height * scale;
-      dx = (w - dw) / 2;
-      dy = (h - dh) / 2;
-      if (anchor && window.innerWidth >= 1024) {
-        // pin the wheel to the golden point: x 61.8% of viewport, y 50%
-        dx += window.innerWidth * 0.618 - (dx + dw * (WHEEL_X / 100));
-        dy += window.innerHeight * 0.5 - (dy + dh * (WHEEL_Y / 100));
-      }
+      const r = desktopRect(
+        w,
+        h,
+        img.width,
+        img.height,
+        window.innerWidth,
+        window.innerHeight,
+        anchor
+      );
+      ({ dx, dy, dw, dh } = r);
     }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    /* the canvas starts the photo's left fade at the drawn edge, not at the
-       canvas edge, so the frame's cut never shows as a vertical band */
-    canvas.style.setProperty("--draw-left", `${dx.toFixed(1)}px`);
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -149,6 +202,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, dx, dy, dw, dh);
+      /* the frame's own cut on the left, faded into the page (see featherCut) */
+      featherCut(ctx, dx, w, h);
       /* the phone band crops the frame; fade the crop into the page here rather
          than with a CSS mask (see canvasFeather) */
       featherPhoneBand(ctx, w, h);
@@ -160,6 +215,9 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       rect.style.width = `${dw}px`;
       rect.style.height = `${dh}px`;
     }
+    /* the shell's first column, in page coordinates: the headline is fitted to
+       the room it leaves (see the min-width block in hero.css) */
+    queueVaultLeft(dx + dw * VAULT_BODY_LEFT);
     const next: Rect = { dx, dy, dw, dh, w, h };
     lastRect.current = { dx, dy, dw, dh };
     if (rect) {
@@ -296,6 +354,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       if (!path) return;
       gsap.killTweensOf(path);
       if (!el) {
+        /* the form is gone: the line goes back to its off-at-rest state */
+        path.ownerSVGElement?.removeAttribute("data-on");
         path.removeAttribute("d");
         return;
       }
@@ -328,7 +388,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
           overwrite: "auto",
         });
       });
-      drawConnector(on);
+      setConnectorOn(on);
       if (seamRef.current) {
         gsap.to(seamRef.current, {
           stroke: on ? "rgba(18,165,181,0.45)" : "rgba(18,165,181,0)",
@@ -382,6 +442,40 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     },
   }));
 
+  /* The connector exists only while the Sign in control is hovered or focused,
+     and only where there is room for it (1024 and up; the stylesheet hides it
+     below that). data-on carries that state, so the line cannot be left drawn by
+     a dash offset that was measured on another route. */
+  const setConnectorOn = useCallback((on: boolean) => {
+    const svg = connectorRef.current?.ownerSVGElement;
+    const allowed = on && window.innerWidth >= 1024;
+    if (svg) svg.dataset.on = allowed ? "1" : "0";
+    drawConnector(allowed);
+  }, []);
+
+  /* the near end is the Sign in control: the keyboard reaches it too, so hover
+     and focus are the same request */
+  useEffect(() => {
+    const el = signinAnchorRef?.current;
+    if (!el) return;
+    const focus = () => setConnectorOn(true);
+    const blur = () => setConnectorOn(false);
+    el.addEventListener("focus", focus);
+    el.addEventListener("blur", blur);
+    return () => {
+      el.removeEventListener("focus", focus);
+      el.removeEventListener("blur", blur);
+    };
+  }, [signinAnchorRef, setConnectorOn]);
+
+  /* a fresh mount starts with the line off, whatever the last route left behind
+     — unless a form has already handed over its field, which is its own request
+     for the line and must not be cleared by the mount */
+  useEffect(() => {
+    if (formAnchorRef.current) holdConnector();
+    else setConnectorOn(false);
+  }, [setConnectorOn]);
+
   /* the connector's near end: the hero's Sign in button, or the form field the
      /signin card hands over. A field is joined at its own edge, so the line
      starts where the input ends rather than under its glass. */
@@ -418,6 +512,10 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   function holdConnector() {
     const path = traceConnector();
     if (!path) return;
+    /* A form field is the one asking for the line here, so drawing it is what
+       turns it on: the off-by-default rule belongs to the hero's Sign in
+       control, not to /signin, where the line is part of the page. */
+    if (window.innerWidth >= 1024) path.ownerSVGElement?.setAttribute("data-on", "1");
     const len = path.getTotalLength();
     if (len <= 0) return;
     path.style.strokeDasharray = `${len}`;
@@ -484,7 +582,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         </svg>
       </div>
 
-      <svg className="hero-connector" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="hero-connector" data-on="0" viewBox="0 0 100 100" preserveAspectRatio="none">
         <path
           ref={connectorRef}
           d=""

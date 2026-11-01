@@ -1,6 +1,7 @@
-/* HeroCopy.tsx — split headline, body and CTAs. Copy is spec-exact. The
-   headline is one h1: the split spans are aria-hidden and the full sentence
-   lives in a visually hidden span.
+/* HeroCopy.tsx — the headline in fixed lines, then body and CTAs. Copy is
+   spec-exact. The headline is one h1: each line is its own block span (so a
+   line can be revealed without the words of the next one moving), the lines
+   are aria-hidden and the whole sentence lives once, in a visually hidden span.
 
    DOM order is buttons, body; CSS `order` puts them in reading order on desktop
    (body before the buttons) and on mobile (buttons before the body). */
@@ -34,15 +35,18 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
   },
   ref
 ) {
-  const words = headline.split(/\s+/);
+  /* the copy is written as sentences and each one is a line: no line may wrap,
+     so the split happens here rather than at the browser's discretion */
+  const lines = headline.split(/(?<=\.)\s+/);
 
   return (
     <div className="hero-copy" ref={ref}>
       <h1 className="hero-h1" ref={headlineRef}>
-        <span className="sr-only">Pay for work you&rsquo;ve actually tested.</span>
-        {words.map((word, i) => (
-          <span className="word" key={i} aria-hidden="true">
-            <span className="word-inner">{word}</span>
+        <span className="sr-only">{headline}</span>
+        {lines.map((line, i) => (
+          <span className="h1-line" key={i} aria-hidden="true">
+            {/* the payoff line carries the accent; lines 1 and 2 stay ink */}
+            {i === lines.length - 1 ? <span className="h1-accent">{line}</span> : line}
           </span>
         ))}
       </h1>
@@ -81,7 +85,7 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
       </div>
 
       <p className="hero-body" ref={bodyRef}>
-        {"VaultLance AI is an escrow agent that securely hosts freelance digital deliverables from web apps to brand design assets, allowing clients to interrogate the work through live staging tests and visual AI analysis, giving them the confidence to authorize the PayPal payment that instantly unlocks their files."}
+        {"VaultLance AI is an escrow platform for digital deliverables. Freelancers upload code or design files; clients test them live via AI analysis. Files unlock only after PayPal payment is captured, protecting both sides from non-payment and incomplete work."}
       </p>
     </div>
   );

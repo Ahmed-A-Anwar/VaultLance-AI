@@ -54,33 +54,20 @@
   position: absolute;
   inset: 0;
   display: block;
-  /* Feather the drawn frame into the page gradient. The left fade starts at the
-     drawn image's own edge (--draw-left, written by the paint pass) and runs
-     144px, so the photo's cut is faded rather than showing as a pale band where
-     the shifted canvas begins. */
-  /* both spellings: without the prefixed one, WebKit builds that do not know the
-     unprefixed property drop the feather entirely and the frame's cut lands as a
-     hard line under the vault */
-  -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      transparent var(--draw-left, 0px),
-      #000 calc(var(--draw-left, 0px) + 144px),
-      #000 88%,
-      transparent 100%
-    ),
-    linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
-  mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      transparent var(--draw-left, 0px),
-      #000 calc(var(--draw-left, 0px) + 144px),
-      #000 88%,
-      transparent 100%
-    ),
-    linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
+  /* No left-edge mask here. The frame's cut is faded over 144px in the paint
+     pass instead (see HeroVault.paint): a mask on this canvas was applied once
+     and never re-applied when the cut moved, so the fade it described never
+     rendered and the cut stood as a pale vertical band. */
+}
+/* the frame's top and bottom edges fade into the page gradient on one layer
+   here, the wrapper, which is not the canvas the paint pass owns. Phones draw
+   their own crop fade into the pixels (see canvasFeather), so this starts at
+   768. */
+@media (min-width: 768px) {
+  .hero-stage-wrap {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  }
 }
 .hero-rim {
   position: absolute;
@@ -179,6 +166,20 @@
   height: 100%;
   pointer-events: none;
   z-index: 1;
+  /* The line is off until the Sign in control asks for it. The dash offset alone
+     is not enough: it is a length measured at draw time, so a path left at
+     offset 0 by a hover that began on another route stayed drawn at rest. The
+     attribute is the single source of truth, so nothing can leave it painted. */
+  opacity: 0;
+  transition: opacity 0.236s linear;
+}
+.hero-connector[data-on="1"] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-connector {
+    transition: none;
+  }
 }
 
 /* ---- copy column ---- */
@@ -213,31 +214,64 @@
 .hero-h1 {
   font-family: var(--hero-font-display);
   font-weight: 600;
-  font-size: clamp(42px, 4.7vw, 68px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  /* the tablet band's size; from 1024 up the size is fitted to the room the
+     copy has before the vault (see the min-width block below) */
+  font-size: clamp(40px, 3.54vw, 68px);
+  line-height: 1.08;
+  letter-spacing: 0;
   color: var(--hero-ink);
-  font-optical-sizing: auto;
-  text-wrap: balance;
-  margin: 21px 0;
+  /* plain letters: no discretionary joins, and the display face's optical size
+     and swash axes pinned rather than left to the browser. A low opsz keeps
+     the strokes and the spacing at this size; --h1-opsz is the one knob. */
+  font-optical-sizing: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "clig" 0, "dlig" 0, "hlig" 0;
+  font-variation-settings: "opsz" var(--h1-opsz), "WONK" 0;
+  margin: 0;
 }
-.hero-h1 .word {
-  display: inline-block;
-  overflow: hidden;
-  vertical-align: bottom;
-  padding-block: 0.06em;
-  margin-inline-end: 0.16em;
+/* The headline may run past the 38.2% column, but it may not come near the
+   vault: the size is whatever the room between the text's left edge and
+   --vault-left (written by the paint pass) allows, less the clearance in
+   --vault-gap, capped at 68px and floored at 34. Available room is divided by
+   the longest line's width per px of type (--h1-em), so that line lands right
+   on the margin it is allowed. */
+@media (min-width: 1024px) {
+  .hero-h1 {
+    font-size: clamp(
+      34px,
+      calc((var(--vault-left, 10000px) - 89px - var(--vault-gap)) / var(--h1-em)),
+      68px
+    );
+  }
 }
-.hero-h1 .word-inner {
-  display: inline-block;
-  will-change: transform;
+/* one line of the headline: its own block, so a line can rise without moving the
+   words of the next one, and no mask, so a glyph is never cut across its waist. */
+.h1-line {
+  display: block;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+/* the payoff line: the dark brass the audit room uses for small brass text,
+   which is the one brass that holds contrast on the page gradient. No italic:
+   the project ships no Fraunces italic file, and a synthesised slant is not the
+   face's own. */
+.h1-accent {
+  color: #7a551a;
+}
+/* only under 360px may a line break; from 360 up the sentences are the lines */
+@media (max-width: 359px) {
+  .h1-line {
+    white-space: normal;
+    text-wrap: balance;
+  }
 }
 .hero-body {
   font-family: var(--hero-font-body);
   font-size: 16px;
   line-height: 1.618;
   color: var(--hero-slate);
-  max-width: 44ch;
+  max-width: 52ch;
+  margin: 21px 0 0;
 }
 
 /* the CTAs flow after the body so a longer paragraph can never run under them;
@@ -254,6 +288,25 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 21px;
+}
+/* The CTA row sits on the golden line and the copy rides just above it, so the
+   slack a short headline leaves falls above the headline instead of opening a
+   hole between it and the body. The row is out of flow (its own top is the
+   golden line); the column's extra bottom padding is what lifts headline and
+   body to sit 34px above that line, and flex-end puts all the remaining space
+   at the top of the column. */
+@media (min-width: 1366px) {
+  .hero-copy {
+    justify-content: flex-end;
+    padding-bottom: calc(38.2svh + 34px);
+  }
+  .hero-cta-block {
+    position: absolute;
+    left: 89px;
+    right: 34px;
+    top: 61.8%;
+    margin-top: 0;
+  }
 }
 
 /* ---- buttons ---- */
@@ -367,10 +420,8 @@
     padding: 21px;
     min-height: 0;
   }
-  /* the old 13px block gap plus the 21px column gap, kept as explicit margins */
-  .hero-h1 {
-    margin: 29px 0;
-  }
+  /* the headline/body gap is the body's own 21px margin now, so the headline
+     carries no margin of its own at any width */
   .hero-cta-block {
     position: static;
     margin-top: 42px;
@@ -410,12 +461,14 @@
   .hero-copy {
     padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
   }
-  /* reading order: headline, buttons, body */
+  /* reading order: headline, buttons, body. The phone headline tops out at
+     34px: at 360 wide the longest line is 243px of a 326px column, and the
+     line-height stays the desktop 1.1 so the three lines read as one block. */
   .hero-h1 {
     order: 1;
     margin: 0;
-    font-size: 42px;
-    line-height: 1.05;
+    font-size: clamp(30px, 8.7vw, 34px);
+    line-height: 1.1;
   }
   .hero-cta-block {
     order: 2;
@@ -431,11 +484,8 @@
      mask: WebKit can paint a masked-out canvas row black, and a mask on an
      element GSAP is translating can leave a one-pixel seam where the layer ends
      (the dark line under the safe). The fade is written into the canvas pixels
-     instead, for the still and for both clips — see canvasFeather. */
-  .hero-canvas {
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
+     instead, for the still and for both clips — see canvasFeather. The wrapper's
+     top/bottom feather starts at 768 for the same reason. */
 }
 
 /* ---- entry gate ----

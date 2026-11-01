@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { HeroCopy } from "./HeroCopy";
 import HeroButtons from "./HeroButtons";
-import { createHeroTimeline } from "./hero-timeline";
+import { armHeroIntro, createHeroTimeline } from "./hero-timeline";
 import { useVaultScene } from "../lib/vaultScene";
 
 const SIGNIN_HREF = "/signin";
@@ -70,6 +70,26 @@ export function Hero() {
     };
   }, [ready, returning]);
 
+  /* The first paint of the copy is the entrance's start pose, armed as soon as
+     the copy exists. The gate can lift while the clips are still being banked,
+     and the finished headline must never be on screen before it arrives: that
+     window is what made the last line look like it loaded late. */
+  useLayoutEffect(() => {
+    if (returning || reduced) return;
+    armHeroIntro({
+      page: pageRef.current,
+      copy: copyRef.current,
+      stage: stageWrapRef.current,
+      rim: rimRef.current,
+      headline: headlineRef.current,
+      body: bodyRef.current,
+      ctaBlock: ctaBlockRef.current,
+      buttons: buttonsRef.current,
+      keypadGlow: glowRef.current,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returning, reduced]);
+
   /* the entrance waits for the entry gate: the vault has painted, and both CTA
      clips are banked. Running it under the curtain is what the gate is for. */
   useEffect(() => {
@@ -99,7 +119,7 @@ export function Hero() {
       <main id="main" className="hero-layout">
         <HeroCopy
           ref={copyRef}
-          headline="Pay for work you've actually tested."
+          headline="Freelancers deliver. Clients verify. Money moves fairly."
           signupHref="/signup"
           signinHref={SIGNIN_HREF}
           headlineRef={headlineRef}

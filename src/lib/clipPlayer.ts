@@ -13,6 +13,7 @@
 
 import gsap from "gsap";
 import type { Reply } from "./clipWorker";
+import { featherCut } from "./canvasFeather";
 
 export interface ClipRect {
   dx: number;
@@ -196,6 +197,9 @@ export function createClipPlayer({
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(frame, rect.dx, rect.dy, rect.dw, rect.dh);
+    /* a clip's frame covers the whole canvas, so it hides the still's faded cut
+       with a hard one unless it is faded the same way */
+    featherCut(ctx, rect.dx, w, h);
     feather?.(ctx, w, h);
     drawnIdx = frameIdx;
     /* which frame is actually painted: the only honest progress signal a test

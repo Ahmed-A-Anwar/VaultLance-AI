@@ -45,3 +45,34 @@ export const featherPhoneBand = (
 ) => {
   if (phoneBand()) featherBand(ctx, w, h);
 };
+
+/* The frame is drawn left-aligned at dx, and its cut there reads as a pale
+   vertical band against the page gradient unless it fades. The fade is erased
+   out of the pixels over 144px: opaque at the cut, untouched beyond it. Every
+   canvas that draws the frame needs this — the still and both clip canvases,
+   whose frames cover the still while a clip is idle. A CSS mask cannot do it:
+   one written with a custom property is not repainted when the cut moves, and
+   the fade then silently never renders.
+   The clip keeps destination-out to the fade (it would otherwise clear the rest
+   of the canvas) and the guard skips frames drawn flush to the left edge. */
+export const featherCut = (
+  ctx: CanvasRenderingContext2D,
+  dx: number,
+  w: number,
+  h: number,
+  fade = 144,
+) => {
+  if (dx <= 0 || w <= 0 || h <= 0) return;
+  const edge = Math.min(dx + fade, w);
+  const g = ctx.createLinearGradient(dx, 0, dx + fade, 0);
+  g.addColorStop(0, "rgba(0, 0, 0, 1)");
+  g.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, edge, h);
+  ctx.clip();
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, edge, h);
+  ctx.restore();
+};
