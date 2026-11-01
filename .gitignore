@@ -13,3 +13,10 @@ backup/
 !.env.example
 node_modules/
 AGENTS.md
+/src/generated/prisma
+.agents
+.claude
+.windsurf
+prisma
+prisma7.config.ts
+skills-lock.json
