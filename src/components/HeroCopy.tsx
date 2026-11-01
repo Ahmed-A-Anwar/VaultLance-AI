@@ -85,7 +85,7 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
       </div>
 
       <p className="hero-body" ref={bodyRef}>
-        {"Upload code or design files. Clients test them live with AI. Files unlock only after PayPal captures the payment."}
+        {"VaultLance AI is an escrow platform for digital deliverables. Freelancers upload code or design files; clients test them live via AI analysis. Files unlock only after PayPal payment is captured, protecting both sides from non-payment and incomplete work."}
       </p>
     </div>
   );
