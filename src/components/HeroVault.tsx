@@ -3,7 +3,7 @@
    CTA buttons (keypad cascade, door-seam light, hinge glint). The Sign up vault
    reaction is the wheel clip, which draws on its own canvas here. */
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import type { ClipRect } from "../lib/clipPlayer";
 import { featherCut, featherPhoneBand } from "../lib/canvasFeather";
@@ -68,6 +68,27 @@ const VAULT_CY = 0.4950;
 /* the phone breakpoint, kept in step with the max-width: 767px block in hero.css */
 const PHONE_MAX = 767;
 
+/* The desktop frame's drawn rect: cover-fit the frame into the stage, cap its
+   width, then pin the wheel to the golden point. The frame is 16:9, so this is
+   the same answer before the image has decoded as after — which is what lets
+   --vault-left be written in the same layout pass as the first paint, instead
+   of one frame later. */
+function desktopRect(w: number, h: number, imgW: number, imgH: number, vw: number, vh: number, anchor: boolean) {
+  let scale = Math.max(w / imgW, h / imgH);
+  const maxDrawnW = vw * 1.12;
+  if (imgW * scale > maxDrawnW) scale = maxDrawnW / imgW;
+  const dw = imgW * scale;
+  const dh = imgH * scale;
+  let dx = (w - dw) / 2;
+  let dy = (h - dh) / 2;
+  if (anchor && vw >= 1024) {
+    // pin the wheel to the golden point: x 61.8% of viewport, y 50%
+    dx += vw * 0.618 - (dx + dw * (WHEEL_X / 100));
+    dy += vh * 0.5 - (dy + dh * (WHEEL_Y / 100));
+  }
+  return { dx, dy, dw, dh };
+}
+
 const KEYPAD = { x: 59.6, y: 50.0, w: 3.2, h: 6.5 };
 const SEAM =
   "M 447 255 H 585 A 30 30 0 0 1 615 285 V 700 A 30 30 0 0 1 585 730 H 447 A 30 30 0 0 1 417 700 V 285 A 30 30 0 0 1 447 255 Z";
@@ -116,6 +137,20 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     if (leftTimer.current) window.clearTimeout(leftTimer.current);
   }, []);
 
+  useLayoutEffect(() => {
+    /* Before the frame decodes: derive the rect from the 16:9 frame's own aspect
+       so the headline's size (--h1-max, off --vault-left) is already final in
+       this paint. Without it the headline is laid out at the fallback size and
+       then re-fitted, which is a visible shift on first load. */
+    const stage = stageRef.current;
+    if (!stage || window.innerWidth <= PHONE_MAX) return;
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    if (w <= 0 || h <= 0) return;
+    const r = desktopRect(w, h, 1920, 1080, window.innerWidth, window.innerHeight, anchor);
+    queueVaultLeft(r.dx + r.dw * VAULT_BODY_LEFT);
+  }, [anchor, queueVaultLeft]);
+
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
     const stage = stageRef.current;
@@ -143,19 +178,17 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       dx = w / 2 - dw * VAULT_CX;
       dy = h / 2 - dh * VAULT_CY;
     } else {
-      let scale = Math.max(w / img.width, h / img.height);
       /* cap the drawn width so the vault never reaches into the 38.2% text column */
-      const maxDrawnW = window.innerWidth * 1.12;
-      if (img.width * scale > maxDrawnW) scale = maxDrawnW / img.width;
-      dw = img.width * scale;
-      dh = img.height * scale;
-      dx = (w - dw) / 2;
-      dy = (h - dh) / 2;
-      if (anchor && window.innerWidth >= 1024) {
-        // pin the wheel to the golden point: x 61.8% of viewport, y 50%
-        dx += window.innerWidth * 0.618 - (dx + dw * (WHEEL_X / 100));
-        dy += window.innerHeight * 0.5 - (dy + dh * (WHEEL_Y / 100));
-      }
+      const r = desktopRect(
+        w,
+        h,
+        img.width,
+        img.height,
+        window.innerWidth,
+        window.innerHeight,
+        anchor
+      );
+      ({ dx, dy, dw, dh } = r);
     }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(w * dpr);
