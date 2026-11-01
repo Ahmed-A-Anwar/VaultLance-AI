@@ -27,6 +27,19 @@ export interface HeroTimeline {
   destroy: () => void;
 }
 
+/* The pose every entrance element starts from. Exported so the copy can be put
+   in it before its first paint: the entry gate may lift before the timeline is
+   built, and the finished headline must never be on screen before it arrives. */
+export function armHeroIntro({ page, stage, rim, body, buttons, headline }: HeroTimelineTargets) {
+  if (page) gsap.set(page, { opacity: 0 });
+  if (stage) gsap.set(stage, { y: 34, opacity: 0, scale: 0.97 });
+  if (rim) gsap.set(rim, { opacity: 0 });
+  if (body) gsap.set(body, { y: 21, opacity: 0 });
+  const lines = headline ? Array.from(headline.querySelectorAll<HTMLElement>(".h1-line")) : [];
+  if (lines.length) gsap.set(lines, { y: 34, opacity: 0 });
+  if (buttons) gsap.set(buttons.querySelectorAll(".hero-btn"), { y: 21, opacity: 0 });
+}
+
 export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTimelineOptions): HeroTimeline {
   const { page, copy, stage, rim, headline, body, buttons, keypadGlow } = targets;
   let intro: gsap.core.Timeline | null = null;
@@ -34,32 +47,24 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
   let raf = 0;
   let headRaf = 0;
 
-  /* the headline is three lines, each revealed on its own: the clip hides a line
-     from the bottom up and the line rises 34px behind it. The line boxes carry
-     0.15em of bottom padding so the clip can never take a descender with them. */
+  /* the headline is three lines, each revealed on its own: the line rises 34px
+     and fades. No mask: a sliding clip cuts every glyph across its waist for the
+     length of the tween, so a line reads as half-loaded while it arrives. */
   const lineEls = () =>
     headline ? Array.from(headline.querySelectorAll<HTMLElement>(".h1-line")) : [];
-  const CLIP_HIDDEN = "inset(0% 0% 100% 0%)";
-  const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
 
   const finalState = () => {
     gsap.set([page, stage, body, buttons].filter(Boolean), { clearProps: "all" });
     gsap.set([stage, body, buttons].filter(Boolean), { opacity: 1, x: 0, y: 0, scale: 1 });
     for (const el of lineEls()) {
-      el.style.clipPath = "";
       el.style.transform = "";
       el.style.opacity = "1";
     }
   };
 
   const startIntro = () => {
-    if (page) gsap.set(page, { opacity: 0 });
-    if (stage) gsap.set(stage, { y: 34, opacity: 0, scale: 0.97 });
-    if (rim) gsap.set(rim, { opacity: 0 });
-    if (body) gsap.set(body, { y: 21, opacity: 0 });
+    armHeroIntro(targets);
     const lines = lineEls();
-    if (lines.length) gsap.set(lines, { y: 34, opacity: 0, clipPath: CLIP_HIDDEN });
-    if (buttons) gsap.set(buttons.querySelectorAll(".hero-btn"), { y: 21, opacity: 0 });
 
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
@@ -69,14 +74,7 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     /* 0.618 / 0.854 / 1.090 — the last line lands at 1.708s, inside the idle
        gate at 2.618s, so the float never starts on a line still arriving */
     lines.forEach((el, i) => {
-      tl.to(
-        el,
-        /* the clip is the reveal, not a permanent mask: a line longer than the
-           column is allowed to run past it, and an inset(0) left on the element
-           would cut that overhang off at the column edge */
-        { y: 0, opacity: 1, clipPath: CLIP_SHOWN, duration: 0.618, ease: "power3.out", clearProps: "clipPath" },
-        0.618 + i * 0.236
-      );
+      tl.to(el, { y: 0, opacity: 1, duration: 0.618, ease: "power3.out" }, 0.618 + i * 0.236);
     });
     tl.to(body, { y: 0, opacity: 1, duration: 0.618 }, 1.0);
     if (buttons) {

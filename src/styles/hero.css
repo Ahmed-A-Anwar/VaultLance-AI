@@ -244,14 +244,11 @@
     );
   }
 }
-/* one line of the headline. The box is 0.15em taller than the line so a clip
-   mask can never cut a descender (the y in "fairly", the tail of the F); the
-   negative margin hands that space back, so the rhythm is the line-height. */
+/* one line of the headline: its own block, so a line can rise without moving the
+   words of the next one, and no mask, so a glyph is never cut across its waist. */
 .h1-line {
   display: block;
   white-space: nowrap;
-  padding-bottom: 0.15em;
-  margin-bottom: -0.15em;
   will-change: transform, opacity;
 }
 /* the payoff line: the dark brass the audit room uses for small brass text,
