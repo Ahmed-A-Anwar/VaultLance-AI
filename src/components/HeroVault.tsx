@@ -353,7 +353,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
           overwrite: "auto",
         });
       });
-      drawConnector(on);
+      setConnectorOn(on);
       if (seamRef.current) {
         gsap.to(seamRef.current, {
           stroke: on ? "rgba(18,165,181,0.45)" : "rgba(18,165,181,0)",
@@ -406,6 +406,37 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       }
     },
   }));
+
+  /* The connector exists only while the Sign in control is hovered or focused,
+     and only where there is room for it (1024 and up; the stylesheet hides it
+     below that). data-on carries that state, so the line cannot be left drawn by
+     a dash offset that was measured on another route. */
+  const setConnectorOn = useCallback((on: boolean) => {
+    const svg = connectorRef.current?.ownerSVGElement;
+    const allowed = on && window.innerWidth >= 1024;
+    if (svg) svg.dataset.on = allowed ? "1" : "0";
+    drawConnector(allowed);
+  }, []);
+
+  /* the near end is the Sign in control: the keyboard reaches it too, so hover
+     and focus are the same request */
+  useEffect(() => {
+    const el = signinAnchorRef?.current;
+    if (!el) return;
+    const focus = () => setConnectorOn(true);
+    const blur = () => setConnectorOn(false);
+    el.addEventListener("focus", focus);
+    el.addEventListener("blur", blur);
+    return () => {
+      el.removeEventListener("focus", focus);
+      el.removeEventListener("blur", blur);
+    };
+  }, [signinAnchorRef, setConnectorOn]);
+
+  /* a fresh mount starts with the line off, whatever the last route left behind */
+  useEffect(() => {
+    setConnectorOn(false);
+  }, [setConnectorOn]);
 
   /* the connector's near end: the hero's Sign in button, or the form field the
      /signin card hands over. A field is joined at its own edge, so the line
@@ -509,7 +540,7 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
         </svg>
       </div>
 
-      <svg className="hero-connector" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <svg className="hero-connector" data-on="0" viewBox="0 0 100 100" preserveAspectRatio="none">
         <path
           ref={connectorRef}
           d=""

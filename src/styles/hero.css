@@ -166,6 +166,20 @@
   height: 100%;
   pointer-events: none;
   z-index: 1;
+  /* The line is off until the Sign in control asks for it. The dash offset alone
+     is not enough: it is a length measured at draw time, so a path left at
+     offset 0 by a hover that began on another route stayed drawn at rest. The
+     attribute is the single source of truth, so nothing can leave it painted. */
+  opacity: 0;
+  transition: opacity 0.236s linear;
+}
+.hero-connector[data-on="1"] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-connector {
+    transition: none;
+  }
 }
 
 /* ---- copy column ---- */
