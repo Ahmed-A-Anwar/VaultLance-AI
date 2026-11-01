@@ -354,6 +354,8 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       if (!path) return;
       gsap.killTweensOf(path);
       if (!el) {
+        /* the form is gone: the line goes back to its off-at-rest state */
+        path.ownerSVGElement?.removeAttribute("data-on");
         path.removeAttribute("d");
         return;
       }
@@ -466,9 +468,12 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
     };
   }, [signinAnchorRef, setConnectorOn]);
 
-  /* a fresh mount starts with the line off, whatever the last route left behind */
+  /* a fresh mount starts with the line off, whatever the last route left behind
+     — unless a form has already handed over its field, which is its own request
+     for the line and must not be cleared by the mount */
   useEffect(() => {
-    setConnectorOn(false);
+    if (formAnchorRef.current) holdConnector();
+    else setConnectorOn(false);
   }, [setConnectorOn]);
 
   /* the connector's near end: the hero's Sign in button, or the form field the
@@ -507,6 +512,10 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   function holdConnector() {
     const path = traceConnector();
     if (!path) return;
+    /* A form field is the one asking for the line here, so drawing it is what
+       turns it on: the off-by-default rule belongs to the hero's Sign in
+       control, not to /signin, where the line is part of the page. */
+    if (window.innerWidth >= 1024) path.ownerSVGElement?.setAttribute("data-on", "1");
     const len = path.getTotalLength();
     if (len <= 0) return;
     path.style.strokeDasharray = `${len}`;
