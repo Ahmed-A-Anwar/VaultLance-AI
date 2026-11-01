@@ -440,12 +440,14 @@
   .hero-copy {
     padding: 21px 21px calc(21px + env(safe-area-inset-bottom));
   }
-  /* reading order: headline, buttons, body */
+  /* reading order: headline, buttons, body. The phone headline tops out at
+     34px: at 360 wide the longest line is 243px of a 326px column, and the
+     line-height stays the desktop 1.1 so the three lines read as one block. */
   .hero-h1 {
     order: 1;
     margin: 0;
-    font-size: 42px;
-    line-height: 1.05;
+    font-size: clamp(30px, 8.7vw, 34px);
+    line-height: 1.1;
   }
   .hero-cta-block {
     order: 2;
