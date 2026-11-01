@@ -71,7 +71,10 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     lines.forEach((el, i) => {
       tl.to(
         el,
-        { y: 0, opacity: 1, clipPath: CLIP_SHOWN, duration: 0.618, ease: "power3.out" },
+        /* the clip is the reveal, not a permanent mask: a line longer than the
+           column is allowed to run past it, and an inset(0) left on the element
+           would cut that overhang off at the column edge */
+        { y: 0, opacity: 1, clipPath: CLIP_SHOWN, duration: 0.618, ease: "power3.out", clearProps: "clipPath" },
         0.618 + i * 0.236
       );
     });

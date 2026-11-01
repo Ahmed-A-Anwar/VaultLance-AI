@@ -33,6 +33,17 @@
   --hero-s-55: 55px;
   --hero-s-89: 89px;
 
+  /* headline fitting. The display face is set at one optical size, and the
+     longest line decides the size it can carry. At opsz 36 the lines measure
+     9.29 / 6.53 / 9.47 px per px of type — line 3, "Money moves fairly.", is the
+     widest, not line 1, so that is the ratio used. --vault-left is written by
+     the vault's paint pass (the body's own left edge, not the frame's), and the
+     gap is the 34px clearance plus the 8px float and the 4px pointer drift, so
+     the headline never meets the vault. */
+  --h1-opsz: 36;
+  --h1-em: 9.469;
+  --vault-gap: 46px;
+
   /* motion */
   --hero-d-236: 0.236s;
   --hero-d-382: 0.382s;

@@ -59,6 +59,7 @@ const WHEEL_Y = 49.72;
 /* vault body inside f_001.webp, as a fraction of the frame: the solid shell
    spans x 655-1244 and y 221-848 on the 1920x1080 frame (threshold cut 120 of
    255 on a 198.7 backdrop, which drops the contact shadow) */
+const VAULT_BODY_LEFT = 655 / 1920;
 const FRAME_ASPECT = 16 / 9;
 const VAULT_FW = 0.3073;
 const VAULT_FH = 0.5815;
@@ -92,6 +93,28 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
   const lastRect = useRef<ClipRect | null>(null);
   /* the frame the base canvas is painted with: f_001, or the landed wheel */
   const heldRef = useRef<HTMLImageElement | null>(null);
+
+  /* --vault-left: where the vault body starts on the page, which is what limits
+     the headline's size. A resize arrives as a burst of paints, so only the last
+     one is written, 150ms on; the first paint writes at once so nothing is laid
+     out against the fallback number. */
+  const leftTimer = useRef<number | undefined>(undefined);
+  const leftWritten = useRef(false);
+  const queueVaultLeft = useCallback((x: number) => {
+    const write = () => {
+      leftWritten.current = true;
+      document.documentElement.style.setProperty("--vault-left", `${x.toFixed(1)}px`);
+    };
+    if (!leftWritten.current) {
+      write();
+      return;
+    }
+    if (leftTimer.current) window.clearTimeout(leftTimer.current);
+    leftTimer.current = window.setTimeout(write, 150);
+  }, []);
+  useEffect(() => () => {
+    if (leftTimer.current) window.clearTimeout(leftTimer.current);
+  }, []);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -159,6 +182,9 @@ export const HeroVault = forwardRef<VaultFx, HeroVaultProps>(function HeroVault(
       rect.style.width = `${dw}px`;
       rect.style.height = `${dh}px`;
     }
+    /* the shell's first column, in page coordinates: the headline is fitted to
+       the room it leaves (see the min-width block in hero.css) */
+    queueVaultLeft(dx + dw * VAULT_BODY_LEFT);
     const next: Rect = { dx, dy, dw, dh, w, h };
     lastRect.current = { dx, dy, dw, dh };
     if (rect) {
