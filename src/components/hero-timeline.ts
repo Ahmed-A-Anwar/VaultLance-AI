@@ -34,11 +34,21 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
   let raf = 0;
   let headRaf = 0;
 
+  /* the headline is three lines, each revealed on its own: the clip hides a line
+     from the bottom up and the line rises 34px behind it. The line boxes carry
+     0.15em of bottom padding so the clip can never take a descender with them. */
+  const lineEls = () =>
+    headline ? Array.from(headline.querySelectorAll<HTMLElement>(".h1-line")) : [];
+  const CLIP_HIDDEN = "inset(0% 0% 100% 0%)";
+  const CLIP_SHOWN = "inset(0% 0% 0% 0%)";
+
   const finalState = () => {
     gsap.set([page, stage, body, buttons].filter(Boolean), { clearProps: "all" });
     gsap.set([stage, body, buttons].filter(Boolean), { opacity: 1, x: 0, y: 0, scale: 1 });
-    if (headline) {
-      gsap.set(headline.querySelectorAll(".word-inner"), { opacity: 1, yPercent: 0, clearProps: "transform" });
+    for (const el of lineEls()) {
+      el.style.clipPath = "";
+      el.style.transform = "";
+      el.style.opacity = "1";
     }
   };
 
@@ -47,7 +57,8 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     if (stage) gsap.set(stage, { y: 34, opacity: 0, scale: 0.97 });
     if (rim) gsap.set(rim, { opacity: 0 });
     if (body) gsap.set(body, { y: 21, opacity: 0 });
-    if (headline) gsap.set(headline.querySelectorAll(".word-inner"), { yPercent: 100, opacity: 0 });
+    const lines = lineEls();
+    if (lines.length) gsap.set(lines, { y: 34, opacity: 0, clipPath: CLIP_HIDDEN });
     if (buttons) gsap.set(buttons.querySelectorAll(".hero-btn"), { y: 21, opacity: 0 });
 
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -55,14 +66,15 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
     if (page) tl.to(page, { opacity: 1, duration: 0.618 }, 0);
     tl.to(stage, { y: 0, opacity: 1, scale: 1, duration: 1.618, ease: "expo.out" }, 0);
     tl.to(rim, { opacity: 1, duration: 0.618, ease: "power2.out" }, 0.236);
-    if (headline) {
-      tl.to(headline.querySelectorAll(".word-inner"), {
-        yPercent: 0,
-        opacity: 1,
-        duration: 0.618,
-        stagger: 0.0618,
-      }, 0.618);
-    }
+    /* 0.618 / 0.854 / 1.090 — the last line lands at 1.708s, inside the idle
+       gate at 2.618s, so the float never starts on a line still arriving */
+    lines.forEach((el, i) => {
+      tl.to(
+        el,
+        { y: 0, opacity: 1, clipPath: CLIP_SHOWN, duration: 0.618, ease: "power3.out" },
+        0.618 + i * 0.236
+      );
+    });
     tl.to(body, { y: 0, opacity: 1, duration: 0.618 }, 1.0);
     if (buttons) {
       tl.to(buttons.querySelectorAll(".hero-btn"), {
