@@ -6,8 +6,10 @@ import dotenv from "dotenv";
 
 import authRoutes from "./auth/auth.routes.js";
 import vaultRoutes from "./vaults/vault.routes.js";
+import vaultActionRoutes from "./vaults/vault.actions.js";
 import uploadRoutes from "./uploads/upload.routes.js";
 import manifestRoutes from "./manifests/manifest.routes.js";
+import ledgerRoutes from "./ledger/ledger.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { database } from "./shared/db.js";
 
@@ -59,9 +61,11 @@ app.get("/health", (_req, res) => {
 
 // Mount modular API routers
 app.use("/api/auth", authRoutes);
+app.use("/api/vaults", vaultActionRoutes);  // action routes first (more specific paths)
 app.use("/api/vaults", vaultRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/manifests", manifestRoutes);
+app.use("/api/ledger", ledgerRoutes);
 
 // 404 handler for unmatched routes
 app.use((_req, res) => {

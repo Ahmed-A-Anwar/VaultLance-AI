@@ -5,5 +5,8 @@ export default defineConfig({
     globals: true,
     fileParallelism: false,
     environment: "node",
+    env: {
+      USE_IN_MEMORY_DB: "true",
+    },
   },
 });

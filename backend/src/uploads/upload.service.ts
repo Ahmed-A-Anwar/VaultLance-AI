@@ -5,6 +5,7 @@ import { storageAdapter, type IStorageAdapter } from "./storage.adapter.js";
 import { ZipSecurityValidator } from "./zip.validator.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { BadRequestError, NotFoundError } from "../shared/errors.js";
+import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 
 export interface ProcessedUploadResult {
   fileId: string;
@@ -73,6 +74,21 @@ export class UploadService {
 
     database.store.files.set(uniqueId, fileRecord);
 
+    // Persist to Supabase public.vault_files if configured
+    if (isSupabaseConfigured() && supabase) {
+      await supabase.from("vault_files").insert([{
+        id: uniqueId,
+        vault_id: vaultId,
+        uploaded_by: userId,
+        file_name: fileRecord.file_name,
+        storage_path: fileRecord.storage_path,
+        mime_type: fileRecord.mime_type,
+        file_size: fileRecord.file_size,
+        sha256_hash: fileRecord.sha256_hash,
+        created_at: fileRecord.created_at.toISOString(),
+      }]);
+    }
+
     return {
       fileId: uniqueId,
       vaultId,
@@ -88,7 +104,30 @@ export class UploadService {
 
   public async getFileForDownload(userId: string, fileId: string) {
     database.store.checkFailure();
-    const file = database.store.files.get(fileId);
+    let file = database.store.files.get(fileId);
+
+    // If not in in-memory store, look up in Supabase
+    if (!file && isSupabaseConfigured() && supabase) {
+      const { data: dbFile } = await supabase
+        .from("vault_files")
+        .select("*")
+        .eq("id", fileId)
+        .single();
+      if (dbFile) {
+        file = {
+          id: dbFile.id,
+          vault_id: dbFile.vault_id,
+          uploaded_by: dbFile.uploaded_by,
+          file_name: dbFile.file_name,
+          storage_path: dbFile.storage_path,
+          mime_type: dbFile.mime_type,
+          file_size: Number(dbFile.file_size),
+          sha256_hash: dbFile.sha256_hash,
+          created_at: new Date(dbFile.created_at),
+        };
+      }
+    }
+
     if (!file) {
       throw new NotFoundError("File not found.", "FILE_NOT_FOUND");
     }
@@ -101,6 +140,44 @@ export class UploadService {
       file,
       buffer,
     };
+  }
+
+  public async listFilesForVault(userId: string, vaultId: string) {
+    // Verify access
+    await dataIsolationService.getVaultIfAuthorized(userId, vaultId);
+
+    if (isSupabaseConfigured() && supabase) {
+      const { data: files } = await supabase
+        .from("vault_files")
+        .select("id, vault_id, file_name, mime_type, file_size, created_at")
+        .eq("vault_id", vaultId)
+        .order("created_at", { ascending: false });
+
+      return (files || []).map((f: any) => ({
+        id: f.id,
+        vaultId: f.vault_id,
+        fileName: f.file_name,
+        mimeType: f.mime_type,
+        fileSize: Number(f.file_size),
+        createdAt: f.created_at,
+      }));
+    }
+
+    // In-memory
+    const results: any[] = [];
+    for (const f of database.store.files.values()) {
+      if (f.vault_id === vaultId) {
+        results.push({
+          id: f.id,
+          vaultId: f.vault_id,
+          fileName: f.file_name,
+          mimeType: f.mime_type,
+          fileSize: f.file_size,
+          createdAt: f.created_at,
+        });
+      }
+    }
+    return results;
   }
 }
 

@@ -35,7 +35,7 @@ router.post(
   }
 );
 
-// Download file (Participant with access only)
+// Download file by file ID (Participant with access only)
 router.get("/download/:fileId", async (req, res, next) => {
   try {
     const fileId = String(req.params.fileId);
@@ -51,6 +51,17 @@ router.get("/download/:fileId", async (req, res, next) => {
     );
     res.setHeader("Content-Length", buffer.length);
     res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Download files by vault ID — returns list of files for the vault
+router.get("/vault/:vaultId/files", async (req, res, next) => {
+  try {
+    const vaultId = String(req.params.vaultId);
+    const files = await uploadService.listFilesForVault(req.user!.id, vaultId);
+    return sendSuccess(res, files, "Vault files retrieved");
   } catch (err) {
     next(err);
   }
