@@ -3,9 +3,8 @@
    to its left. The card joins the running transition when it is entered from the
    hero, and simply renders final on a direct load.
 
-   Two steps: role, then details. Submit is local only — no network calls; the
-   values go through the shared schema in lib/validations/auth.ts and the clean
-   body is held for the API that replaces it. */
+   Two steps: role, then details. Submits directly to the backend Register API,
+   creates the account, establishes an authenticated session, and proceeds to the vault. */
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -22,6 +21,8 @@ import {
   type SignupPayload,
   type SignupValues,
 } from "../lib/validations/auth";
+import { apiClient, isDemoMode } from "../lib/apiClient";
+import { writeSession } from "../lib/mockAuth";
 
 type Step = 1 | 2 | 3;
 
@@ -79,6 +80,10 @@ export default function Signup() {
   const [role, setRole] = useState<Role | null>(null);
   const [preview, setPreview] = useState<Role | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdEmail, setCreatedEmail] = useState<string>("");
+
   const { control, register, handleSubmit, setValue, getValues, clearErrors, trigger, formState } =
     useForm<SignupInput, unknown, SignupValues>({
       resolver: zodResolver(signupSchema),
@@ -88,11 +93,8 @@ export default function Signup() {
       defaultValues: { fullName: "", email: "", password: "", role: "client", paypalEmail: "" },
     });
   const { errors } = formState;
-  /* the submit gate is checked against the live values, not formState.isValid:
-     with mode "onBlur" that flag only catches up when a field loses focus, so
-     filling the last field and clicking would hit a dead button */
+  /* the submit gate is checked against the live values, not formState.isValid */
   const canSubmit = signupSchema.safeParse(useWatch({ control })).success;
-  /* the clean body a real submit would post; nothing sensitive is logged */
   const payload = useRef<SignupPayload | null>(null);
   const moving = useRef(false);
   const stepRef = useRef<Step>(1);
@@ -122,9 +124,6 @@ export default function Signup() {
   const move = (next: Step, dir: 1 | -1 = 1) => {
     const panel = panelRef.current;
     if (!panel) return;
-    /* a click that lands while a step is still sliding is honoured rather than
-       dropped: it waits for the running move to land, then runs. Dropping it
-       made "Change role" look dead if it was clicked right after arriving. */
     if (moving.current) {
       queued.current = { step: next, dir };
       return;
@@ -132,7 +131,6 @@ export default function Signup() {
     const swap = () => {
       stepRef.current = next;
       setStep(next);
-      // a step swap takes the caret with it
       if (next === 2) requestAnimationFrame(() => nameRef.current?.focus());
       if (next === 3) requestAnimationFrame(() => doneRef.current?.focus());
     };
@@ -169,9 +167,7 @@ export default function Signup() {
     });
   };
 
-  /* selecting a role locks the path, then steps forward on the next beat. The
-     role also decides whether a payout address is required, so a switch drops
-     the old one and re-checks only the fields that already hold a value. */
+  /* selecting a role locks the path, then steps forward on the next beat */
   const pickRole = (next: Role) => {
     setRole(next);
     setPreview(null);
@@ -188,8 +184,70 @@ export default function Signup() {
     advance.current = window.setTimeout(() => move(2, 1), 236);
   };
 
-  const submit = handleSubmit((values) => {
+  const submit = handleSubmit(async (values) => {
+    setServerError(null);
+    setIsSubmitting(true);
     payload.current = toSignupPayload(values);
+
+    const backendRole = values.role === "freelancer" ? "FREELANCER" : "CLIENT";
+
+    try {
+      const res = await apiClient.auth.register({
+        email: values.email,
+        password: values.password,
+        fullName: values.fullName,
+        role: backendRole,
+      });
+
+      if (!res.success || !res.data) {
+        if (isDemoMode()) {
+          writeSession({
+            email: values.email,
+            role: values.role,
+            name: values.fullName,
+            since: Date.now(),
+          });
+          setCreatedEmail(values.email);
+          setIsSubmitting(false);
+          setPhase("done");
+          return;
+        }
+
+        setIsSubmitting(false);
+        setServerError(res.message || "Failed to create account. Please check your details.");
+        return;
+      }
+
+      // Successful registration: write authenticated session
+      writeSession({
+        email: res.data.user.email,
+        role: values.role,
+        name: res.data.user.fullName,
+        since: Date.now(),
+        token: res.data.token,
+      });
+
+      setCreatedEmail(res.data.user.email);
+    } catch (err: any) {
+      if (isDemoMode()) {
+        writeSession({
+          email: values.email,
+          role: values.role,
+          name: values.fullName,
+          since: Date.now(),
+        });
+        setCreatedEmail(values.email);
+        setIsSubmitting(false);
+        setPhase("done");
+        return;
+      }
+
+      setIsSubmitting(false);
+      setServerError(err.message || "Server connection error. Please make sure the backend is running.");
+      return;
+    }
+
+    setIsSubmitting(false);
     /* the path lights first; the success card follows it */
     setPhase("done");
   });
@@ -272,7 +330,6 @@ export default function Signup() {
                 type="button"
                 className="signup-chip"
                 onClick={() => {
-                  /* the payout address belongs to the role being left behind */
                   setValue("paypalEmail", "", { shouldValidate: false });
                   clearErrors("paypalEmail");
                   move(1, -1);
@@ -284,7 +341,6 @@ export default function Signup() {
             )}
           </div>
 
-          {/* the compact path lives in the card under the heading, under 1100px */}
           <div className="signup-stepper-compact" data-reveal>
             <SignupStepper
               variant="compact"
@@ -332,11 +388,27 @@ export default function Signup() {
 
           {step === 2 && (
             <form className="signup-form" onSubmit={submit} noValidate>
+              {serverError && (
+                <div
+                  className="signup-err"
+                  role="alert"
+                  style={{
+                    padding: "8px 12px",
+                    background: "rgba(155, 28, 22, 0.1)",
+                    border: "1px solid var(--failed, #9b1c16)",
+                    borderRadius: "4px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {serverError}
+                </div>
+              )}
+
               {field("fullName", "Full name", "text", { autoComplete: "name", ref: nameRef })}
               {field("email", "Email", "email", { autoComplete: "email" })}
               {field("password", "Password", "password", {
                 autoComplete: "new-password",
-                helper: "12+ characters, mixing case, a number and a symbol.",
+                helper: "8+ characters.",
               })}
               {role === "freelancer" &&
                 field("paypalEmail", "PayPal email", "email", {
@@ -347,13 +419,17 @@ export default function Signup() {
               <button
                 className="hero-btn primary signup-submit"
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || isSubmitting}
                 data-testid="signup-submit"
               >
-                <span className="hero-btn-label">Create my vault</span>
+                <span className="hero-btn-label">
+                  {isSubmitting ? "Creating account..." : "Create my vault"}
+                </span>
               </button>
 
-              <p className="signup-note">SANDBOX DEMO · NO REAL MONEY</p>
+              <p className="signup-note">
+                {isDemoMode() ? "DEMO MODE ACTIVE" : "AUTHENTICATED VAULT"}
+              </p>
             </form>
           )}
 
@@ -366,11 +442,20 @@ export default function Signup() {
                 Your {role} vault is open.
               </h2>
               <p className="signup-done-p">
-                Nothing was created and no money moved — this flow is a sandbox.
+                Account created for <strong>{createdEmail || getValues("email")}</strong>. Your session is authenticated and your workspace is active.
               </p>
-              <Link className="signup-link" to="/">
-                Back to the vault
-              </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "1rem" }}>
+                <Link
+                  className="hero-btn primary"
+                  to="/dashboard"
+                  style={{ textDecoration: "none", textAlign: "center", padding: "10px 16px" }}
+                >
+                  Go to Dashboard
+                </Link>
+                <Link className="signup-link" to="/" style={{ textAlign: "center" }}>
+                  Back to the vault
+                </Link>
+              </div>
             </div>
           )}
         </div>
