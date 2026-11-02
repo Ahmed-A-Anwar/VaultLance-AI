@@ -3,13 +3,13 @@
    line with the lock on the right that the whole screen turns on. */
 
 import { useState } from "react";
-import { useToast } from "../shared/Toasts";
+// import { useToast } from "../shared/Toasts";
 import { useRoom } from "./room";
 import { Chevron, Download, FileIcon, Folder, Globe, Lock, LockOpen } from "./icons";
 
 export function FilesPanel() {
   const { detail, status, unlocking } = useRoom();
-  const toast = useToast();
+  // const toast = useToast();
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const files = detail?.files ?? [];
@@ -62,7 +62,7 @@ export function FilesPanel() {
                         <button
                           type="button"
                           className="room-dl"
-                          onClick={() => toast({ message: "Download starts in the real build." })}
+                          onClick={() => window.open("/api/uploads/download/latest", "_blank")}
                         >
                           <Download width="11" height="11" />
                           <span>Download</span>
@@ -122,7 +122,7 @@ export function FilesPanel() {
         className="room-download-all"
         disabled={locked}
         title={locked ? "Unlocks after capture." : "Download every file in this delivery."}
-        onClick={() => toast({ message: "Download starts in the real build." })}
+        onClick={() => window.open("/api/uploads/download/latest", "_blank")}
       >
         <Download width="16" height="16" />
         Download all

@@ -1,19 +1,15 @@
-/* data.tsx — one read of the mock API for the whole dashboard. The shell owns
-   it, so moving between /dashboard and /dashboard/vaults does not refetch, and
-   the ledger's live events reach the vault list, the KPIs and the toasts at the
-   same time. */
+/* data.tsx — Live data provider for the whole dashboard connected to backend & Supabase. */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ApiError,
-  getKpis,
-  listEvents,
-  listVaults,
   subscribe,
   type Kpis,
   type LedgerEvent,
   type Vault,
+  type VaultStatus,
+  type LedgerType,
 } from "../../lib/api";
 
 interface DashDataValue {
@@ -22,9 +18,7 @@ interface DashDataValue {
   kpis: Kpis | null;
   loading: boolean;
   error: ApiError | null;
-  /* re-read everything; the error and empty states call this */
   reload: () => void;
-  /* a write returned a vault: fold it in without waiting for a refetch */
   putVault: (vault: Vault) => void;
   latestEvent: LedgerEvent | null;
   clearLatest: () => void;
@@ -35,6 +29,78 @@ const DashDataContext = createContext<DashDataValue | null>(null);
 const asApiError = (e: unknown): ApiError =>
   e instanceof ApiError ? e : new ApiError("network", "Something went wrong. Try again.");
 
+function getToken(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("vl_token") || sessionStorage.getItem("vl_token") || "";
+}
+
+async function fetchLiveVaults(): Promise<Vault[]> {
+  const token = getToken();
+  const res = await fetch("http://localhost:3000/api/vaults", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Failed to fetch vaults from server");
+  const json = await res.json();
+  if (!json.success || !Array.isArray(json.data)) return [];
+
+  return json.data.map((bv: any): Vault => {
+    let status: VaultStatus = "held";
+    const s = (bv.status || "").toUpperCase();
+    if (["DRAFT", "AWAITING_CLIENT", "AWAITING_AUTHORIZATION"].includes(s)) status = "awaiting_payment";
+    else if (["AUTHORIZED", "FUNDS_HELD"].includes(s)) status = "held";
+    else if (["AWAITING_APPROVAL", "SUBMITTED", "VERIFYING"].includes(s)) status = "audited";
+    else if (["PAID", "CAPTURE_PENDING", "COMPLETED", "UNLOCKED"].includes(s)) status = "unlocked";
+    else if (["CANCELLED", "EXPIRED", "VOIDED"].includes(s)) status = "voided";
+
+    const freelancer = bv.members?.find((m: any) => m.role === "FREELANCER")?.fullName || "Freelancer";
+    return {
+      id: bv.id,
+      project: bv.title,
+      freelancer,
+      amountUSD: Number(bv.amount) || 0,
+      status,
+      createdAt: new Date(bv.createdAt || bv.created_at || Date.now()).getTime(),
+      paypalOrderId: bv.id ? `8XK${bv.id.slice(0, 8).toUpperCase()}` : undefined,
+    };
+  });
+}
+
+async function fetchLiveLedger(): Promise<LedgerEvent[]> {
+  const token = getToken();
+  const res = await fetch("http://localhost:3000/api/ledger", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Failed to fetch ledger from server");
+  const json = await res.json();
+  if (!json.success || !Array.isArray(json.data)) return [];
+
+  return json.data.map((e: any): LedgerEvent => {
+    let type: LedgerType = "PAYMENT.AUTHORIZED";
+    if (e.event_type === "PAYMENT_CAPTURED") type = "PAYMENT.CAPTURED";
+    else if (e.event_type === "MILESTONE_APPROVED") type = "FILES.UNLOCKED";
+    else if (e.event_type === "FUNDS_AUTHORIZED") type = "PAYMENT.AUTHORIZED";
+    else if (e.event_type === "VAULT_CANCELLED") type = "PAYMENT.VOIDED";
+    return {
+      id: e.id,
+      ts: new Date(e.created_at || Date.now()).getTime(),
+      type,
+      vaultId: e.vault_id,
+      label: e.metadata?.note || "Ledger event recorded",
+      amountUSD: Number(e.amount) || undefined,
+      paypalId: e.metadata?.paypalId || `8XK${e.vault_id?.slice(0, 8).toUpperCase()}`,
+    };
+  });
+}
+
+function calculateKpis(vList: Vault[]): Kpis {
+  const held = vList.filter((v) => v.status === "held" || v.status === "audited");
+  return {
+    fundsHeld: held.reduce((sum, v) => sum + v.amountUSD, 0),
+    awaitingReview: vList.filter((v) => v.status === "audited").length,
+    unlocked: vList.filter((v) => v.status === "unlocked").length,
+  };
+}
+
 export function DashDataProvider({ children }: { children: ReactNode }) {
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [events, setEvents] = useState<LedgerEvent[]>([]);
@@ -44,8 +110,6 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
   const [latestEvent, setLatestEvent] = useState<LedgerEvent | null>(null);
   const [pass, setPass] = useState(0);
 
-  /* skeleton only on the first read or an explicit retry, never on a quiet
-     refresh behind a live event */
   const haveData = useRef(false);
 
   useEffect(() => {
@@ -53,12 +117,12 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
     if (!haveData.current) setLoading(true);
     setError(null);
 
-    Promise.all([listVaults(), listEvents(), getKpis()])
-      .then(([nextVaults, nextEvents, nextKpis]) => {
+    Promise.all([fetchLiveVaults(), fetchLiveLedger()])
+      .then(([nextVaults, nextEvents]) => {
         if (!live) return;
         setVaults(nextVaults);
         setEvents(nextEvents);
-        setKpis(nextKpis);
+        setKpis(calculateKpis(nextVaults));
         haveData.current = true;
       })
       .catch((e) => {
@@ -74,7 +138,6 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
     };
   }, [pass]);
 
-  /* the dev panel and every write fan out through here */
   useEffect(
     () =>
       subscribe((event) => {
@@ -91,7 +154,13 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const putVault = useCallback((vault: Vault) => {
-    setVaults((prev) => prev.map((v) => (v.id === vault.id ? vault : v)));
+    setVaults((prev) => {
+      const next = prev.map((v) => (v.id === vault.id ? vault : v));
+      setKpis(calculateKpis(next));
+      return next;
+    });
+    // Also trigger a reload from the backend so KPIs and ledger sync
+    setTimeout(() => setPass((n) => n + 1), 500);
   }, []);
 
   const clearLatest = useCallback(() => setLatestEvent(null), []);

@@ -193,7 +193,7 @@ export function VaultCard({
             <button
               type="button"
               className="dash-btn dash-btn-ghost"
-              onClick={() => toast({ message: "Download starts in the real build." })}
+              onClick={() => { toast({ message: "Download starts in the real build.", tone: "info" }); }}
             >
               <span className="dash-btn-label">Download</span>
             </button>

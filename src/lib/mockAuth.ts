@@ -27,7 +27,7 @@ const SESSION_KEY = "vl.dash.session";
 
 export function readSession(): Session | null {
   try {
-    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    const raw = (typeof window !== "undefined" && window.sessionStorage.getItem(SESSION_KEY)) || (typeof window !== "undefined" && window.localStorage.getItem(SESSION_KEY));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Session>;
     if (!parsed || typeof parsed.email !== "string") return null;
@@ -45,7 +45,7 @@ export function readSession(): Session | null {
 
 export function writeSession(session: Session): void {
   try {
-    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); if (typeof window !== "undefined") window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     if (session.token) {
       apiClient.setToken(session.token);
     }
@@ -56,7 +56,7 @@ export function writeSession(session: Session): void {
 
 export function clearSession(): void {
   try {
-    window.sessionStorage.removeItem(SESSION_KEY);
+    window.sessionStorage.removeItem(SESSION_KEY); if (typeof window !== "undefined") window.localStorage.removeItem(SESSION_KEY);
     apiClient.clearToken();
   } catch {
     /* nothing to clear */

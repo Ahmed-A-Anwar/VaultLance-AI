@@ -207,7 +207,7 @@ function MobileDecision({
         <button
           type="button"
           className="room-primary room-primary-sm"
-          onClick={() => toast({ message: "Download starts in the real build." })}
+          onClick={() => window.open("/api/uploads/download/latest", "_blank")}
         >
           <Download width="14" height="14" /> Download all
         </button>
