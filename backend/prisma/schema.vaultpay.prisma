@@ -1,0 +1,357 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public"]
+}
+
+model agreements {
+  id         String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id   String                @db.Uuid
+  version    Int
+  terms      String
+  status     agreement_status_enum @default(DRAFT)
+  created_by String                @db.Uuid
+  signed_at  DateTime?             @db.Timestamptz(6)
+  created_at DateTime              @default(now()) @db.Timestamptz(6)
+  users      public_users          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  vaults     vaults                @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+
+  @@unique([vault_id, version], map: "uq_agreement_version")
+  @@index([vault_id, created_at(sort: Desc)], map: "idx_agreements_vault_created")
+  @@schema("public")
+}
+
+model approvals {
+  id                                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id                            String               @db.Uuid
+  milestone_id                        String?              @db.Uuid
+  vault_file_id                       String?              @db.Uuid
+  requested_by                        String               @db.Uuid
+  reviewed_by                         String?              @db.Uuid
+  status                              approval_status_enum @default(PENDING)
+  comments                            String?
+  reviewed_at                         DateTime?            @db.Timestamptz(6)
+  created_at                          DateTime             @default(now()) @db.Timestamptz(6)
+  users_approvals_requested_byTousers public_users         @relation("approvals_requested_byTousers", fields: [requested_by], references: [id], onUpdate: NoAction)
+  users_approvals_reviewed_byTousers  public_users?        @relation("approvals_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  vaults                              vaults               @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+  vault_files                         vault_files?         @relation(fields: [vault_file_id, vault_id], references: [id, vault_id], onUpdate: NoAction, map: "fk_approval_file_same_vault")
+  milestones                          milestones?          @relation(fields: [milestone_id, vault_id], references: [id, vault_id], onUpdate: NoAction, map: "fk_approval_milestone_same_vault")
+
+  @@index([vault_file_id], map: "idx_approvals_file", where: raw("(vault_file_id IS NOT NULL)"))
+  @@index([milestone_id], map: "idx_approvals_milestone", where: raw("(milestone_id IS NOT NULL)"))
+  @@index([vault_id, status], map: "idx_approvals_vault_status")
+  @@schema("public")
+}
+
+model ledger_events {
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id   String                 @db.Uuid
+  actor_id   String?                @db.Uuid
+  event_type ledger_event_type_enum
+  amount     Decimal?               @db.Decimal(12, 2)
+  currency   String?                @db.VarChar(3)
+  metadata   Json?
+  created_at DateTime               @default(now()) @db.Timestamptz(6)
+  users      public_users?          @relation(fields: [actor_id], references: [id], onUpdate: NoAction)
+  vaults     vaults                 @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+
+  @@index([vault_id, created_at(sort: Desc)], map: "idx_ledger_events_vault_created")
+  @@schema("public")
+}
+
+model milestones {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id            String                @db.Uuid
+  title               String                @db.VarChar(255)
+  description         String?
+  amount              Decimal               @db.Decimal(12, 2)
+  sequence_number     Int
+  status              milestone_status_enum @default(PENDING)
+  due_at              DateTime?             @db.Timestamptz(6)
+  completed_at        DateTime?             @db.Timestamptz(6)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  approvals           approvals[]
+  vaults              vaults                @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+  paypal_transactions paypal_transactions[]
+
+  @@unique([id, vault_id], map: "uq_milestone_id_vault")
+  @@unique([vault_id, sequence_number], map: "uq_milestone_sequence")
+  @@index([vault_id, status], map: "idx_milestones_vault_status")
+  @@schema("public")
+}
+
+model paypal_transactions {
+  id                String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id          String                         @db.Uuid
+  milestone_id      String?                        @db.Uuid
+  paypal_order_id   String?                        @unique @db.VarChar(255)
+  paypal_capture_id String?                        @unique @db.VarChar(255)
+  amount            Decimal                        @db.Decimal(12, 2)
+  currency          String                         @db.VarChar(3)
+  status            paypal_transaction_status_enum @default(CREATED)
+  created_at        DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime                       @default(now()) @db.Timestamptz(6)
+  milestones        milestones?                    @relation(fields: [milestone_id, vault_id], references: [id, vault_id], onUpdate: NoAction, map: "fk_paypal_milestone_same_vault")
+  vaults            vaults                         @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+
+  @@index([milestone_id], map: "idx_paypal_transactions_milestone", where: raw("(milestone_id IS NOT NULL)"))
+  @@index([status], map: "idx_paypal_transactions_status")
+  @@index([vault_id], map: "idx_paypal_transactions_vault")
+  @@schema("public")
+}
+
+model public_users {
+  id                                            String              @id @db.Uuid
+  email                                         String              @unique @db.VarChar(255)
+  full_name                                     String              @db.VarChar(255)
+  avatar_url                                    String?
+  account_status                                account_status_enum @default(ACTIVE)
+  created_at                                    DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at                                    DateTime            @default(now()) @db.Timestamptz(6)
+  agreements                                    agreements[]
+  approvals_approvals_requested_byTousers       approvals[]         @relation("approvals_requested_byTousers")
+  approvals_approvals_reviewed_byTousers        approvals[]         @relation("approvals_reviewed_byTousers")
+  ledger_events                                 ledger_events[]
+  vault_files                                   vault_files[]
+  vault_members_vault_members_invited_byTousers vault_members[]     @relation("vault_members_invited_byTousers")
+  vault_members_vault_members_user_idTousers    vault_members[]     @relation("vault_members_user_idTousers")
+  vaults                                        vaults[]
+
+  @@map("users")
+  @@schema("public")
+}
+
+model vault_files {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id          String              @db.Uuid
+  uploaded_by       String              @db.Uuid
+  file_name         String              @db.VarChar(255)
+  storage_path      String              @unique
+  mime_type         String              @db.VarChar(150)
+  file_size         BigInt
+  sha256_hash       String              @db.Char(64)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  approvals         approvals[]
+  users             public_users        @relation(fields: [uploaded_by], references: [id], onUpdate: NoAction)
+  vaults            vaults              @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+  verification_runs verification_runs[]
+
+  @@unique([id, vault_id], map: "uq_vault_file_id_vault")
+  @@index([uploaded_by], map: "idx_vault_files_uploaded_by")
+  @@index([vault_id, created_at(sort: Desc)], map: "idx_vault_files_vault_created")
+  @@schema("public")
+}
+
+model vault_members {
+  id                                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id                              String                 @db.Uuid
+  user_id                               String                 @db.Uuid
+  role                                  vault_member_role_enum
+  invitation_status                     invitation_status_enum @default(PENDING)
+  invited_by                            String?                @db.Uuid
+  joined_at                             DateTime?              @db.Timestamptz(6)
+  created_at                            DateTime               @default(now()) @db.Timestamptz(6)
+  users_vault_members_invited_byTousers public_users?          @relation("vault_members_invited_byTousers", fields: [invited_by], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  users_vault_members_user_idTousers    public_users           @relation("vault_members_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+  vaults                                vaults                 @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+
+  @@unique([vault_id, user_id], map: "uq_vault_member")
+  @@index([user_id, invitation_status], map: "idx_vault_members_user_status")
+  @@index([vault_id, role], map: "idx_vault_members_vault_role")
+  @@schema("public")
+}
+
+model vaults {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelancer_id       String                @db.Uuid
+  title               String                @db.VarChar(255)
+  description         String?
+  amount              Decimal               @db.Decimal(12, 2)
+  currency            String                @default("USD") @db.VarChar(3)
+  status              vault_status_enum     @default(DRAFT)
+  expires_at          DateTime?             @db.Timestamptz(6)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  agreements          agreements[]
+  approvals           approvals[]
+  ledger_events       ledger_events[]
+  milestones          milestones[]
+  paypal_transactions paypal_transactions[]
+  vault_files         vault_files[]
+  vault_members       vault_members[]
+  users               public_users          @relation(fields: [freelancer_id], references: [id], onUpdate: NoAction)
+  verification_runs   verification_runs[]
+  webhook_events      webhook_events[]
+
+  @@unique([id, freelancer_id], map: "uq_vault_id_freelancer")
+  @@index([freelancer_id], map: "idx_vaults_freelancer_id")
+  @@index([status, created_at(sort: Desc)], map: "idx_vaults_status_created")
+  @@schema("public")
+}
+
+model verification_runs {
+  id           String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id     String                     @db.Uuid
+  file_id      String?                    @db.Uuid
+  run_type     verification_run_type_enum @default(AUTOMATIC)
+  status       verification_status_enum   @default(QUEUED)
+  result       String?
+  details      Json?
+  started_at   DateTime                   @default(now()) @db.Timestamptz(6)
+  completed_at DateTime?                  @db.Timestamptz(6)
+  vault_files  vault_files?               @relation(fields: [file_id, vault_id], references: [id, vault_id], onUpdate: NoAction, map: "fk_verification_file_same_vault")
+  vaults       vaults                     @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+
+  @@index([file_id], map: "idx_verification_runs_file", where: raw("(file_id IS NOT NULL)"))
+  @@index([vault_id, started_at(sort: Desc)], map: "idx_verification_runs_vault_started")
+  @@schema("public")
+}
+
+model webhook_events {
+  id                String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vault_id          String?                        @db.Uuid
+  provider          String                         @db.VarChar(100)
+  external_event_id String                         @db.VarChar(255)
+  event_type        String                         @db.VarChar(150)
+  payload           Json
+  processing_status webhook_processing_status_enum @default(PENDING)
+  received_at       DateTime                       @default(now()) @db.Timestamptz(6)
+  processed_at      DateTime?                      @db.Timestamptz(6)
+  vaults            vaults?                        @relation(fields: [vault_id], references: [id], onUpdate: NoAction)
+
+  @@unique([provider, external_event_id], map: "uq_webhook_provider_event")
+  @@index([processing_status, received_at], map: "idx_webhook_events_status_received")
+  @@index([vault_id], map: "idx_webhook_events_vault")
+  @@schema("public")
+}
+
+enum account_status_enum {
+  ACTIVE
+  PENDING
+  SUSPENDED
+
+  @@schema("public")
+}
+
+enum agreement_status_enum {
+  DRAFT
+  PENDING_SIGNATURE
+  SIGNED
+  REJECTED
+  SUPERSEDED
+
+  @@schema("public")
+}
+
+enum approval_status_enum {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+
+  @@schema("public")
+}
+
+enum invitation_status_enum {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+
+  @@schema("public")
+}
+
+enum ledger_event_type_enum {
+  VAULT_CREATED
+  FUNDS_AUTHORIZED
+  MILESTONE_APPROVED
+  PAYMENT_CAPTURED
+  REFUND_ISSUED
+  VAULT_CANCELLED
+  ADJUSTMENT
+
+  @@schema("public")
+}
+
+enum milestone_status_enum {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+  COMPLETED
+
+  @@schema("public")
+}
+
+enum paypal_transaction_status_enum {
+  CREATED
+  PENDING
+  AUTHORIZED
+  COMPLETED
+  CAPTURED
+  FAILED
+  REFUNDED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum vault_member_role_enum {
+  FREELANCER
+  CLIENT
+
+  @@schema("public")
+}
+
+enum vault_status_enum {
+  DRAFT
+  AWAITING_CLIENT
+  AWAITING_AUTHORIZATION
+  AUTHORIZED
+  IN_PROGRESS
+  SUBMITTED
+  VERIFYING
+  NEEDS_REVISION
+  AWAITING_APPROVAL
+  CAPTURE_PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+  DISPUTED
+
+  @@schema("public")
+}
+
+enum verification_run_type_enum {
+  AUTOMATIC
+  MANUAL
+
+  @@schema("public")
+}
+
+enum verification_status_enum {
+  QUEUED
+  RUNNING
+  PASSED
+  FAILED
+  NEEDS_REVIEW
+
+  @@schema("public")
+}
+
+enum webhook_processing_status_enum {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+
+  @@schema("public")
+}
