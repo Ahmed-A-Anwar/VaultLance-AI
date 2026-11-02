@@ -1,25 +1,20 @@
-/* mockAuth.ts — the sign-in rules for the sandbox. Everything here is local and
-   synchronous: no network, no storage, nothing to configure. Change the demo
-   behavior in this one file. */
+/* mockAuth.ts — the authentication layer with DEMO_MODE toggle and real API client connection. */
+
+import { apiClient, isDemoMode } from "./apiClient";
 
 export interface SigninCredentials {
   email: string;
   password: string;
 }
 
-/* The dashboard reads its role and its signed-in user from here. An address
-   containing "freelancer" is a freelancer, everything else is a client; the
-   rule lives in this one function so it can be changed in one place. */
 export type Role = "client" | "freelancer";
 
 export interface Session {
   email: string;
   role: Role;
   since: number;
-  /* the name the account holder chose in Settings; absent means "derive it from
-     the address", which is what the rail and the greeting did before settings
-     existed */
   name?: string;
+  token?: string;
 }
 
 export type SigninResult = { ok: true; role: Role } | { ok: false; error: string };
@@ -28,8 +23,6 @@ export function roleFor(email: string): Role {
   return email.trim().toLowerCase().includes("freelancer") ? "freelancer" : "client";
 }
 
-/* the session is mirrored to sessionStorage, and every read defends against a
-   storage that is missing or full (private windows, embedded webviews) */
 const SESSION_KEY = "vl.dash.session";
 
 export function readSession(): Session | null {
@@ -43,6 +36,7 @@ export function readSession(): Session | null {
       role: parsed.role === "freelancer" ? "freelancer" : roleFor(parsed.email),
       since: typeof parsed.since === "number" ? parsed.since : Date.now(),
       ...(typeof parsed.name === "string" && parsed.name.trim() ? { name: parsed.name } : {}),
+      ...(typeof parsed.token === "string" ? { token: parsed.token } : {}),
     };
   } catch {
     return null;
@@ -52,20 +46,23 @@ export function readSession(): Session | null {
 export function writeSession(session: Session): void {
   try {
     window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (session.token) {
+      apiClient.setToken(session.token);
+    }
   } catch {
-    /* the context still holds it for this tab */
+    /* storage defense */
   }
 }
 
 export function clearSession(): void {
   try {
     window.sessionStorage.removeItem(SESSION_KEY);
+    apiClient.clearToken();
   } catch {
     /* nothing to clear */
   }
 }
 
-/* the address the demo refuses, so the failure path is testable */
 export const FAIL_PREFIX = "fail@";
 export const MIN_PASSWORD = 8;
 export const BAD_CREDENTIALS = "Wrong email or password.";
@@ -82,33 +79,15 @@ export function passwordError(value: string): string | null {
   return value.length < MIN_PASSWORD ? `Use at least ${MIN_PASSWORD} characters.` : null;
 }
 
-/* ---- change password (mock) ----
-
-     checkCurrentPassword(current) -> POST /v1/auth/change-password
-
-   "wrong" is always refused so the failure path stays reachable; every other
-   value passes. Nothing here stores the new password: this is a sandbox. */
-
 export const WRONG_CURRENT_PASSWORD = "Current password is wrong.";
 
 export function checkCurrentPassword(current: string): boolean {
   return current.trim().toLowerCase() !== "wrong";
 }
 
-/* ---- password reset (mock) ----
-   Local only, like everything else in this file. Each function is named after the
-   call it will make once the backend exists:
-
-     requestReset(email)            -> POST /v1/auth/forgot-password
-     verifyResetToken(token)        -> GET  /v1/auth/reset-password/validate
-     resetPassword(token, password) -> POST /v1/auth/reset-password
-
-   Nothing here says whether an address has an account: the request screen has to
-   answer the same way either way. */
-
+/* ---- password reset ---- */
 export const RESEND_SECONDS = 55;
 export const RESET_LINK_MINUTES = 30;
-/* the link the dev banner under the card opens */
 export const MOCK_RESET_LINK = "/reset-password?token=demo-valid";
 
 export const RESET_EMAIL_EMPTY = "Enter your email.";
@@ -118,28 +97,22 @@ export const RESET_TOO_MANY = `Too many attempts. Try again in ${RESEND_SECONDS}
 export const RESET_MISMATCH = "Passwords don't match.";
 export const MAX_RESET_SENDS = 3;
 
-/* the reset screen asks for the same address rule, with its own empty message */
 export function resetEmailError(value: string): string | null {
   if (!value.trim()) return RESET_EMAIL_EMPTY;
   return EMAIL_RE.test(value.trim()) ? null : RESET_EMAIL_BAD;
 }
 
-/* how many requests this tab has made: three is the sandbox's limit */
 let resetSends = 0;
 export const resetSendCount = () => resetSends;
 export const noteResetSend = () => (resetSends += 1);
 
-/* the answer is always the same, and it never names an account */
 export function requestReset(email: string): { ok: true } | { ok: false; error: string } {
-  /* the address is what the real call will send; nothing local reads it */
   void email;
   return { ok: true };
 }
 
 export type ResetTokenState = "valid" | "expired" | "invalid";
 
-/* demo-valid and demo-expired are the two readable tokens; anything else is
-   refused, including no token at all */
 export function verifyResetToken(token: string | null): ResetTokenState {
   if (token === "demo-valid") return "valid";
   if (token === "demo-expired") return "expired";
@@ -160,13 +133,47 @@ export function resetPassword(
   return { ok: true };
 }
 
-/* the mock: "fail@" is always refused, anything else that validates is accepted.
-   A successful sign-in also opens the dashboard session, which is what the
-   /dashboard guard reads on the next route. */
-export function signIn({ email }: SigninCredentials): SigninResult {
-  if (email.trim().toLowerCase().startsWith(FAIL_PREFIX)) {
-    return { ok: false, error: BAD_CREDENTIALS };
+/**
+ * Sign in supporting both real backend API and DEMO_MODE fallback.
+ */
+export async function signIn({ email, password }: SigninCredentials): Promise<SigninResult> {
+  // If demo mode is active or user explicitly uses mock test prefix
+  if (isDemoMode() || email.trim().toLowerCase().startsWith(FAIL_PREFIX)) {
+    if (email.trim().toLowerCase().startsWith(FAIL_PREFIX)) {
+      return { ok: false, error: BAD_CREDENTIALS };
+    }
+    const role = roleFor(email);
+    writeSession({ email: email.trim(), role, since: Date.now() });
+    return { ok: true, role };
   }
+
+  // Attempt real backend authentication
+  try {
+    const res = await apiClient.auth.login({ email, password });
+    if (res.success && res.data) {
+      const user = res.data.user;
+      const role: Role = user.role.toLowerCase() === "freelancer" ? "freelancer" : "client";
+      writeSession({
+        email: user.email,
+        role,
+        name: user.fullName,
+        since: Date.now(),
+        token: res.data.token,
+      });
+      return { ok: true, role };
+    }
+
+    if (res.error?.code === "INVALID_CREDENTIALS" || res.message) {
+      return { ok: false, error: res.message || BAD_CREDENTIALS };
+    }
+  } catch {
+    if (isDemoMode()) {
+      const role = roleFor(email);
+      writeSession({ email: email.trim(), role, since: Date.now() });
+      return { ok: true, role };
+    }
+  }
+
   const role = roleFor(email);
   writeSession({ email: email.trim(), role, since: Date.now() });
   return { ok: true, role };
