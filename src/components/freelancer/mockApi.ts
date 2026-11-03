@@ -532,11 +532,22 @@ export async function scanArchive(
     onProgress?.(checks.map((c) => ({ ...c })));
   }
 
-  const v = find(id);
-  const hash = manifestHash([...v.files, f]);
-  replace({ ...v, files: [...v.files, f], filesCount: v.filesCount + 1 });
-  emit("FILES.UPLOADED", id, `${f.name} added and hashed`);
+  /* the drawer scans before the vault exists, so an unknown id still returns a
+     verdict and a hash; the files attach once the vault is created */
+  const v = vaults.find((x) => x.id === id);
+  const hash = manifestHash([...(v?.files ?? []), f]);
+  if (v) {
+    replace({ ...v, files: [...v.files, f], filesCount: v.filesCount + 1 });
+    emit("FILES.UPLOADED", id, `${f.name} added and hashed`);
+  }
   return { ok: true, checks, manifestSha256: hash };
+}
+
+/** POST /api/vaults/{id}/files — attach archives the drawer already scanned */
+export async function attachFiles(id: string, incoming: FreelancerFile[]): Promise<FreelancerVault> {
+  const v = find(id);
+  const files = [...v.files, ...incoming];
+  return replace({ ...v, files, filesCount: files.length, manifestSha256: manifestHash(files) });
 }
 
 /** POST /api/vaults/{id}/staging-url */
