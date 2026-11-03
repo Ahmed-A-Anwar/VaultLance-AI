@@ -1,0 +1,84 @@
+/* freelancer.css — the freelancer dashboard's own sheet. It adds tokens and
+   variants only: the client's rules, chips and cards are untouched.
+
+   Colour policy (measured, not assumed). Accents stay on marks — borders, dots,
+   spinners, icons — at their original values. Text that sits on an accent's 12%
+   fill uses a darkened text token, because the accents themselves are too light
+   to read as 12px mono. Ratios below are against the chip fill composited over
+   the glass card over the page gradient, at its lightest end (#C9D0D2), which
+   is the worst case:
+
+     --fd-text-success #0B5E3E on success 12%  5.27:1
+     --fd-text-danger  #8F2A24 on danger 12%   5.38:1
+     --fd-text-teal    #085A63 on teal 12%     5.40:1
+     --fd-text-brass   #7A551A on brass 12%    4.59:1
+
+   The two "text" tokens the brief gave for teal and brass both pass on plain
+   glass but teal falls to 4.30:1 on its own 12% fill, so it is darkened one
+   step here. Brass already clears 4.5 and is left exactly as specified. */
+
+.fd {
+  --fd-text-success: #0b5e3e;
+  --fd-text-danger: #8f2a24;
+  --fd-text-teal: #085a63;
+  --fd-text-brass: #7a551a;
+
+  /* accents: marks only, never small text */
+  --fd-accent-brass: #b8893a;
+  --fd-accent-teal: #12a5b5;
+  --fd-accent-success: #1f9d6b;
+  --fd-accent-danger: #c4453d;
+
+  --fd-fill-brass: rgba(184, 137, 58, 0.12);
+  --fd-fill-teal: rgba(18, 165, 181, 0.12);
+  --fd-fill-success: rgba(31, 157, 107, 0.12);
+  --fd-fill-danger: rgba(196, 69, 61, 0.12);
+
+  --fd-glass: rgba(255, 255, 255, 0.35);
+  --fd-r: 13px;
+  --fd-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
+  --fd-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* the shell's bands, matching the client's geometry so the two pages sit on the
+   same grid; the upper band is the 89px KPI row until the KPIs arrive */
+.fd-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+}
+
+.fd-panel {
+  background: var(--fd-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hero-steel);
+  border-radius: var(--fd-r);
+  box-shadow: var(--fd-shadow);
+  padding: 34px;
+}
+
+.fd-h1 {
+  font-family: var(--hero-font-display);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: 0;
+  font-variation-settings: "opsz" 36, "liga" 0;
+  margin: 0 0 13px;
+  color: var(--hero-ink);
+}
+
+/* the role chip keeps the client's geometry; only its ink and tint change, and
+   only when the shell passes the freelancer badge */
+.dash-badge.is-freelancer {
+  color: #7a551a;
+  background: rgba(184, 137, 58, 0.12);
+  border-color: rgba(184, 137, 58, 0.55);
+}
+
+/* the strip's plus, only rendered for the freelancer's primary action */
+.fd-cta-plus {
+  margin-right: 8px;
+  flex: none;
+}

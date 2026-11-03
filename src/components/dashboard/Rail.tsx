@@ -1,13 +1,18 @@
 /* Rail.tsx — the vault's left rail. 89px collapsed, expanding to 233px as an
    overlay on hover or focus within, so the page content never moves. Glass steel
    over the page gradient, a brass hairline down the inner edge, and a bolt at
-   each end of it. */
+   each end of it.
+
+   The items and the badge are props now, defaulting to exactly what the client
+   dashboard shipped with, so the freelancer's labels can differ without the
+   client's markup changing by a single node. */
 
 import { Link, NavLink } from "react-router-dom";
 import { Bell, CardIcon, Gear, Grid, Ledger, SignOut, VaultGlyph } from "./icons";
 import { displayName, initials, type useSession } from "./session";
+import type { RailItem } from "../../pages/dashboard/freelancer/roles";
 
-const ITEMS = [
+const ITEMS: RailItem[] = [
   { to: "/dashboard", label: "Overview", Icon: Grid, end: true },
   { to: "/dashboard/vaults", label: "Vaults", Icon: VaultGlyph, end: false },
   { to: "/dashboard/ledger", label: "Ledger", Icon: Ledger, end: false },
@@ -18,11 +23,18 @@ const ITEMS = [
 export function Rail({
   session,
   signOut,
+  items = ITEMS,
+  badge,
 }: {
   session: NonNullable<ReturnType<typeof useSession>["session"]>;
   signOut: () => void;
+  /** the role's own areas; the client default is ITEMS above */
+  items?: RailItem[];
+  /** extra class on the role chip — the freelancer styles it brass */
+  badge?: { label: string; className?: string };
 }) {
   const name = displayName(session.email);
+  const badgeLabel = badge?.label ?? session.role.toUpperCase();
 
   return (
     <nav className="dash-rail" aria-label="Dashboard" data-enter="rail">
@@ -36,7 +48,7 @@ export function Rail({
       </Link>
 
       <ul className="dash-nav">
-        {ITEMS.map(({ to, label, Icon, end }) => (
+        {items.map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}
@@ -59,7 +71,9 @@ export function Rail({
           </span>
           <span className="dash-user-meta">
             <span className="dash-user-name">{name}</span>
-            <span className="dash-badge">{session.role.toUpperCase()}</span>
+            <span className={badge?.className ? `dash-badge ${badge.className}` : "dash-badge"}>
+              {badgeLabel}
+            </span>
           </span>
         </div>
 
