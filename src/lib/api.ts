@@ -8,6 +8,9 @@
    call once this is no longer a mock. */
 
 import { FX } from "../config/fx";
+/* the freelancer's invite codes, so Join a vault accepts a code this app
+   issued as well as the built-in demo one */
+import { lookupInvite } from "../components/freelancer/inviteRegistry";
 import {
   MIN_PASSWORD,
   WRONG_CURRENT_PASSWORD,
@@ -339,6 +342,22 @@ export async function rejectVault(id: string): Promise<Vault> {
 export async function joinVault(code: string): Promise<Vault> {
   return call(() => {
     const clean = code.trim().toUpperCase();
+    /* additive: a code the freelancer dashboard issued joins here too, so the
+       client's Join a vault row needs no change of its own */
+    const invite = lookupInvite(clean);
+    if (invite) {
+      if (vaults.some((v) => v.project === invite.project)) throw new ApiError("conflict", "You already joined this vault.");
+      const invited: Vault = {
+        id: uid("v_inv"),
+        project: invite.project,
+        freelancer: invite.freelancer,
+        amountUSD: invite.amountCents / 100,
+        status: "awaiting_payment",
+        createdAt: Date.now(),
+      };
+      vaults = [invited, ...vaults];
+      return invited;
+    }
     if (clean !== "DEMO-1234") throw new ApiError("not_found", "Code not found.");
     if (vaults.some((v) => v.project === "Demo Project")) throw new ApiError("conflict", "You already joined this vault.");
     const vault: Vault = {
