@@ -8,6 +8,9 @@
    call once this is no longer a mock. */
 
 import { FX } from "../config/fx";
+/* the freelancer surface mints invite codes in this browser; the client's
+   join row redeems them through the same registry */
+import { lookupInvite } from "../components/freelancer/inviteRegistry";
 import {
   MIN_PASSWORD,
   WRONG_CURRENT_PASSWORD,
@@ -339,6 +342,24 @@ export async function rejectVault(id: string): Promise<Vault> {
 export async function joinVault(code: string): Promise<Vault> {
   return call(() => {
     const clean = code.trim().toUpperCase();
+    /* codes minted by the freelancer surface: the registry stands in for the
+       invite table a real backend would query */
+    const invited = lookupInvite(clean);
+    if (invited) {
+      if (vaults.some((v) => v.project === invited.project)) {
+        throw new ApiError("conflict", "You already joined this vault.");
+      }
+      const joined: Vault = {
+        id: uid("v_join"),
+        project: invited.project,
+        freelancer: "Maya",
+        amountUSD: invited.amountCents / 100,
+        status: "awaiting_payment",
+        createdAt: Date.now(),
+      };
+      vaults = [joined, ...vaults];
+      return joined;
+    }
     if (clean !== "DEMO-1234") throw new ApiError("not_found", "Code not found.");
     if (vaults.some((v) => v.project === "Demo Project")) throw new ApiError("conflict", "You already joined this vault.");
     const vault: Vault = {
