@@ -69,7 +69,7 @@ function Surface() {
   };
 
   return (
-    <div className="dash" ref={root}>
+    <div className="dash" ref={root} {...(isFreelancer ? { "data-freelancer": "true" } : {})}>
       <a className="dash-skip" href="#main">
         Skip to content
       </a>
