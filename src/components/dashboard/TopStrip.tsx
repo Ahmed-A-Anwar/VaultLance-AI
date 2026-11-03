@@ -1,42 +1,19 @@
 /* TopStrip.tsx — 55px of transparent chrome over the page gradient: the route's
-   name, the vault search, the bell and the one brass action.
-
-   The action is a prop now: the client keeps "Join a vault" with no icon, the
-   freelancer gets "New vault" with a plus. With no prop the markup is exactly
-   what the client dashboard shipped with, down to the class list. */
+   name, the vault search, the bell and the one brass action. */
 
 import { Bell, Search } from "./icons";
 import { useDashUi } from "./ui";
-
-const Plus = () => (
-  <svg
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={1.7}
-    strokeLinecap="round"
-    aria-hidden="true"
-    className="fd-cta-plus"
-    width="14"
-    height="14"
-  >
-    <path d="M8 3.2v9.6M3.2 8h9.6" />
-  </svg>
-);
 
 export function TopStrip({
   title,
   onJoin,
   showSearch = true,
-  primary,
 }: {
   title: string;
   onJoin: () => void;
   /* only the areas that list vaults have anything to search: Ledger, Payments
      and Settings drop the field and the strip tightens to two columns */
   showSearch?: boolean;
-  /** the role's one brass action; defaults to the client's "Join a vault" */
-  primary?: { label: string; withPlus?: boolean; onClick?: () => void };
 }) {
   const { query, setQuery, unread, markRead } = useDashUi();
 
@@ -69,16 +46,9 @@ export function TopStrip({
           {unread && <span className="dash-bell-dot" aria-hidden="true" />}
         </button>
 
-        {primary ? (
-          <button type="button" className="dash-cta is-brass" onClick={primary.onClick}>
-            {primary.withPlus && <Plus />}
-            {primary.label}
-          </button>
-        ) : (
-          <button type="button" className="dash-cta" onClick={onJoin}>
-            Join a vault
-          </button>
-        )}
+        <button type="button" className="dash-cta" onClick={onJoin}>
+          Join a vault
+        </button>
       </div>
     </header>
   );
