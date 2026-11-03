@@ -129,7 +129,9 @@ function hydrate(): boolean {
     if (!Array.isArray(parsed.vaults)) return false;
     vaults = parsed.vaults;
     events = Array.isArray(parsed.events) ? parsed.events : [];
-    return vaults.length > 0;
+    /* an explicitly empty store is a real state — the freelancer deleted
+       everything — and it must survive a reload instead of reseeding */
+    return true;
   } catch {
     return false;
   }

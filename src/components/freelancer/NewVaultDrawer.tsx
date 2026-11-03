@@ -6,6 +6,7 @@
    the invite code all behave the way the real endpoints will. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Check, Copy, VaultGlyph } from "../dashboard/icons";
 import { canCreateVault, fees, formatCents, MAX_AMOUNT_CENTS, MIN_AMOUNT_CENTS } from "../../lib/fees";
 import { useFreelancerData } from "./FreelancerData";
@@ -22,6 +23,7 @@ import {
 } from "./mockApi";
 import { SCAN_STEPS, ARCHIVE_LIMITS } from "./mockConfig";
 import type { ScanStep } from "./mockConfig";
+import { useFocusTrap } from "./focusTrap";
 
 type CheckState = "queued" | "running" | "pass" | "fail";
 interface StepCheck {
@@ -32,6 +34,23 @@ interface StepCheck {
 
 const STEPS = ["Details", "Deliverables", "Review"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* radiogroup arrow keys: selection and focus move together, as ARIA expects */
+function stepSeg<T extends string>(
+  e: ReactKeyboardEvent<HTMLButtonElement>,
+  options: readonly T[],
+  value: T,
+  setValue: (v: T) => void
+) {
+  if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(e.key)) return;
+  e.preventDefault();
+  const dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+  const i = options.indexOf(value);
+  const at = (i + dir + options.length) % options.length;
+  setValue(options[at]);
+  const buttons = Array.from(e.currentTarget.parentElement?.querySelectorAll("button") ?? []);
+  buttons[at]?.focus();
+}
 
 export function NewVaultDrawer({
   mode,
@@ -71,6 +90,17 @@ export function NewVaultDrawer({
 
   const fileInput = useRef<HTMLInputElement>(null);
   const firstField = useRef<HTMLInputElement>(null);
+  const shell = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  useFocusTrap(shell);
+
+  /* a step change replaces the focused control; put focus back inside the step
+     so Tab never has to walk the page behind the drawer */
+  useEffect(() => {
+    if (created) return;
+    const target = body.current?.querySelector<HTMLElement>("input, textarea, button, select");
+    target?.focus();
+  }, [step, created]);
 
   const cents = Math.round(Number(amount.replace(/[^0-9.]/g, "")) * 100);
   const breakdown = useMemo(() => fees(Number.isFinite(cents) ? cents : 0), [cents]);
@@ -94,6 +124,14 @@ export function NewVaultDrawer({
     firstField.current?.focus();
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  /* Captured during the first render: effects run in order, and the field
+     autofocus above has already moved focus by the time a later effect would
+     look. Reading it here is what returns focus to the real opener. */
+  const opener = useRef<HTMLElement | null>(
+    typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null
+  );
+  useEffect(() => () => opener.current?.focus?.(), []);
 
   const runScan = async (meta: FreelancerFile) => {
     const problem = scanProblem(meta);
@@ -177,7 +215,7 @@ export function NewVaultDrawer({
   return (
     <>
       <button type="button" className="fd-scrim" aria-label="Close the drawer" onClick={onClose} />
-      <aside className="fd-drawer" role="dialog" aria-modal="true" aria-label="New vault">
+      <aside ref={shell} className="fd-drawer" role="dialog" aria-modal="true" aria-label="New vault">
         <header className="fd-drawer-head">
           <h2 className="fd-h2">{created ? "Vault created." : mode === "files" ? "Add files" : "New vault"}</h2>
           <button type="button" className="fd-close" onClick={onClose} aria-label="Close">
@@ -198,7 +236,7 @@ export function NewVaultDrawer({
           </div>
         )}
 
-        <div className="fd-drawer-body">
+        <div className="fd-drawer-body" ref={body}>
           {created ? (
             <div className="fd-success">
               <span className="fd-success-ring" aria-hidden="true">
@@ -263,6 +301,7 @@ export function NewVaultDrawer({
                       className="fd-seg-item"
                       data-on={kind === k ? "true" : undefined}
                       onClick={() => setKind(k)}
+                      onKeyDown={(e) => stepSeg(e, ["web", "design", "other"] as const, kind, setKind)}
                     >
                       {k === "web" ? "Web app" : k === "design" ? "Design files" : "Other"}
                     </button>
@@ -291,6 +330,7 @@ export function NewVaultDrawer({
                   className="fd-seg-item"
                   data-on={tab === "zip" ? "true" : undefined}
                   onClick={() => setTab("zip")}
+                  onKeyDown={(e) => stepSeg(e, ["zip", "url"] as const, tab, setTab)}
                 >
                   Upload zip
                 </button>
@@ -301,6 +341,7 @@ export function NewVaultDrawer({
                   className="fd-seg-item"
                   data-on={tab === "url" ? "true" : undefined}
                   onClick={() => setTab("url")}
+                  onKeyDown={(e) => stepSeg(e, ["zip", "url"] as const, tab, setTab)}
                 >
                   Staging URL
                 </button>

@@ -5,7 +5,7 @@
    Mock data only, from the freelancer's own module. Nothing here reads the
    client dashboard's live rows. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { displayName } from "../../../components/dashboard/session";
 import { useDashUi } from "../../../components/dashboard/ui";
@@ -28,6 +28,7 @@ import {
 import { fees, formatCents } from "../../../lib/fees";
 import { filterBucket } from "../../../lib/freelancerPhase";
 import { NEW_VAULT_EVENT } from "./roles";
+import { useFocusTrap } from "../../../components/freelancer/focusTrap";
 
 const DEV = (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV ?? false;
 
@@ -328,6 +329,8 @@ function VaultDetails({ vault, onClose }: { vault: FreelancerVault; onClose: () 
   const money = fees(vault.amountCents);
   const timeline = events.filter((e) => e.vaultId === vault.id);
   const [copied, setCopied] = useState(false);
+  const shell = useRef<HTMLElement>(null);
+  useFocusTrap(shell);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -336,6 +339,11 @@ function VaultDetails({ vault, onClose }: { vault: FreelancerVault; onClose: () 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  const opener = useRef<HTMLElement | null>(
+    typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null
+  );
+  useEffect(() => () => opener.current?.focus?.(), []);
 
   const copyManifest = () => {
     if (!vault.manifestSha256) return;
@@ -348,6 +356,7 @@ function VaultDetails({ vault, onClose }: { vault: FreelancerVault; onClose: () 
     <>
       <button type="button" className="fd-scrim" aria-label="Close details" onClick={onClose} />
       <aside
+        ref={shell}
         className="fd-drawer fd-detail"
         role="dialog"
         aria-modal="true"

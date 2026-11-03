@@ -698,3 +698,22 @@
      clear of it */
   .fd { padding-bottom: 76px; }
 }
+
+/* reduced motion: the sweeps and slides stop, the state changes stay */
+@media (prefers-reduced-motion: reduce) {
+  .fd-card, .fd-drawer, .fd-scrim, .fd-success-ring, .fd-confirm-bar, .fd-skel, .fd-info, .fd-chip-spin, .fd-step-node {
+    animation: none !important;
+    transition: none !important;
+  }
+  .fd-info:hover { transform: none; }
+}
+
+/* spec measurements, desktop */
+.fd-drawer .fd-btn-tall { height: 55px; }
+.fd-drop { min-height: 233px; }
+@media (min-width: 1360px) {
+  .fd-upper { min-height: 233px; align-items: center; }
+}
+@media (max-width: 767px) {
+  .fd-drop { min-height: 144px; }
+}
