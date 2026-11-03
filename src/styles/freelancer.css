@@ -1,0 +1,44 @@
+/* freelancer.css — the freelancer's side of the dashboard. Same golden system
+   as the client page: the same ground gradient, the same glass, the same brass,
+   the same durations. Nothing here invents a token, and nothing here is loaded
+   by a client route.
+
+   Slice 1 is the shell: the role badge and the strip's one brass action. The
+   page rules arrive with the surface. */
+
+/* ---- role badge: brass, on a brass tint ---- */
+/* #7a551a on 12% brass over the rail glass measures 4.59:1 — the small-text
+   floor is 4.5:1, so the darker of the two brass text tokens is the one used */
+.dash-badge.is-freelancer {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: var(--dash-r);
+  background: rgba(184, 137, 58, 0.12);
+  color: #7a551a;
+}
+
+/* ---- the strip's brass action ---- */
+.dash-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: var(--dash-brass-line);
+  background: linear-gradient(180deg, #e2b867 0%, #b8893a 100%);
+  color: var(--hero-ink);
+  box-shadow: 0 2px 8px rgba(14, 21, 32, 0.12);
+}
+.dash-cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.18);
+}
+.dash-cta-primary:active {
+  transform: scale(0.97);
+  transition-duration: var(--hero-d-236);
+}
+.dash-cta-primary svg {
+  transition: transform var(--hero-d-382) var(--dash-ease);
+}
+.dash-cta-primary:hover svg {
+  transform: translateX(3px);
+}

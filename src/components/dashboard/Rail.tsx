@@ -1,13 +1,25 @@
 /* Rail.tsx — the vault's left rail. 89px collapsed, expanding to 233px as an
    overlay on hover or focus within, so the page content never moves. Glass steel
    over the page gradient, a brass hairline down the inner edge, and a bolt at
-   each end of it. */
+   each end of it.
 
+   The client rail is the default and is rendered with no props beyond session
+   and signOut. A role that needs other labels or a different badge passes
+   `items` / `badge`; the markup for the default stays exactly what it was. */
+
+import type { ComponentType, SVGProps } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Bell, CardIcon, Gear, Grid, Ledger, SignOut, VaultGlyph } from "./icons";
 import { displayName, initials, type useSession } from "./session";
 
-const ITEMS = [
+interface RailItem {
+  to: string;
+  label: string;
+  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  end: boolean;
+}
+
+const ITEMS: RailItem[] = [
   { to: "/dashboard", label: "Overview", Icon: Grid, end: true },
   { to: "/dashboard/vaults", label: "Vaults", Icon: VaultGlyph, end: false },
   { to: "/dashboard/ledger", label: "Ledger", Icon: Ledger, end: false },
@@ -18,11 +30,17 @@ const ITEMS = [
 export function Rail({
   session,
   signOut,
+  items = ITEMS,
+  badge,
 }: {
   session: NonNullable<ReturnType<typeof useSession>["session"]>;
   signOut: () => void;
+  items?: RailItem[];
+  badge?: { label: string; className?: string };
 }) {
   const name = displayName(session.email);
+  const badgeLabel = badge?.label ?? session.role.toUpperCase();
+  const badgeClass = `dash-badge${badge?.className ? ` ${badge.className}` : ""}`;
 
   return (
     <nav className="dash-rail" aria-label="Dashboard" data-enter="rail">
@@ -36,7 +54,7 @@ export function Rail({
       </Link>
 
       <ul className="dash-nav">
-        {ITEMS.map(({ to, label, Icon, end }) => (
+        {items.map(({ to, label, Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}
@@ -59,7 +77,7 @@ export function Rail({
           </span>
           <span className="dash-user-meta">
             <span className="dash-user-name">{name}</span>
-            <span className="dash-badge">{session.role.toUpperCase()}</span>
+            <span className={badgeClass}>{badgeLabel}</span>
           </span>
         </div>
 
