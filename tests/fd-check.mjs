@@ -91,6 +91,7 @@ await page.waitForSelector(".fd-panel", { timeout: 10000 });
 await page.waitForSelector(".ag-row", { timeout: 15000 }).catch(() => {});
 const gridRows = await page.locator(".ag-row").count();
 gridRows > 0 ? ok(`earnings ledger rendered ${gridRows} rows`) : fail(`ledger has no rows`);
+await page.screenshot({ path: ".shots/fd-ledger.png", fullPage: true });
 
 await page.goto(base + "/dashboard/vaults", { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".fd-card", { timeout: 10000 });
@@ -99,7 +100,13 @@ vaultCards === 6 ? ok(`vaults route shows all six`) : fail(`vaults route showed 
 
 /* overview screenshot at 1440 and a 390 sanity pass */
 await page.goto(base + "/dashboard", { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".fd-card", { timeout: 10000 });
+/* the mock fails 5% of reads on purpose, so one retry is part of the contract */
+try {
+  await page.waitForSelector(".fd-card", { timeout: 10000 });
+} catch {
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".fd-card", { timeout: 15000 });
+}
 await page.screenshot({ path: ".shots/fd-overview-1440.png", fullPage: true });
 
 await page.setViewportSize({ width: 390, height: 844 });

@@ -86,21 +86,24 @@ export function FreelancerLedger({
 
   const columns = useMemo<ColDef<Row>[]>(() => {
     const base: ColDef<Row>[] = [
-      { field: "when", headerName: "TIME", width: 96, tooltipValueGetter: (p) => full(p.data?.ts ?? 0) },
-      { field: "event", headerName: "EVENT", flex: 2, minWidth: 168 },
-      { field: "vault", headerName: "VAULT", flex: 2, minWidth: 140 },
+      { field: "when", headerName: "TIME", width: 84, minWidth: 74, tooltipValueGetter: (p) => full(p.data?.ts ?? 0) },
+      { field: "event", headerName: "EVENT", flex: 1.6, minWidth: 120 },
+      { field: "vault", headerName: "VAULT", flex: 1.2, minWidth: 100 },
       {
         field: "amount",
         headerName: "AMOUNT",
-        width: 110,
+        flex: 0.8,
+        minWidth: 84,
         valueFormatter: (p) => (p.value == null ? "—" : formatCents(Number(p.value))),
       },
-      { field: "paypal", headerName: "PAYPAL ID", width: 172, cellClass: "fd-mono-cell" },
     ];
+    /* the compact card keeps four columns; the PayPal id only earns its width
+       on the earnings page, where there is room for it */
     if (detail) {
       base.push(
-        { field: "phase", headerName: "PHASE", width: 128 },
-        { field: "payout", headerName: "PAYOUT", width: 104 }
+        { field: "paypal", headerName: "PAYPAL ID", flex: 1.3, minWidth: 140, cellClass: "fd-mono-cell" },
+        { field: "phase", headerName: "PHASE", flex: 0.95, minWidth: 92 },
+        { field: "payout", headerName: "PAYOUT", flex: 0.65, minWidth: 70 }
       );
     }
     return base;
