@@ -23,7 +23,11 @@ export const FX = {
   /* settingsPage true mounts the client settings page at /dashboard/settings.
      false restores the blank area the dashboard shipped with. */
   settingsPage: true,
-};
+  /* freelancerDashboard true mounts the freelancer dashboard on /dashboard for
+     the freelancer role. false restores the "Freelancer dashboard coming soon"
+     panel — the page is kept, only the flag switches it back in. */
+  freelancerDashboard: true,
+} as const;
 
 export const CLIPS = {
   wheel: {
