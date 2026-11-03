@@ -1,0 +1,43 @@
+# ─── Web Framework ───────────────────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9        # file uploads
+pydantic==2.7.1
+pydantic-settings==2.2.1
+
+# ─── Database ────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.30
+alembic==1.13.1
+asyncpg==0.29.0                # async PostgreSQL driver
+psycopg2-binary==2.9.9         # sync fallback / Alembic
+
+# ─── Elasticsearch ───────────────────────────────────────────────────────────
+elasticsearch[async]==8.13.0
+
+# ─── AI / LLM (Anthropic Claude) ─────────────────────────────────────────────
+anthropic==0.25.1
+
+# ─── File parsing ────────────────────────────────────────────────────────────
+pypdf==4.2.0                   # PDF text extraction
+python-docx==1.1.2             # DOCX extraction
+pillow==10.3.0                 # image handling
+pytesseract==0.3.10            # OCR for images
+
+# ─── Security / Validation ───────────────────────────────────────────────────
+python-magic==0.4.27           # MIME type sniffing
+clamd==1.0.2                   # ClamAV virus scanning (optional)
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# ─── PayPal SDK ───────────────────────────────────────────────────────────────
+paypalrestsdk==1.13.3          # PayPal REST SDK (sandbox-compatible)
+httpx==0.27.0                  # async HTTP (PayPal v2 API calls)
+
+# ─── Utilities ───────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+celery[redis]==5.4.0           # async task queue for extraction
+redis==5.0.4
+structlog==24.1.0              # structured logging
+tenacity==8.3.0                # retry logic
+# hashlib-compat is standard library in python 3
+aiofiles==23.2.1

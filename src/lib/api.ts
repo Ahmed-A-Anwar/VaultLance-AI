@@ -76,7 +76,7 @@ const uid = (prefix: string) => `${prefix}_${(++seq).toString(36).padStart(3, "0
 
 /* the format the spec fixed: 8XK12345AB678901C */
 const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-const paypalId = () => {
+export const paypalId = () => {
   const n = (k: number) => Array.from({ length: k }, () => Math.floor(Math.random() * 10)).join("");
   const l = (k: number) => Array.from({ length: k }, () => letters[Math.floor(Math.random() * letters.length)]).join("");
   return `8XK${n(5)}${l(2)}${n(6)}${l(1)}`;
