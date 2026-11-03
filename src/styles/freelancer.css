@@ -674,3 +674,18 @@
   .fd-drawer { width: 100vw; }
   .fd-step-label { font-size: 7.5px; }
 }
+
+/* at 390px the KPI row scrolls inside itself instead of widening the page */
+@media (max-width: 767px) {
+  .fd-kpis { flex: 1 1 auto; min-width: 0; }
+  .fd-upper { min-width: 0; }
+}
+
+/* 390px: the totals scroll sideways inside their own strip, and the status line
+   wraps, so nothing widens the page */
+@media (max-width: 767px) {
+  .fd-upper, .fd-greeting { min-width: 0; }
+  .fd-kpis { display: flex; overflow-x: auto; gap: 10px; width: 100%; min-width: 0; padding-bottom: 4px; }
+  .fd-kpi { flex: 0 0 150px; }
+  .fd-sub { white-space: normal; }
+}

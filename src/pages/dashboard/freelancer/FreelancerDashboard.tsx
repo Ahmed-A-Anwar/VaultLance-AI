@@ -27,6 +27,7 @@ import {
 } from "../../../components/freelancer/mockApi";
 import { fees, formatCents } from "../../../lib/fees";
 import { filterBucket } from "../../../lib/freelancerPhase";
+import { NEW_VAULT_EVENT } from "./roles";
 
 const DEV = (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV ?? false;
 
@@ -66,6 +67,13 @@ function Surface({ email }: { email: string }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  /* the strip's brass action dispatches this event; the drawer lives here */
+  useEffect(() => {
+    const open = () => setDrawer({ mode: "new" });
+    window.addEventListener(NEW_VAULT_EVENT, open);
+    return () => window.removeEventListener(NEW_VAULT_EVENT, open);
   }, []);
 
   const view: View = pathname.endsWith("/vaults")
