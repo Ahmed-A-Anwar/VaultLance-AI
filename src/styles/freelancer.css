@@ -14,7 +14,7 @@
      --fd-text-brass   #7A551A on brass 12%    4.59:1
 
    The two "text" tokens the brief gave for teal and brass both pass on plain
-   glass but teal falls to 4.30:1 on its own 12% fill, so it is darkened one
+   glass, but teal falls to 4.30:1 on its own 12% fill, so it is darkened one
    step here. Brass already clears 4.5 and is left exactly as specified. */
 
 .fd {
@@ -81,4 +81,21 @@
 .fd-cta-plus {
   margin-right: 8px;
   flex: none;
+}
+
+/* The freelancer's one brass action. Ink (#0E1520) on the brass gradient's
+   lightest step measures 5.82:1, so no text token is needed here. The client's
+   CTA carries no is-brass class and keeps its own rule untouched. */
+.dash-cta.is-brass {
+  background: linear-gradient(180deg, #c79a48 0%, #b8893a 100%);
+  border-color: rgba(122, 85, 26, 0.55);
+  color: #0e1520;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(184, 137, 58, 0.28);
+  display: inline-flex;
+  align-items: center;
+}
+
+.dash-cta.is-brass:hover {
+  background: linear-gradient(180deg, #d0a353 0%, #c0923f 100%);
 }

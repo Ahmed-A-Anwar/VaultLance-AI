@@ -3,7 +3,7 @@
 
    The action is a prop now: the client keeps "Join a vault" with no icon, the
    freelancer gets "New vault" with a plus. With no prop the markup is exactly
-   what the client dashboard shipped with. */
+   what the client dashboard shipped with, down to the class list. */
 
 import { Bell, Search } from "./icons";
 import { useDashUi } from "./ui";
@@ -70,7 +70,7 @@ export function TopStrip({
         </button>
 
         {primary ? (
-          <button type="button" className="dash-cta" onClick={primary.onClick}>
+          <button type="button" className="dash-cta is-brass" onClick={primary.onClick}>
             {primary.withPlus && <Plus />}
             {primary.label}
           </button>
