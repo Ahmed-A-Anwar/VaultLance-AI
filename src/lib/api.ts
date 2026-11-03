@@ -74,14 +74,6 @@ const t0 = Date.now();
 let seq = 0;
 const uid = (prefix: string) => `${prefix}_${(++seq).toString(36).padStart(3, "0")}${Math.random().toString(36).slice(2, 6)}`;
 
-/* the format the spec fixed: 8XK12345AB678901C */
-const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-const paypalId = () => {
-  const n = (k: number) => Array.from({ length: k }, () => Math.floor(Math.random() * 10)).join("");
-  const l = (k: number) => Array.from({ length: k }, () => letters[Math.floor(Math.random() * letters.length)]).join("");
-  return `8XK${n(5)}${l(2)}${n(6)}${l(1)}`;
-};
-
 /* ---------------------------------------------------------------- seed --- */
 
 /* demo switch: /dashboard?empty=1 answers with no vaults, so the empty state is
