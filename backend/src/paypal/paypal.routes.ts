@@ -24,6 +24,8 @@ import {
 } from "../shared/errors.js";
 import { logger } from "../shared/logger.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
+import { approveVault } from "../money/approve.service.js";
+import { rememberAuthorization } from "../money/money.store.js";
 import { database } from "../shared/db.js";
 import type { VaultStatus } from "../shared/types.js";
 
@@ -199,6 +201,7 @@ paypalRouter.post("/:vaultId/payment/authorize", requireAuth, async (req, res, n
 
     // Call PayPal to authorize the approved order
     const authResult = await paypalService.authorizeOrder(orderId);
+    await rememberAuthorization(vaultId, authResult.authorizationId);
 
     // Verify returned amount and currency match the agreement
     if (Math.abs(authResult.amount - Number(vault.amount)) > 0.01) {
@@ -271,127 +274,22 @@ paypalRouter.post("/:vaultId/payment/authorize", requireAuth, async (req, res, n
 paypalRouter.post("/:id/capture", requireAuth, async (req, res, next) => {
   try {
     const vaultId = String(req.params.id);
-    const userId = req.user!.id;
-    const vault = await getVaultAndVerifyAccess(userId, vaultId);
 
-    // Allowed transition states for approval & capture
-    const allowedStatuses: VaultStatus[] = [
-      "AUTHORIZED",
-      "AWAITING_APPROVAL",
-      "VERIFYING",
-      "SUBMITTED",
-      "IN_PROGRESS",
-    ];
-    if (!allowedStatuses.includes(vault.status as VaultStatus)) {
-      throw new BadRequestError(
-        `Cannot capture vault with status '${vault.status}'. Vault must be authorized or awaiting approval.`,
-        "INVALID_VAULT_STATUS"
-      );
-    }
+    /* only the invited client, only from AWAITING_APPROVAL; the same routine
+       the approve route and the webhook use, so it can never double-capture */
+    const result = await approveVault(vaultId, req.user!.id);
 
-    // Find active authorization ID from Supabase or local store
-    let authorizationId = req.body.authorizationId;
-
-    if (!authorizationId && isSupabaseConfigured() && supabase) {
-      // Find latest authorized transaction
-      const { data: txs } = await supabase
-        .from("ledger_events")
-        .select("metadata")
-        .eq("vault_id", vaultId)
-        .eq("event_type", "FUNDS_AUTHORIZED")
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (txs && txs.length > 0 && txs[0].metadata?.authorizationId) {
-        authorizationId = txs[0].metadata.authorizationId;
-      }
-    }
-
-    if (!authorizationId) {
-      // Fallback: check local store
-      for (const tx of localTxStore.values()) {
-        if (tx.vaultId === vaultId && tx.authorizationId) {
-          authorizationId = tx.authorizationId;
-          break;
-        }
-      }
-    }
-
-    let captureResult: any = { captureId: `mock-cap-${Date.now()}` };
-
-    // If an authorization ID exists and is a valid PayPal ID, call PayPal capture
-    if (authorizationId && !authorizationId.startsWith("mock-")) {
-      try {
-        captureResult = await paypalService.captureAuthorization({
-          authorizationId,
-          amount: Number(vault.amount),
-          currency: vault.currency || "USD",
-          note: `VaultLance milestone payment captured for vault: ${vault.title}`,
-        });
-      } catch (err: any) {
-        logger.warn(`[PayPal] Capture call returned error: ${err.message}. Marking transaction captured.`);
-      }
-    }
-
-    // Transition vault status to PAID
-    if (isSupabaseConfigured() && supabase) {
-      await supabase
-        .from("vaults")
-        .update({
-          status: "PAID",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", vaultId);
-
-      // Record captured in transactions
-      await supabase.from("paypal_transactions").insert([
-        {
-          id: crypto.randomUUID(),
-          vault_id: vaultId,
-          paypal_capture_id: captureResult.captureId,
-          amount: Number(vault.amount),
-          currency: vault.currency || "USD",
-          status: "CAPTURED",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-    } else {
-      const v = database.store.vaults.get(vaultId);
-      if (v) {
-        v.status = "PAID";
-        v.updated_at = new Date();
-      }
-    }
-
-    // Record ledger capture and file unlock events exactly once
-    await recordLedgerEvent(
-      vaultId,
-      userId,
-      "PAYMENT_CAPTURED",
-      Number(vault.amount),
-      vault.currency || "USD",
-      "Capture completed, funds moved",
-      { captureId: captureResult.captureId, authorizationId }
+    return sendSuccess(
+      res,
+      {
+        vaultId,
+        status: "PAID",
+        captureId: result.captureId,
+        payoutCents: result.payoutCents,
+        payoutStatus: result.payoutStatus,
+      },
+      "Payment captured and deliverables unlocked"
     );
-
-    await recordLedgerEvent(
-      vaultId,
-      userId,
-      "MILESTONE_APPROVED",
-      null,
-      vault.currency || "USD",
-      "Delivery unlocked to the freelancer",
-      { captureId: captureResult.captureId }
-    );
-
-    return sendSuccess(res, {
-      vaultId,
-      status: "PAID",
-      captureId: captureResult.captureId,
-      amount: Number(vault.amount),
-      currency: vault.currency || "USD",
-    }, "Payment captured and deliverables unlocked");
   } catch (err) {
     next(err);
   }

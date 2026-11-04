@@ -4,7 +4,7 @@ import { database, type DbVaultFileRecord } from "../shared/db.js";
 import { storageAdapter, type IStorageAdapter } from "./storage.adapter.js";
 import { ZipSecurityValidator } from "./zip.validator.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
-import { BadRequestError, NotFoundError } from "../shared/errors.js";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../shared/errors.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 
 export interface ProcessedUploadResult {
@@ -132,8 +132,14 @@ export class UploadService {
       throw new NotFoundError("File not found.", "FILE_NOT_FOUND");
     }
 
-    // Verify user has access to the vault this file belongs to
-    await dataIsolationService.getVaultIfAuthorized(userId, file.vault_id);
+    // Access is not enough: the vault must be PAID, or the file stays sealed
+    const { vault } = await dataIsolationService.getVaultIfAuthorized(userId, file.vault_id);
+    if (String(vault.status) !== "PAID") {
+      throw new ForbiddenError(
+        "Deliverables stay locked until the vault is paid.",
+        "VAULT_NOT_PAID"
+      );
+    }
 
     const buffer = await this.storage.read(file.storage_path);
     return {

@@ -22,6 +22,7 @@ import {
 } from "../shared/errors.js";
 import { database } from "../shared/db.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
+import { approveVault } from "../money/approve.service.js";
 import type { VaultStatus } from "../shared/types.js";
 
 const router = Router();
@@ -216,57 +217,36 @@ router.post("/:id/approve", async (req, res, next) => {
     const vaultId = String(req.params.id);
     const vault = await getVaultRecord(req.user.id, vaultId);
 
-    const allowedFrom: VaultStatus[] = [
-      "AUTHORIZED",
-      "AWAITING_APPROVAL",
-      "VERIFYING",
-      "SUBMITTED",
-      "IN_PROGRESS",
-    ];
-    if (!allowedFrom.includes(vault.status as VaultStatus)) {
-      throw new BadRequestError(
-        `Cannot approve a vault with status '${vault.status}'.`,
-        "INVALID_STATE"
-      );
-    }
-
-    // Safety Gate: If checks were run and ANY failed, block approval unless explicitly waived
+    /* Safety Gate: if checks were run and ANY failed, block approval unless waived */
     if (isSupabaseConfigured() && supabase) {
       const { data: dbFiles } = await supabase
         .from("vault_files")
         .select("file_name, mime_type, file_size, sha256_hash")
         .eq("vault_id", vaultId);
-      
+
       const checks = generateChecksForFiles(dbFiles || [], vault.description || "");
       const failedChecks = checks.filter((c) => c.result === "fail");
       if (failedChecks.length > 0 && !req.body.overrideFailures) {
         throw new BadRequestError(
-          `Cannot approve payment: ${failedChecks.length} verification check(s) failed (${failedChecks.map((c) => c.name).join(", ")}). Revisions or explicit waiver required.`,
+          `Cannot approve payment: ${failedChecks.length} verification check(s) failed (${failedChecks
+            .map((c) => c.name)
+            .join(", ")}). Revisions or explicit waiver required.`,
           "VERIFICATION_FAILED"
         );
       }
     }
 
-    await updateVaultStatus(vaultId, "PAID");
-    await insertLedgerEvent(
-      vaultId,
-      req.user.id,
-      "PAYMENT_CAPTURED",
-      Number(vault.amount),
-      vault.currency || "USD",
-      "Capture completed, funds moved"
-    );
-    await insertLedgerEvent(
-      vaultId,
-      req.user.id,
-      "MILESTONE_APPROVED",
-      null,
-      vault.currency || "USD",
-      "Delivery unlocked to the freelancer"
-    );
+    /* Approval is what captures the money. Only the invited client may do it,
+       only from AWAITING_APPROVAL, and the capture is re-verified server-side
+       before anything is unlocked or paid out. */
+    const result = await approveVault(vaultId, req.user.id);
 
     const updated = await getFullVault(vaultId);
-    return sendSuccess(res, updated, "Payment captured and files unlocked");
+    return sendSuccess(
+      res,
+      updated,
+      `Payment captured (${result.captureId}), payout ${result.payoutStatus}, files unlocked`
+    );
   } catch (err) {
     next(err);
   }

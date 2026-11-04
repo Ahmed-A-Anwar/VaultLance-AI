@@ -121,8 +121,9 @@ describe("Milestone 2 – PayPal Sandbox Orders, Authorization, Capture & Webhoo
     }
   });
 
-  it("Step 5 & 6: should capture payment on approval and transition vault to PAID", async () => {
-    // Put vault into AUTHORIZED state
+  it("Step 5 & 6: capture is refused unless the vault is AWAITING_APPROVAL", async () => {
+    /* the old capture route accepted AUTHORIZED and marked PAID without a
+       verified capture; the money loop only captures after a client approval */
     const vault = inMemoryStore.vaults.get(testVaultId);
     if (vault) {
       vault.status = "AUTHORIZED";
@@ -131,17 +132,11 @@ describe("Milestone 2 – PayPal Sandbox Orders, Authorization, Capture & Webhoo
     const res = await request(app)
       .post(`/api/vaults/${testVaultId}/capture`)
       .set("Authorization", `Bearer ${clientToken}`)
-      .send({
-        authorizationId: "mock-auth-m2-001",
-      });
+      .send({ authorizationId: "mock-auth-m2-001" });
 
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.status).toBe("PAID");
-
-    // Verify vault in store is now PAID
-    const updatedVault = inMemoryStore.vaults.get(testVaultId);
-    expect(updatedVault?.status).toBe("PAID");
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+    expect(inMemoryStore.vaults.get(testVaultId)?.status).toBe("AUTHORIZED");
   });
 
   it("Step 7: should reject or void active vault authorization", async () => {
@@ -181,29 +176,18 @@ describe("Milestone 2 – PayPal Sandbox Orders, Authorization, Capture & Webhoo
     expect(voidedVault?.status).toBe("CANCELLED");
   });
 
-  it("Step 8: should process PayPal webhook and prevent duplicate processing", async () => {
-    const mockWebhook = {
-      id: "WH-EVENT-DEDUP-001",
-      event_type: "PAYMENT.AUTHORIZATION.CREATED",
-      resource: {
-        custom_id: testVaultId,
-      },
-    };
-
-    // First delivery
-    const res1 = await request(app)
+  it("Step 8: an unsigned webhook is rejected (fail closed)", async () => {
+    /* no PAYPAL_WEBHOOK_ID in the test environment, so nothing may be accepted.
+       Signature success and dedupe are covered in money-webhook.test.ts with an
+       injected verifier. */
+    const res = await request(app)
       .post("/api/webhooks/paypal")
-      .send(mockWebhook);
+      .send({
+        id: "WH-EVENT-DEDUP-001",
+        event_type: "PAYMENT.AUTHORIZATION.CREATED",
+        resource: { custom_id: testVaultId },
+      });
 
-    expect(res1.status).toBe(200);
-    expect(res1.body.status).toBe("PROCESSED");
-
-    // Duplicate delivery
-    const res2 = await request(app)
-      .post("/api/webhooks/paypal")
-      .send(mockWebhook);
-
-    expect(res2.status).toBe(200);
-    expect(res2.body.status).toBe("ALREADY_PROCESSED");
+    expect(res.status).toBe(400);
   });
 });

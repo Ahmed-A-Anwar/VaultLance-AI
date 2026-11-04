@@ -167,7 +167,7 @@ export class PayPalService {
     const res = await this.request<{ id: string; status: string; links: any[] }>("/v2/checkout/orders", {
       method: "POST",
       headers: {
-        "PayPal-Request-Id": `order-${vaultId}-${Date.now()}`,
+        "PayPal-Request-Id": `order-${vaultId}`,
         Prefer: "return=representation",
       },
       body: JSON.stringify(payload),
@@ -194,7 +194,7 @@ export class PayPalService {
     const res = await this.request<any>(`/v2/checkout/orders/${orderId}/authorize`, {
       method: "POST",
       headers: {
-        "PayPal-Request-Id": `auth-${orderId}-${Date.now()}`,
+        "PayPal-Request-Id": `auth-${orderId}`,
         Prefer: "return=representation",
       },
       body: JSON.stringify({}),
@@ -250,7 +250,7 @@ export class PayPalService {
     const res = await this.request<any>(`/v2/payments/authorizations/${authorizationId}/capture`, {
       method: "POST",
       headers: {
-        "PayPal-Request-Id": `capture-${authorizationId}-${Date.now()}`,
+        "PayPal-Request-Id": `capture-${authorizationId}`,
         Prefer: "return=representation",
       },
       body: JSON.stringify(payload),
@@ -278,7 +278,7 @@ export class PayPalService {
       res = await this.request<any>(`/v2/payments/authorizations/${authorizationId}/void`, {
         method: "POST",
         headers: {
-          "PayPal-Request-Id": `void-${authorizationId}-${Date.now()}`,
+          "PayPal-Request-Id": `void-${authorizationId}`,
           Prefer: "return=representation",
         },
         body: JSON.stringify({}),
