@@ -1072,7 +1072,9 @@
      cannot sit over the action stack below it */
   .fd-card-right { position: static; align-items: stretch; padding-right: 0; }
   .fd-info { top: 8px; right: 8px; }
-  .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 2; }
+  /* the wheel sits 8px inside the card here, so 76 keeps the same 55px of
+     clearance the desktop rail gets from 83 */
+  .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 2; padding-right: 76px; }
   .fd-card-actions { justify-content: stretch; }
   .fd-card-actions .fd-btn { flex: 1; }
   .fd-sums { grid-template-columns: 1fr; }
