@@ -140,6 +140,25 @@ class ApiClient {
       }),
 
     me: () => this.request<any>("/auth/me", { method: "GET" }),
+
+    /* password reset — no session required */
+    requestPasswordReset: (email: string) =>
+      this.request<{ sent: boolean; devResetUrl: string | null }>("/auth/password-reset/request", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
+
+    inspectPasswordReset: (token: string) =>
+      this.request<{ state: "valid" | "expired" | "invalid" }>(
+        `/auth/password-reset/${encodeURIComponent(token)}`,
+        { method: "GET" }
+      ),
+
+    confirmPasswordReset: (dto: { token?: string; accessToken?: string; password: string }) =>
+      this.request<{ changed: boolean }>("/auth/password-reset/confirm", {
+        method: "POST",
+        body: JSON.stringify(dto),
+      }),
   };
 
   // --- Vault APIs ---
@@ -172,6 +191,36 @@ class ApiClient {
       }),
   };
 
+  // --- Account APIs ---
+  public me = {
+    get: () => this.request<any>("/auth/me", { method: "GET" }),
+
+    updateProfile: (dto: { fullName: string }) =>
+      this.request<any>("/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify(dto),
+      }),
+
+    changePassword: (dto: { currentPassword: string; newPassword: string }) =>
+      this.request<any>("/auth/me/password", {
+        method: "POST",
+        body: JSON.stringify(dto),
+      }),
+
+    export: () => this.request<any>("/auth/me/export", { method: "GET" }),
+
+    remove: (dto: { email: string }) =>
+      this.request<{ deleted: boolean }>("/auth/me", {
+        method: "DELETE",
+        body: JSON.stringify(dto),
+      }),
+  };
+
+  // --- Ledger APIs ---
+  public ledger = {
+    list: () => this.request<any[]>("/ledger", { method: "GET" }),
+  };
+
   // --- Upload & File APIs ---
   public uploads = {
     uploadFile: (vaultId: string, file: File) => {
@@ -182,6 +231,8 @@ class ApiClient {
         body: formData,
       });
     },
+
+    list: (vaultId: string) => this.request<any[]>(`/uploads/vault/${vaultId}/files`, { method: "GET" }),
 
     getDownloadUrl: (fileId: string) => `${this.baseUrl}/uploads/download/${fileId}`,
   };

@@ -2,9 +2,11 @@
    state. Details, deliverables, review: each step is valid or it isn't, and the
    footer button says which.
 
-   The scan is local: the mock cannot open a zip, so the four checks are the
-   rules the backend's upload middleware enforces, run against the file's name
-   and size. A pass produces the mock manifest; a fail says why and blocks Next. */
+   The scan is local: the four checks are the rules the backend's upload
+   middleware enforces, run against the file's name and size, so a bad archive is
+   refused before a byte is sent. With an API configured, submit then creates the
+   vault on the server, uploads the archive, locks and re-verifies its manifest,
+   and invites the client; ?demo=1 keeps the in-memory path. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "../shared/Toasts";
@@ -22,6 +24,7 @@ import {
   type VaultKind,
 } from "./mockApi";
 import { SCAN_RULES } from "./mockConfig";
+import { apiClient, isDemoMode } from "../../lib/apiClient";
 
 type Step = 1 | 2 | 3;
 type Mode = "zip" | "url";
@@ -174,6 +177,75 @@ export function NewVaultDrawer({
     setUrlOk({ ms: 412 });
   };
 
+  /* the server path: create the vault, upload the archive, lock and re-verify
+     its manifest, then invite the client — stopping at the first step the server
+     refuses, with that step's own message */
+  const createOnServer = async (draft: boolean): Promise<{ created: FreelancerVault; invited: boolean }> => {
+    const existing = vault && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(vault.id) ? vault : null;
+    let vaultId = existing?.id ?? "";
+
+    if (!vaultId) {
+      const res = await apiClient.vaults.create({
+        title: project.trim(),
+        ...(description ? { description: description.trim() } : {}),
+        amount: cents / 100,
+        currency: "USD",
+      });
+      if (!res.success || !res.data?.id) throw new Error(res.message || "The vault could not be created.");
+      vaultId = res.data.id;
+    }
+
+    let serverManifest: string | undefined;
+
+    if (mode === "zip" && file) {
+      const upload = await apiClient.uploads.uploadFile(vaultId, file);
+      if (!upload.success) throw new Error(upload.message || "The archive could not be uploaded.");
+
+      const built = await apiClient.manifests.get(vaultId);
+      if (!built.success || !built.data?.manifestHash) {
+        throw new Error(built.message || "The manifest could not be built.");
+      }
+      if (Number(built.data.totalFiles) < 1) {
+        throw new Error("The manifest came back empty, so the upload was not recorded.");
+      }
+      serverManifest = built.data.manifestHash;
+      setManifest(serverManifest);
+
+      const check = await apiClient.manifests.verify(vaultId);
+      if (check.success && check.data && check.data.reproducible === false) {
+        throw new Error("The manifest did not reproduce, so the delivery was refused.");
+      }
+    }
+
+    let invited = false;
+    if (!draft) {
+      const invite = await apiClient.vaults.invite(vaultId, email.trim());
+      invited = invite.success;
+      if (!invite.success) {
+        toast({ message: invite.message || "The vault was created, but the invite did not go out.", tone: "info" });
+      }
+    }
+
+    return {
+      created: {
+        id: vaultId,
+        project: project.trim(),
+        clientName: email.trim().split("@")[0] || "Client",
+        clientEmail: email.trim(),
+        amountCents: cents,
+        uiStatus: "awaiting_payment" as FreelancerVault["uiStatus"],
+        kind,
+        ...(description ? { description } : {}),
+        filesCount: files.length,
+        files,
+        ...(serverManifest ? { manifestSha256: serverManifest } : {}),
+        ...(mode === "url" && url ? { stagingUrl: url } : {}),
+        createdAt: Date.now(),
+      },
+      invited,
+    };
+  };
+
   const submit = async (draft: boolean) => {
     setTouched(true);
     if (!detailsValid) {
@@ -186,27 +258,39 @@ export function NewVaultDrawer({
     }
     setBusy(true);
     try {
-      const created = await createVault(
-        {
-          project,
-          clientEmail: email,
-          amountCents: cents,
-          kind,
-          ...(description ? { description } : {}),
-          ...(mode === "zip" ? { files } : { stagingUrl: url }),
-          ...(manifest ? { manifestSha256: manifest } : {}),
-        },
-        { draft }
-      );
+      /* a demo vault (a v_… id from the mock store) keeps the mock path even
+         with an API configured, so "Add files" never mints a duplicate vault */
+      const onServer = !isDemoMode() && (!vault || /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(vault.id));
+      const { created, invited } = onServer
+        ? await createOnServer(draft)
+        : {
+            created: await createVault(
+              {
+                project,
+                clientEmail: email,
+                amountCents: cents,
+                kind,
+                ...(description ? { description } : {}),
+                ...(mode === "zip" ? { files } : { stagingUrl: url }),
+                ...(manifest ? { manifestSha256: manifest } : {}),
+              },
+              { draft }
+            ),
+            invited: true,
+          };
+
       if (draft) {
         toast({ message: "Draft saved.", tone: "success" });
         onCreated(created, false);
         onClose();
         return;
       }
-      setDone({ vault: created, invited: true });
-      onCreated(created, true);
-      toast({ message: "Vault created. Invite sent.", tone: "success" });
+      setDone({ vault: created, invited });
+      onCreated(created, invited);
+      toast({
+        message: invited ? "Vault created. Invite sent." : "Vault created. Invite not sent.",
+        tone: invited ? "success" : "info",
+      });
     } catch (err) {
       toast({
         message: err instanceof Error ? err.message : "Couldn’t create the vault.",
@@ -267,17 +351,25 @@ export function NewVaultDrawer({
                 <Check width="21" height="21" />
               </span>
               <p className="fd-success-h">Vault created.</p>
-              <p className="fd-dim">We sent an invite to {done.vault.clientEmail} (mock).</p>
-              <div className="fd-code-box">
-                <span className="fd-mono fd-dim">INVITE CODE</span>
-                <span className="fd-code">{done.vault.inviteCode}</span>
-                <button type="button" className="fd-icon-btn" aria-label="Copy invite code" onClick={() => copy(done.vault.inviteCode!, "Invite code copied.")}>
-                  {copied ? <Check width="13" height="13" /> : "⧉"}
-                </button>
-              </div>
-              <button type="button" className="fd-btn fd-btn-secondary" onClick={() => copy(done.vault.inviteCode!, "Invite link copied.")}>
-                Copy invite link
-              </button>
+              <p className="fd-dim">
+                {done.invited
+                  ? `We sent an invite to ${done.vault.clientEmail}.`
+                  : `The vault is saved. ${done.vault.clientEmail} can be invited once their account exists.`}
+              </p>
+              {done.vault.inviteCode && (
+                <>
+                  <div className="fd-code-box">
+                    <span className="fd-mono fd-dim">INVITE CODE</span>
+                    <span className="fd-code">{done.vault.inviteCode}</span>
+                    <button type="button" className="fd-icon-btn" aria-label="Copy invite code" onClick={() => copy(done.vault.inviteCode!, "Invite code copied.")}>
+                      {copied ? <Check width="13" height="13" /> : "⧉"}
+                    </button>
+                  </div>
+                  <button type="button" className="fd-btn fd-btn-secondary" onClick={() => copy(done.vault.inviteCode!, "Invite link copied.")}>
+                    Copy invite link
+                  </button>
+                </>
+              )}
             </div>
           ) : step === 1 ? (
             <div className="fd-step-body" key="s1">
@@ -439,7 +531,7 @@ export function NewVaultDrawer({
                 <div>
                   <dt>MANIFEST</dt>
                   <dd className="fd-mono">
-                    {manifest ? `${manifest.slice(0, 12)}… (MOCK)` : "—"}
+                    {manifest ? `${manifest.slice(0, 12)}…` : "—"}
                     {manifest && (
                       <button type="button" className="fd-icon-btn" aria-label="Copy manifest" onClick={() => copy(manifest, "Manifest copied.")}>
                         ⧉

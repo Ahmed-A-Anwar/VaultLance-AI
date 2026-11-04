@@ -66,7 +66,8 @@ export function AccountSummary({
           </p>
         )}
         <p className="set-meta-line">
-          <span className="set-meta-key">SANDBOX DEMO</span>
+          <span className="set-meta-key">ACCOUNT</span>
+          <span className="set-meta-val">ACTIVE</span>
         </p>
       </div>
 

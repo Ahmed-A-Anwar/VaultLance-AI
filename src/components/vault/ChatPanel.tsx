@@ -14,6 +14,8 @@ const SOURCE_NOTE: Record<string, string> = {
   "PIXEL SCAN": "Sampled the delivered pixels and their alpha",
   "HTTP PROBE": "Called the staging endpoint directly",
   "DEMO CACHE": "A cached demo answer, not a live model",
+  "FILE INDEX": "Read from the files stored against this vault",
+  "VAULT DATA": "The vault's amount, fee and status",
 };
 
 export function ChatPanel() {
@@ -254,7 +256,7 @@ export function ChatPanel() {
         </form>
       )}
 
-      <p className="room-note room-mono">DEMO DATA · REAL CHECKS IN THE FULL BUILD</p>
+      <p className="room-note room-mono">CHECKS RUN ON THE SERVER · EVERY ANSWER CITED</p>
     </section>
   );
 }

@@ -81,6 +81,19 @@ export class SessionStore {
     return true;
   }
 
+  /** Revoke every session for a user except the one making the request. */
+  public async revokeAllExcept(userId: string, keepSessionId?: string): Promise<number> {
+    database.store.checkFailure();
+    let revoked = 0;
+    for (const record of database.store.sessions.values()) {
+      if (record.user_id === userId && record.id !== keepSessionId && !record.revoked) {
+        record.revoked = true;
+        revoked++;
+      }
+    }
+    return revoked;
+  }
+
   public async revokeAllForUser(userId: string): Promise<void> {
     database.store.checkFailure();
     for (const record of database.store.sessions.values()) {

@@ -3,19 +3,36 @@
    line with the lock on the right that the whole screen turns on. */
 
 import { useState } from "react";
-// import { useToast } from "../shared/Toasts";
+import { useToast } from "../shared/Toasts";
+import { downloadVaultFile } from "../../lib/api";
 import { useRoom } from "./room";
 import { Chevron, Download, FileIcon, Folder, Globe, Lock, LockOpen } from "./icons";
 
 export function FilesPanel() {
   const { detail, status, unlocking } = useRoom();
-  // const toast = useToast();
+  const toast = useToast();
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const files = detail?.files ?? [];
   const unlocked = status === "unlocked";
   const locked = !unlocked;
   const count = files.length;
+
+  /* the download endpoint is authenticated, so both buttons go through the
+     helper that fetches the bytes with the session token */
+  const grab = async (fileId: string, name: string) => {
+    try {
+      await downloadVaultFile(fileId, name);
+    } catch (e) {
+      toast({ message: e instanceof Error ? e.message : "That file could not be downloaded.", tone: "error" });
+    }
+  };
+
+  const grabAll = async () => {
+    for (const file of files.filter((f) => f.kind === "file")) {
+      await grab(file.id, file.name);
+    }
+  };
 
   return (
     <section className="room-panel room-files" aria-labelledby="room-files-h" data-enter="files">
@@ -62,7 +79,7 @@ export function FilesPanel() {
                         <button
                           type="button"
                           className="room-dl"
-                          onClick={() => window.open("/api/uploads/download/latest", "_blank")}
+                          onClick={() => void grab(file.id, file.name)}
                         >
                           <Download width="11" height="11" />
                           <span>Download</span>
@@ -120,9 +137,9 @@ export function FilesPanel() {
       <button
         type="button"
         className="room-download-all"
-        disabled={locked}
+        disabled={locked || !files.some((f) => f.kind === "file")}
         title={locked ? "Unlocks after capture." : "Download every file in this delivery."}
-        onClick={() => window.open("/api/uploads/download/latest", "_blank")}
+        onClick={() => void grabAll()}
       >
         <Download width="16" height="16" />
         Download all

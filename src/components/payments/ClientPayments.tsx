@@ -158,7 +158,7 @@ export function ClientPayments() {
               type="button"
               className="fd-icon-btn pay-dl"
               aria-label={`Download receipt for ${p.data.project}`}
-              title="Download receipt (mock print preview)"
+              title="Download receipt"
               onClick={() => {
                 if (!downloadReceipt(p.data!)) {
                   toast({ message: "Allow pop-ups to open the receipt.", tone: "error" });

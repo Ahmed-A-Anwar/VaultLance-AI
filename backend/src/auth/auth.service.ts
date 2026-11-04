@@ -87,6 +87,13 @@ export class AuthService {
 
       if (signUpErr) {
         logger.error("[auth] Supabase signUp error:", signUpErr);
+        /* the admin API rejects anything but the service role key */
+        if (/valid Bearer token/i.test(signUpErr.message || "")) {
+          throw new DatabaseError(
+            "Supabase rejected the admin call: the API is running with the publishable key. " +
+              "Set SUPABASE_SERVICE_ROLE_KEY to the service role key and restart."
+          );
+        }
         if (
           signUpErr.message?.toLowerCase().includes("already registered") ||
           signUpErr.message?.toLowerCase().includes("already been registered")
@@ -524,6 +531,219 @@ export class AuthService {
       throw new NotFoundError("User not found.", "USER_NOT_FOUND");
     }
     return user;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  UPDATE PROFILE                                                    */
+  /* ------------------------------------------------------------------ */
+  public async updateProfile(userId: string, fullName: string): Promise<DbUserRecord> {
+    const name = fullName.trim();
+    if (name.length < 2) throw new BadRequestError("Name needs at least 2 characters.", "INVALID_NAME");
+    if (name.length > 100) throw new BadRequestError("Name can be at most 100 characters.", "INVALID_NAME");
+
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase
+        .from("users")
+        .update({ full_name: name, updated_at: new Date().toISOString() })
+        .eq("id", userId);
+      if (error) throw new DatabaseError(`Profile update failed: ${error.message}`);
+
+      const { error: metaErr } = await supabase.auth.admin.updateUserById(userId, {
+        user_metadata: { full_name: name },
+      });
+      if (metaErr) logger.warn("[auth] profile metadata update failed: " + metaErr.message);
+
+      return this.getCurrentUser(userId);
+    }
+
+    database.store.checkFailure();
+    const user = database.store.users.get(userId);
+    if (!user) throw new NotFoundError("User not found.", "USER_NOT_FOUND");
+    user.full_name = name;
+    user.updated_at = new Date();
+    return user;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  CHANGE PASSWORD                                                   */
+  /* ------------------------------------------------------------------ */
+  public async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    keepSessionId?: string
+  ): Promise<void> {
+    if (newPassword.length < 8) {
+      throw new BadRequestError("New password must be at least 8 characters long.", "WEAK_PASSWORD");
+    }
+
+    if (isSupabaseConfigured() && supabase) {
+      const user = await this.getCurrentUser(userId);
+
+      /* verifying the old password means asking the same authority that will
+         accept the new one */
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (verifyErr) {
+        throw new BadRequestError("Your current password is not correct.", "WRONG_CURRENT_PASSWORD");
+      }
+
+      const { error: updateErr } = await supabase.auth.admin.updateUserById(userId, {
+        password: newPassword,
+      });
+      if (updateErr) throw new DatabaseError(`Password change failed: ${updateErr.message}`);
+
+      /* the profile row keeps a hash too; keep it in step */
+      const hashed = await hashPassword(newPassword);
+      const { error: rowErr } = await supabase
+        .from("users")
+        .update({ password_hash: hashed, updated_at: new Date().toISOString() })
+        .eq("id", userId);
+      if (rowErr) logger.warn("[auth] password_hash update failed: " + rowErr.message);
+
+      await sessionStore.revokeAllExcept(userId, keepSessionId);
+      return;
+    }
+
+    database.store.checkFailure();
+    const user = database.store.users.get(userId);
+    if (!user) throw new NotFoundError("User not found.", "USER_NOT_FOUND");
+
+    const matches = await comparePassword(currentPassword, user.password_hash);
+    if (!matches) {
+      throw new BadRequestError("Your current password is not correct.", "WRONG_CURRENT_PASSWORD");
+    }
+
+    user.password_hash = await hashPassword(newPassword);
+    user.updated_at = new Date();
+    await sessionStore.revokeAllExcept(userId, keepSessionId);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  EXPORT THE ACCOUNT                                                */
+  /* ------------------------------------------------------------------ */
+  public async exportAccount(userId: string): Promise<Record<string, unknown>> {
+    const user = await this.getCurrentUser(userId);
+    const account = {
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      role: user.role,
+      createdAt: user.created_at,
+    };
+
+    if (isSupabaseConfigured() && supabase) {
+      const { data: owned } = await supabase.from("vaults").select("*").eq("freelancer_id", userId);
+      const { data: memberships } = await supabase
+        .from("vault_members")
+        .select("vault_id")
+        .eq("user_id", userId);
+
+      const ids = new Set<string>();
+      (owned || []).forEach((v: any) => ids.add(v.id));
+      (memberships || []).forEach((m: any) => ids.add(m.vault_id));
+      const vaultIds = [...ids];
+
+      const files = vaultIds.length
+        ? (
+            await supabase
+              .from("vault_files")
+              .select("id, vault_id, file_name, mime_type, file_size, sha256_hash, created_at")
+              .in("vault_id", vaultIds)
+          ).data
+        : [];
+
+      const ledger = vaultIds.length
+        ? (
+            await supabase
+              .from("ledger_events")
+              .select("*")
+              .in("vault_id", vaultIds)
+              .order("created_at", { ascending: false })
+          ).data
+        : [];
+
+      return {
+        exportedAt: new Date().toISOString(),
+        account,
+        vaults: owned || [],
+        memberships: memberships || [],
+        files: files || [],
+        ledger: ledger || [],
+      };
+    }
+
+    database.store.checkFailure();
+    const vaults = Array.from(database.store.vaults.values()).filter((v) => v.freelancer_id === userId);
+    const ids = new Set(vaults.map((v) => v.id));
+
+    return {
+      exportedAt: new Date().toISOString(),
+      account,
+      vaults,
+      memberships: Array.from(database.store.members.values()).filter((m) => m.user_id === userId),
+      files: Array.from(database.store.files.values()).filter((f) => ids.has(f.vault_id)),
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  DELETE THE ACCOUNT                                                */
+  /* ------------------------------------------------------------------ */
+  public async deleteAccount(userId: string, emailConfirm: string): Promise<void> {
+    const user = await this.getCurrentUser(userId);
+    if (emailConfirm.trim().toLowerCase() !== String(user.email).toLowerCase()) {
+      throw new BadRequestError("That email doesn't match this account.", "EMAIL_MISMATCH");
+    }
+
+    /* money in motion blocks deletion: authorized, submitted, or waiting on the
+       client's decision */
+    const blocking = ["AUTHORIZED", "IN_PROGRESS", "SUBMITTED", "VERIFYING", "AWAITING_APPROVAL"];
+    const inMotion = (status: string) => blocking.includes(String(status).toUpperCase());
+
+    if (isSupabaseConfigured() && supabase) {
+      const { data: owned } = await supabase
+        .from("vaults")
+        .select("id, title, status")
+        .eq("freelancer_id", userId);
+
+      const blockedRows = (owned || []).filter((v: any) => inMotion(v.status));
+      if (blockedRows.length) {
+        throw new ConflictError(
+          `These vaults still have money in motion: ${blockedRows
+            .map((v: any) => v.title)
+            .join(", ")}. Resolve them first.`,
+          "DELETE_BLOCKED"
+        );
+      }
+
+      /* memberships first, so no vault points at a user that is gone */
+      const { error: memberErr } = await supabase.from("vault_members").delete().eq("user_id", userId);
+      if (memberErr) throw new DatabaseError(`Account deletion failed: ${memberErr.message}`);
+
+      const { error: rowErr } = await supabase.from("users").delete().eq("id", userId);
+      if (rowErr) throw new DatabaseError(`Account deletion failed: ${rowErr.message}`);
+
+      const { error: authErr } = await supabase.auth.admin.deleteUser(userId);
+      if (authErr) throw new DatabaseError(`Account deletion failed: ${authErr.message}`);
+
+      await sessionStore.revokeAllForUser(userId);
+      return;
+    }
+
+    database.store.checkFailure();
+    for (const vault of database.store.vaults.values()) {
+      if (vault.freelancer_id === userId && inMotion(vault.status)) {
+        throw new ConflictError("Resolve your open vaults before deleting the account.", "DELETE_BLOCKED");
+      }
+    }
+
+    for (const [id, member] of database.store.members.entries()) {
+      if (member.user_id === userId) database.store.members.delete(id);
+    }
+    database.store.users.delete(userId);
+    await sessionStore.revokeAllForUser(userId);
   }
 }
 

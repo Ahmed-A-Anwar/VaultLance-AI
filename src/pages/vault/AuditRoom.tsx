@@ -21,6 +21,7 @@ import { DecisionPanel } from "../../components/vault/DecisionPanel";
 import { HoldButton } from "../../components/shared/HoldButton";
 import { ArrowLeft, Download } from "../../components/vault/icons";
 import { useToast } from "../../components/shared/Toasts";
+import { downloadVaultFile } from "../../lib/api";
 import "../../styles/vault.css";
 
 const CODE: Record<string, string> = {
@@ -71,8 +72,8 @@ function Room({ id }: { id: string }) {
     return (
       <main className="room-state">
         <p className="room-mono">VAULT NOT FOUND</p>
-        <h1 className="room-state-h">That vault is not in this sandbox.</h1>
-        <p className="room-hint">It may have been opened on another device, or the link is from an older demo.</p>
+        <h1 className="room-state-h">We could not find that vault.</h1>
+        <p className="room-hint">It may have been deleted, or it belongs to another account.</p>
         <Link to="/dashboard" className="room-back room-back-lg">
           <ArrowLeft width="16" height="16" />
           <span>Back to dashboard</span>
@@ -158,10 +159,19 @@ function MobileDecision({
   tab: "files" | "chat" | "checks";
   setTab: (t: "files" | "chat" | "checks") => void;
 }) {
-  const { vault, status, busy, authorize, approve } = useRoom();
+  const { detail, vault, status, busy, authorize, approve } = useRoom();
   const toast = useToast();
   const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   if (!vault || !status) return null;
+
+  const grabAll = async () => {
+    const files = (detail?.files ?? []).filter((f) => f.kind === "file");
+    try {
+      for (const file of files) await downloadVaultFile(file.id, file.name);
+    } catch (e) {
+      toast({ message: e instanceof Error ? e.message : "The files could not be downloaded.", tone: "error" });
+    }
+  };
 
   return (
     <aside className="room-mobile-decision" aria-label="Decision">
@@ -207,7 +217,7 @@ function MobileDecision({
         <button
           type="button"
           className="room-primary room-primary-sm"
-          onClick={() => window.open("/api/uploads/download/latest", "_blank")}
+          onClick={() => void grabAll()}
         >
           <Download width="14" height="14" /> Download all
         </button>

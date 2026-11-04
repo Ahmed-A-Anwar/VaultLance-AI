@@ -12,12 +12,27 @@
    time so the error and retry paths stay reachable. */
 
 import { FX } from "../../config/fx";
-import { hasPayoutEmail, listEvents, listVaults, readPayoutEmail } from "../../lib/api";
+import { isDemoMode } from "../../lib/apiClient";
+import {
+  hasPayoutEmail,
+  listEvents,
+  listLiveEvents,
+  listLiveVaults,
+  listVaults,
+  readPayoutEmail,
+  PAYOUT_EMAIL_DEFAULT,
+} from "../../lib/api";
 import {
   listFreelancerEvents,
   listFreelancerVaults,
   retryPayout as retryFreelancerPayout,
+  type FreelancerEvent,
+  type FreelancerVault,
 } from "../freelancer/mockApi";
+import {
+  listFreelancerEvents as listLiveFreelancerEvents,
+  listFreelancerVaults as listLiveFreelancerVaults,
+} from "../freelancer/liveApi";
 import { MOCK_ERROR_RATE, MOCK_LATENCY_MS } from "../freelancer/mockConfig";
 import {
   FAILURE_REASON,
@@ -62,6 +77,14 @@ const maybeFail = () => {
 /** GET /api/me/payout-profile — the one payout address the account settings
     store owns, so the Overview banner, Settings and this card cannot drift. */
 export async function getPayoutProfile(): Promise<PayoutProfile> {
+  if (!isDemoMode()) {
+    /* the address is still this browser's: the server keeps no payout profile
+       yet, so a seeded demo address is reported as missing, never as verified */
+    const stored = readPayoutEmail();
+    const email = stored && stored !== PAYOUT_EMAIL_DEFAULT ? stored : null;
+    return { paypalEmail: email, verified: false, currency: "USD" };
+  }
+
   await wait(latency());
   maybeFail();
   const on = hasPayoutEmail();
@@ -74,6 +97,12 @@ export async function getPayoutProfile(): Promise<PayoutProfile> {
     vaults so the empty states can be seen. The freelancer store has no such
     switch of its own, so it is honoured here, on the read. */
 export async function listPayouts(): Promise<Payout[]> {
+  if (!isDemoMode()) {
+    const vaults = await listLiveFreelancerVaults();
+    const events = await listLiveFreelancerEvents(vaults);
+    return payoutsFrom(withPayoutStatus(vaults, events), events);
+  }
+
   const [vaults, events] = await Promise.all([listFreelancerVaults(), listFreelancerEvents()]);
   if (SLOW) await wait(latency());
   maybeFail();
@@ -81,8 +110,35 @@ export async function listPayouts(): Promise<Payout[]> {
   return payoutsFrom(vaults, events);
 }
 
+/** The server keeps the payout as a ledger pair (SENT / FAILED) and the vault
+    as a lifecycle status, so the row's payout status is derived here: the last
+    payout event wins, and an unlocked vault with no event yet is pending. */
+function withPayoutStatus(vaults: FreelancerVault[], events: FreelancerEvent[]): FreelancerVault[] {
+  const latest = new Map<string, { at: number; type: FreelancerEvent["type"] }>();
+  for (const e of events) {
+    if (e.type !== "PAYOUT.SENT" && e.type !== "PAYOUT.FAILED") continue;
+    const at = Date.parse(e.at);
+    if (!Number.isFinite(at)) continue;
+    const seen = latest.get(e.vaultId);
+    if (!seen || at > seen.at) latest.set(e.vaultId, { at, type: e.type });
+  }
+
+  return vaults.map((v) => {
+    if (v.payoutStatus) return v;
+    const seen = latest.get(v.id);
+    if (seen?.type === "PAYOUT.SENT") return { ...v, payoutStatus: "paid" as const };
+    if (seen?.type === "PAYOUT.FAILED") return { ...v, payoutStatus: "failed" as const };
+    if (v.uiStatus === "unlocked") return { ...v, payoutStatus: "pending" as const };
+    return v;
+  });
+}
+
 /** GET /api/me/receipts */
 export async function listReceipts(): Promise<Receipt[]> {
+  if (!isDemoMode()) {
+    const [vaults, events] = await Promise.all([listLiveVaults(), listLiveEvents()]);
+    return receiptsFrom(vaults, events);
+  }
   const [vaults, events] = await Promise.all([listVaults(), listEvents()]);
   maybeFail();
   return receiptsFrom(vaults, events);
@@ -90,6 +146,10 @@ export async function listReceipts(): Promise<Receipt[]> {
 
 /** GET /api/me/holds */
 export async function listHolds(): Promise<Hold[]> {
+  if (!isDemoMode()) {
+    const [vaults, events] = await Promise.all([listLiveVaults(), listLiveEvents()]);
+    return holdsFrom(vaults, events);
+  }
   const [vaults, events] = await Promise.all([listVaults(), listEvents()]);
   maybeFail();
   return holdsFrom(vaults, events);
@@ -99,6 +159,9 @@ export async function listHolds(): Promise<Hold[]> {
 
 /** POST /api/vaults/{id}/payout/retry — the same call the details drawer makes. */
 export async function retryPayout(vaultId: string): Promise<Payout> {
+  if (!isDemoMode()) {
+    throw new Error("Payout retries aren’t available on the server yet.");
+  }
   const vault = await retryFreelancerPayout(vaultId);
   const events = await listFreelancerEvents();
   return payoutsFrom([vault], events)[0];
@@ -115,6 +178,10 @@ const receiptHtml = (r: Receipt): string => {
     minute: "2-digit",
   });
   const amount = (r.amountCents / 100).toFixed(2);
+  const marker = isDemoMode() ? "MOCK RECEIPT — NO MONEY MOVED" : "RECEIPT — VAULTLANCE ESCROW";
+  const footer = isDemoMode()
+    ? `Receipt ${r.id} · Vault ${r.vaultId} · Sandbox only: no real money moved.`
+    : `Receipt ${r.id} · Vault ${r.vaultId} · Issued from the vault's own ledger.`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>VaultLance receipt ${r.id}</title>
@@ -133,7 +200,7 @@ const receiptHtml = (r: Receipt): string => {
 <body>
   <p class="mono">Vaultlance escrow</p>
   <h1>Payment receipt</h1>
-  <p class="mark">MOCK RECEIPT — NO MONEY MOVED</p>
+  <p class="mark">${marker}</p>
   <table>
     <tr><th>Project</th><td>${r.project}</td></tr>
     <tr><th>Type</th><td>${r.kind === "capture" ? "Captured" : "Voided / released"}</td></tr>
@@ -141,7 +208,7 @@ const receiptHtml = (r: Receipt): string => {
     <tr><th>PayPal ID</th><td class="mono" style="text-transform:none">${r.paypalId}</td></tr>
     <tr><th>Amount</th><td class="n">$${amount}</td></tr>
   </table>
-  <footer>Receipt ${r.id} · Vault ${r.vaultId} · Sandbox only: no real money moved.</footer>
+  <footer>${footer}</footer>
 </body></html>`;
 };
 

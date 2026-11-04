@@ -2,8 +2,8 @@
 /* ResetPassword.tsx — "/reset-password?token=…": the new code, the dead ends, and
    the way back to /signin.
 
-   Mock only. The token rules live in lib/mockAuth (demo-valid, demo-expired,
-   everything else invalid), the strength rules in components/auth/StrengthMeter,
+   The token is checked by the API when this loads (the demo keeps demo-valid
+   and demo-expired), the strength rules in components/auth/StrengthMeter,
    and the vault's answers — the code-entry clip, the green LED, the red flash —
    are asked of VaultLayout through the scene, never implemented here. */
 
@@ -12,7 +12,14 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import gsap from "gsap";
 import { useVaultScene } from "../../lib/vaultScene";
 import { FX } from "../../config/fx";
-import { RESET_MISMATCH, resetPassword, verifyResetToken } from "../../lib/mockAuth";
+import { isDemoMode } from "../../lib/apiClient";
+import {
+  RESET_MISMATCH,
+  resetPassword,
+  resetPasswordWithAccessToken,
+  verifyResetToken,
+  type ResetTokenState,
+} from "../../lib/mockAuth";
 import { AuthBrand } from "../../components/auth/AuthBrand";
 import { AuthField } from "../../components/auth/AuthField";
 import { StatusLine } from "../../components/auth/StatusLine";
@@ -49,21 +56,49 @@ const wait = (ms: number) => new Promise<void>((res) => window.setTimeout(res, m
    reachable; FX.mockErrors false makes every submission succeed */
 const mockFails = () => FX.mockErrors && Math.random() < 0.05;
 
+type TokenState = ResetTokenState | "checking";
+
+/* the recovery link Supabase mails carries its tokens in the fragment */
+const recoveryAccessToken = (hash: string): string | null => {
+  const raw = hash.replace(/^#/, "");
+  if (!raw) return null;
+  const params = new URLSearchParams(raw);
+  return params.get("type") === "recovery" ? params.get("access_token") : null;
+};
+
 export default function ResetPassword() {
   const [params] = useSearchParams();
   const token = params.get("token");
-  const state = verifyResetToken(token);
+  const accessToken = recoveryAccessToken(useLocation().hash);
+  const [state, setState] = useState<TokenState>(accessToken ? "valid" : "checking");
+
+  useEffect(() => {
+    if (accessToken) return;
+    let live = true;
+    void verifyResetToken(token).then((next) => {
+      if (live) setState(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [token, accessToken]);
 
   return (
     <main id="main" className="signin-layout auth-layout">
-      <ResetScreen token={token} state={state} />
+      <ResetScreen token={token} accessToken={accessToken} state={state} />
     </main>
   );
 }
 
-type TokenState = ReturnType<typeof verifyResetToken>;
-
-function ResetScreen({ token, state }: { token: string | null; state: TokenState }) {
+function ResetScreen({
+  token,
+  accessToken,
+  state,
+}: {
+  token: string | null;
+  accessToken: string | null;
+  state: TokenState;
+}) {
   const { reduced, padEnter, padFail } = useVaultScene();
   const navigate = useNavigate();
   const location = useLocation();
@@ -90,7 +125,7 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
 
   /* the dead ends and the refusals both ask the keypad to say so, once */
   useEffect(() => {
-    if (state === "valid") return;
+    if (state === "valid" || state === "checking") return;
     flashRef.current?.flash("red", 1);
   }, [state, reduced]);
 
@@ -208,8 +243,10 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
     setFailure(null);
     setSubmitting(true);
     const started = performance.now();
-    const result = resetPassword(token, password);
-    const failed = !result.ok || mockFails();
+    const result = accessToken
+      ? await resetPasswordWithAccessToken(accessToken, password)
+      : await resetPassword(token, password);
+    const failed = !result.ok || (isDemoMode() && mockFails());
     await wait(Math.max(0, SPIN - (performance.now() - started)));
     setSubmitting(false);
 
@@ -230,13 +267,15 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
   };
 
   const status =
-    done
-      ? { text: "CODE UPDATED", tone: "success" as const, pulse: false }
-      : state !== "valid"
-        ? { text: "LINK EXPIRED", tone: "danger" as const, pulse: false }
-        : rejecting
-          ? { text: "CODE REJECTED", tone: "danger" as const, pulse: false }
-          : { text: "NEW CODE", tone: "steel" as const, pulse: false };
+    state === "checking"
+      ? { text: "CHECKING LINK", tone: "steel" as const, pulse: true }
+      : done
+        ? { text: "CODE UPDATED", tone: "success" as const, pulse: false }
+        : state !== "valid"
+          ? { text: "LINK EXPIRED", tone: "danger" as const, pulse: false }
+          : rejecting
+            ? { text: "CODE REJECTED", tone: "danger" as const, pulse: false }
+            : { text: "NEW CODE", tone: "steel" as const, pulse: false };
 
   return (
     <>
@@ -248,7 +287,19 @@ function ResetScreen({ token, state }: { token: string | null; state: TokenState
 
       <div className="signin-card auth-card" data-testid="reset-card">
         <div className="auth-swap" ref={swapRef}>
-          {state !== "valid" ? (
+          {state === "checking" ? (
+            <div data-testid="reset-checking">
+              <div className="signin-head">
+                <StatusLine text={status.text} tone={status.tone} inline />
+                <h1 className="signin-h1" data-reveal tabIndex={-1} ref={heading} data-testid="reset-h1">
+                  Opening your link…
+                </h1>
+                <p className="signin-sub" data-reveal>
+                  Checking whether it is still valid.
+                </p>
+              </div>
+            </div>
+          ) : state !== "valid" ? (
             <div data-testid={`reset-${state}`}>
               <div className="signin-head">
                 <StatusLine text={status.text} tone={status.tone} inline />
