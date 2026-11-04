@@ -80,7 +80,7 @@ test("1. the payout email is one value: banner, settings and the payments card a
   await expect(page.locator(".pay-method-mail")).toHaveText(NEW_EMAIL);
 });
 
-test("2. hash landing: #profile, #payouts and #security each land on their card", async ({ page, context }) => {
+test("2. hash landing: #profile, #payouts and #security each land on their card", async ({ context }) => {
   for (const [hash, key] of [
     ["#profile", "profile"],
     ["#payouts", "payouts"],
