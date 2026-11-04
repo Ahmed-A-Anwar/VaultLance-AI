@@ -253,6 +253,8 @@
   grid-template-columns: 1.618fr 1fr;
   gap: 21px;
   height: 144px;
+  /* the two-button phases fall back to a stack in narrow cards, never here */
+  container-type: inline-size;
   padding: 21px;
   border: 1px solid var(--fd-hair);
   border-radius: 13px;
@@ -303,7 +305,9 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
-  padding-right: 34px;
+  /* the info icon owns the corner; the hint stops 55px short of it */
+  padding-right: 55px;
+  min-width: 0;
 }
 .fd-card-hint {
   margin: 0;
@@ -311,7 +315,6 @@
   color: var(--hero-slate);
   font-size: 14px;
   line-height: 1.4;
-  max-width: 34ch;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -322,11 +325,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  /* 34px buttons, 21px card padding: 13px of air above the bottom edge */
+  margin-bottom: 5px;
+  max-width: 100%;
+}
+/* narrow cards stack the pair instead of clipping it: 20 + 4 + 76 = 100 */
+@container (max-width: 600px) {
+  .fd-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    row-gap: 8px;
+  }
+  .fd-card-actions .fd-btn { width: 100%; }
+  .fd-card-hint { -webkit-line-clamp: 1; }
 }
 
 .fd-info {
+  /* corner of the column is the card's padding corner: 21px from the edges */
   position: absolute;
   top: 0;
   right: 0;
@@ -393,57 +411,66 @@
   animation: fd-spin 1s linear infinite;
 }
 
-/* ---- stepper ---- */
+/* ---- compact stepper: five 13px nodes on one 21px row, label only on the
+   node the vault stands on. Done nodes are success green with a white check,
+   exactly like the client dashboard. ---- */
 .fd-steps {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
-  row-gap: 4px;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  height: 21px;
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .fd-step {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--hero-steel);
-  font-family: var(--hero-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  min-width: 0;
 }
 .fd-step + .fd-step::before {
   content: "";
-  width: 13px;
+  flex: none;
+  width: 8px;
   height: 1px;
   background: var(--fd-hair);
-  margin-right: 4px;
 }
 .fd-step-node {
+  flex: none;
   width: 13px;
   height: 13px;
   display: grid;
   place-items: center;
   border: 1px solid var(--hero-steel);
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
 }
-.fd-step[data-state="done"] { color: var(--hero-slate); }
 .fd-step[data-state="done"] .fd-step-node {
-  border-color: var(--fd-brass);
-  background: var(--fd-brass);
-  color: var(--hero-ink);
+  border-color: var(--hero-success);
+  background: var(--hero-success);
+  color: #fff;
 }
-.fd-step[data-state="current"] { color: var(--hero-ink); }
 .fd-step[data-state="current"] .fd-step-node {
   border-color: var(--fd-brass);
-  box-shadow: 0 0 0 3px rgba(184, 137, 58, 0.2);
+  background: var(--fd-brass);
+  box-shadow: 0 0 0 3px rgba(184, 137, 58, 0.2), 0 0 13px rgba(184, 137, 58, 0.45);
 }
-.fd-step[data-state="danger"] { color: var(--fd-danger); }
 .fd-step[data-state="danger"] .fd-step-node {
   border-color: var(--fd-danger);
   background: rgba(196, 69, 61, 0.12);
 }
+.fd-step-label {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--hero-ink);
+  white-space: nowrap;
+}
+.fd-step[data-state="danger"] .fd-step-label { color: var(--fd-danger); }
 
 /* ---- buttons ---- */
 .fd-btn {
@@ -501,17 +528,21 @@
 @keyframes fd-spin { to { transform: rotate(360deg); } }
 
 .fd-confirm-line {
-  position: relative;
-  align-self: flex-end;
-  width: 100%;
-  max-width: 233px;
-  padding-top: 4px;
+  /* an overlay above the buttons: the card stays 144px while it counts down */
+  position: absolute;
+  right: 0;
+  bottom: 47px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(247, 249, 249, 0.92);
   font-family: var(--hero-font-mono);
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--hero-slate);
   text-align: right;
   overflow: hidden;
+  pointer-events: none;
 }
 .fd-confirm-fill {
   position: absolute;
