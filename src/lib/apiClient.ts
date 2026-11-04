@@ -3,17 +3,31 @@
  * Connects frontend to the backend REST API
  */
 
+const explicitApiUrl = (import.meta.env.VITE_API_URL || "").trim();
+
+/*
+ * Where the API lives. An explicit VITE_API_URL always wins; a production build
+ * without one talks to its own origin, so a deployment can serve or proxy /api;
+ * only the dev server defaults to the local Express app. Pointing a shipped
+ * bundle at localhost is what made the deployed signup fail with "Failed to
+ * fetch": localhost in a visitor's browser is the visitor's machine.
+ */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  explicitApiUrl || (import.meta.env.PROD ? "/api" : "http://localhost:3000/api");
+
+/** True when this build has an API to talk to (dev, or VITE_API_URL set). */
+export const hasApiConfigured = (): boolean =>
+  Boolean(explicitApiUrl) || !import.meta.env.PROD;
 
 export const isDemoMode = (): boolean => {
   if (typeof window === "undefined") return false;
   const urlParam = new URLSearchParams(window.location.search).get("demo");
   if (urlParam === "1" || urlParam === "true") return true;
-  return (
-    import.meta.env.VITE_DEMO_MODE === "true" ||
-    window.localStorage.getItem("vl_demo_mode") === "true"
-  );
+  if (import.meta.env.VITE_DEMO_MODE === "true") return true;
+  if (window.localStorage.getItem("vl_demo_mode") === "true") return true;
+  /* a production build with no API configured has nothing to authenticate
+     against, so it runs the local demo instead of posting into the void */
+  return import.meta.env.PROD && !explicitApiUrl;
 };
 
 export const setDemoMode = (enabled: boolean): void => {

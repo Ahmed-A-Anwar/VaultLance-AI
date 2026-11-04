@@ -191,6 +191,21 @@ export default function Signup() {
 
     const backendRole = values.role === "freelancer" ? "FREELANCER" : "CLIENT";
 
+    /* a build with no API configured has nothing to register against, so the
+       demo session is the account — no request fired at a missing server */
+    if (isDemoMode()) {
+      writeSession({
+        email: values.email,
+        role: values.role,
+        name: values.fullName,
+        since: Date.now(),
+      });
+      setCreatedEmail(values.email);
+      setIsSubmitting(false);
+      setPhase("done");
+      return;
+    }
+
     try {
       const res = await apiClient.auth.register({
         email: values.email,
@@ -200,19 +215,6 @@ export default function Signup() {
       });
 
       if (!res.success || !res.data) {
-        if (isDemoMode()) {
-          writeSession({
-            email: values.email,
-            role: values.role,
-            name: values.fullName,
-            since: Date.now(),
-          });
-          setCreatedEmail(values.email);
-          setIsSubmitting(false);
-          setPhase("done");
-          return;
-        }
-
         setIsSubmitting(false);
         setServerError(res.message || "Failed to create account. Please check your details.");
         return;
@@ -229,19 +231,6 @@ export default function Signup() {
 
       setCreatedEmail(res.data.user.email);
     } catch (err: any) {
-      if (isDemoMode()) {
-        writeSession({
-          email: values.email,
-          role: values.role,
-          name: values.fullName,
-          since: Date.now(),
-        });
-        setCreatedEmail(values.email);
-        setIsSubmitting(false);
-        setPhase("done");
-        return;
-      }
-
       setIsSubmitting(false);
       setServerError(err.message || "Server connection error. Please make sure the backend is running.");
       return;

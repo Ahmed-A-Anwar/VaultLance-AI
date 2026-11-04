@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useToast } from "../shared/Toasts";
+import { API_BASE_URL } from "../../lib/apiClient";
 
 interface PayPalAuthorizeButtonProps {
   vaultId: string;
@@ -21,8 +22,7 @@ export function PayPalAuthorizeButton({
   const [loading, setLoading] = useState(false);
 
   const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "BAA4Q0lxKMe-eEttZJdGKUOoM2AqGcE73TwoR1SPtbb_ofvrc1P1hwjp6UTUbO0l8E3jQo5deQixmDqI50";
-  const rawApi = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-  const apiBase = rawApi.replace(/\/api$/, "");
+  const apiBase = API_BASE_URL.replace(/\/api$/, "");
 
   const getToken = () => localStorage.getItem("vl_token") || sessionStorage.getItem("vl_token") || "";
 
