@@ -8,13 +8,14 @@ import { HoldButton } from "../shared/HoldButton";
 import { PayPalAuthorizeButton } from "../shared/PayPalAuthorizeButton";
 import { useToast } from "../shared/Toasts";
 import { useRoom } from "./room";
+import { downloadVaultFile } from "../../lib/api";
 import { Copy, Check } from "./icons";
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const FEE = 0.05;
 
 export function DecisionPanel() {
-  const { vault, status, busy, authorize, approve, reject, capturedAt, reload, checks } = useRoom();
+  const { vault, status, busy, authorize, approve, reject, capturedAt, reload, checks, detail } = useRoom();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const [counting, setCounting] = useState(0);
@@ -99,6 +100,19 @@ export function DecisionPanel() {
       });
     }
   }
+
+  const download = async () => {
+    const files = (detail?.files ?? []).filter((f) => f.kind === "file");
+    if (!files.length) {
+      toast({ message: "This delivery has no files to download yet.", tone: "info" });
+      return;
+    }
+    try {
+      for (const file of files) await downloadVaultFile(file.id, file.name);
+    } catch (e) {
+      toast({ message: e instanceof Error ? e.message : "The files could not be downloaded.", tone: "error" });
+    }
+  };
 
   const copyId = async () => {
     if (!vault?.paypalOrderId) return;
@@ -227,7 +241,7 @@ export function DecisionPanel() {
           <button
             type="button"
             className="room-download-all room-download-sm"
-            onClick={() => toast({ message: "Download starts in the real build." })}
+            onClick={() => void download()}
           >
             Download all
           </button>

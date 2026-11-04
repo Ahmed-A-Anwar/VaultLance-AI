@@ -1,7 +1,15 @@
 import { Router } from "express";
 import { authController } from "./auth.controller.js";
 import { validate } from "../middleware/validate.js";
-import { registerSchema, loginSchema } from "./auth.schemas.js";
+import {
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
+  updateProfileSchema,
+  deleteAccountSchema,
+  passwordResetRequestSchema,
+  passwordResetConfirmSchema,
+} from "./auth.schemas.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 
@@ -17,6 +25,25 @@ const authLimiter = createRateLimiter({
 router.post("/register", authLimiter, validate(registerSchema), authController.register);
 router.post("/login", authLimiter, validate(loginSchema), authController.login);
 router.post("/logout", requireAuth, authController.logout);
+
+/* password reset: public, rate-limited, and the same answer for every address */
+router.post(
+  "/password-reset/request",
+  authLimiter,
+  validate(passwordResetRequestSchema),
+  authController.requestPasswordReset
+);
+router.get("/password-reset/:token", authController.inspectPasswordReset);
+router.post(
+  "/password-reset/confirm",
+  authLimiter,
+  validate(passwordResetConfirmSchema),
+  authController.confirmPasswordReset
+);
 router.get("/me", requireAuth, authController.me);
+router.patch("/me", requireAuth, validate(updateProfileSchema), authController.updateProfile);
+router.post("/me/password", requireAuth, validate(changePasswordSchema), authController.changePassword);
+router.get("/me/export", requireAuth, authController.exportAccount);
+router.delete("/me", requireAuth, validate(deleteAccountSchema), authController.deleteAccount);
 
 export default router;

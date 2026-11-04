@@ -534,6 +534,9 @@ router.get("/:id/audit-detail", async (req, res, next) => {
           status: vault.status,
           freelancerId: vault.freelancer_id,
           createdAt: vault.created_at,
+          /* the receipt copies the real PayPal ids, not a hash of the vault id */
+          paypalOrderId: (vault as any).paypal_order_id || null,
+          paypalCaptureId: (vault as any).paypal_capture_id || null,
         },
         files: vaultFiles,
         checks: checks.map((c) => ({

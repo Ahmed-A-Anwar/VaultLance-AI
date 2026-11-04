@@ -8,6 +8,9 @@
    becomes once this is not a sandbox. */
 
 import { FX } from "../../../config/fx";
+import { isDemoMode } from "../../../lib/apiClient";
+import { deleteAccount, exportData } from "../../../lib/api";
+import { listFreelancerVaults as liveVaults } from "../../../components/freelancer/liveApi";
 import {
   listFreelancerEvents,
   listFreelancerVaults,
@@ -35,6 +38,7 @@ const maybeFail = () => {
 /* PUT /v1/me/export — the freelancer's vaults, events and payouts as one JSON
    file; the payouts are built by the same selectors the Payments page reads. */
 export async function exportFreelancerData(): Promise<Blob> {
+  if (!isDemoMode()) return exportData();
   await wait(latency());
   maybeFail();
   const [vaults, events] = await Promise.all([listFreelancerVaults(), listFreelancerEvents()]);
@@ -51,6 +55,10 @@ export async function exportFreelancerData(): Promise<Blob> {
 
 /* GET /v1/me/delete-blockers — the vaults whose phase keeps money in motion. */
 export async function listFreelancerDeleteBlockers(): Promise<DeleteBlocker[]> {
+  if (!isDemoMode()) {
+    const vaults: FreelancerVault[] = await liveVaults();
+    return deleteFreelancerBlockers(vaults);
+  }
   await wait(latency());
   maybeFail();
   const vaults: FreelancerVault[] = await listFreelancerVaults();
@@ -60,6 +68,10 @@ export async function listFreelancerDeleteBlockers(): Promise<DeleteBlocker[]> {
 /* DELETE /v1/me — refused by the guard upstream while anything above is in
    motion; here the typed email must match and the store is wiped. */
 export async function deleteFreelancerAccount(emailConfirm: string): Promise<void> {
+  if (!isDemoMode()) {
+    await deleteAccount(emailConfirm);
+    return;
+  }
   await wait(latency());
   maybeFail();
   const session = readSession();

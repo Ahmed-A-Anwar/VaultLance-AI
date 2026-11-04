@@ -48,6 +48,7 @@ import {
 } from "../../../components/freelancer/mockApi";
 import { fees, formatCents } from "../../../lib/fees";
 import { setPayoutEmail } from "../../../lib/api";
+import { apiClient, isDemoMode } from "../../../lib/apiClient";
 import { filterBucket, sortByNeed, type Phase } from "../../../lib/freelancerPhase";
 import { NEW_VAULT_EVENT } from "./roles";
 import "../../../styles/payments.css";
@@ -233,6 +234,21 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
       return;
     }
     if (action === "invite") {
+      /* the server invites an existing account by email; there is no link */
+      if (!isDemoMode()) {
+        try {
+          const res = await apiClient.vaults.invite(vault.id, vault.clientEmail);
+          if (!res.success) {
+            toast({ message: res.message || "The invite did not go out.", tone: "error" });
+            return;
+          }
+          toast({ message: `Invite sent to ${vault.clientEmail}.`, tone: "success" });
+          await refresh();
+        } catch (e) {
+          toast({ message: e instanceof Error ? e.message : "The invite did not go out.", tone: "error" });
+        }
+        return;
+      }
       try {
         const { inviteCode } = await inviteClient(vault.id);
         const link = `${window.location.origin}/v/${inviteCode}`;
@@ -241,6 +257,16 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
       } catch (e) {
         toast({ message: e instanceof Error ? e.message : "Couldn't copy the link.", tone: "error" });
       }
+      return;
+    }
+
+    /* these have no endpoint on the server yet, so a real session says so
+       instead of mutating the demo store behind the list it is showing */
+    if (
+      !isDemoMode() &&
+      (action === "remind" || action === "submit" || action === "retry" || action === "duplicate" || action === "delete")
+    ) {
+      toast({ message: "That action is not available on the server yet.", tone: "info" });
       return;
     }
 

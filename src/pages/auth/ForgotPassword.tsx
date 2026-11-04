@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 /* ForgotPassword.tsx — "/forgot-password": ask for the email, then say a link is
-   on its way. Mock only: nothing is sent, and no answer ever says whether an
-   address has an account.
+   on its way. No answer ever says whether an address has an account; the demo
+   sends nothing, and the live API mails a Supabase recovery link (or, on a
+   local server, returns a dev link this card offers under DEV ONLY).
 
    The vault is mounted by VaultLayout and stays put; this file owns the card in
    the left column, the two states on it, and the answers it asks of the vault
@@ -12,6 +13,7 @@ import { Link, useLocation } from "react-router-dom";
 import gsap from "gsap";
 import { useVaultScene } from "../../lib/vaultScene";
 import { FX } from "../../config/fx";
+import { isDemoMode } from "../../lib/apiClient";
 import {
   MAX_RESET_SENDS,
   MOCK_RESET_LINK,
@@ -94,6 +96,8 @@ function RequestScreen() {
   const [drain, setDrain] = useState(0);
   const [pulse, setPulse] = useState(0);
   const [live, setLive] = useState("");
+  /* set only when a non-production server hands the link back */
+  const [devLink, setDevLink] = useState<string | null>(null);
 
   const swapIn = useRef(false);
   const swapRef = useRef<HTMLDivElement | null>(null);
@@ -197,8 +201,8 @@ function RequestScreen() {
 
     setSending(true);
     const started = performance.now();
-    const result = requestReset(email);
-    const failed = !result.ok || mockFails();
+    const result = await requestReset(email);
+    const failed = !result.ok || (isDemoMode() && mockFails());
     await wait(Math.max(0, SPIN - (performance.now() - started)));
     setSending(false);
 
@@ -208,6 +212,7 @@ function RequestScreen() {
     }
 
     noteResetSend();
+    setDevLink(result.ok ? result.devResetUrl : null);
     setLive(`Reset link sent to ${email.trim()}.`);
     landSent();
   };
@@ -224,8 +229,8 @@ function RequestScreen() {
     setResendError(null);
     setResending(true);
     const started = performance.now();
-    const result = requestReset(email);
-    const failed = !result.ok || mockFails();
+    const result = await requestReset(email);
+    const failed = !result.ok || (isDemoMode() && mockFails());
     await wait(Math.max(0, SPIN - (performance.now() - started)));
     setResending(false);
 
@@ -389,9 +394,15 @@ function RequestScreen() {
         {import.meta.env.DEV && (
           <div className="auth-dev">
             <span className="auth-dev-label">DEV ONLY</span>
-            <Link className="auth-dev-link" to={MOCK_RESET_LINK} data-testid="dev-reset-link">
-              OPEN MOCK RESET LINK
-            </Link>
+            {devLink ? (
+              <a className="auth-dev-link" href={devLink} data-testid="dev-reset-link">
+                OPEN RESET LINK
+              </a>
+            ) : (
+              <Link className="auth-dev-link" to={MOCK_RESET_LINK} data-testid="dev-reset-link">
+                OPEN MOCK RESET LINK
+              </Link>
+            )}
           </div>
         )}
       </div>

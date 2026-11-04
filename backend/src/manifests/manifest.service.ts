@@ -1,4 +1,4 @@
-import { database } from "../shared/db.js";
+import { database, type DbVaultFileRecord } from "../shared/db.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import {
   canonicalJsonStringify,
@@ -11,6 +11,7 @@ import type {
   ManifestVerificationResult,
 } from "./manifest.types.js";
 import { NotFoundError } from "../shared/errors.js";
+import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 
 export class ManifestService {
   public async generateVaultManifest(
@@ -21,10 +22,35 @@ export class ManifestService {
     // Authorize participant access
     const { vault } = await dataIsolationService.getVaultIfAuthorized(userId, vaultId);
 
-    // Retrieve all files in vault
-    const fileRecords = Array.from(database.store.files.values()).filter(
-      (f) => f.vault_id === vaultId
-    );
+    // Retrieve all files in vault — Supabase holds the real deliveries; the
+    // in-memory store is only the fallback for a server without Supabase.
+    let fileRecords: DbVaultFileRecord[] = [];
+
+    if (isSupabaseConfigured() && supabase) {
+      const { data: dbFiles } = await supabase
+        .from("vault_files")
+        .select(
+          "id, vault_id, uploaded_by, file_name, storage_path, mime_type, file_size, sha256_hash, created_at"
+        )
+        .eq("vault_id", vaultId)
+        .order("created_at", { ascending: true });
+
+      fileRecords = (dbFiles || []).map((f: any) => ({
+        id: f.id,
+        vault_id: f.vault_id,
+        uploaded_by: f.uploaded_by,
+        file_name: f.file_name,
+        storage_path: f.storage_path,
+        mime_type: f.mime_type,
+        file_size: Number(f.file_size),
+        sha256_hash: f.sha256_hash,
+        created_at: new Date(f.created_at),
+      }));
+    } else {
+      fileRecords = Array.from(database.store.files.values()).filter(
+        (f) => f.vault_id === vaultId
+      );
+    }
 
     const unsortedEntries: ManifestFileEntry[] = fileRecords.map((f) => ({
       id: f.id,

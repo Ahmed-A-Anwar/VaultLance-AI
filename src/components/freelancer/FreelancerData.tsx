@@ -5,15 +5,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { hasPayoutEmail } from "../../lib/api";
+import { isDemoMode } from "../../lib/apiClient";
 import {
-  getFreelancerKpis,
-  listFreelancerEvents,
-  listFreelancerVaults,
+  getFreelancerKpis as demoKpis,
+  listFreelancerEvents as demoEvents,
+  listFreelancerVaults as demoVaults,
   subscribe,
   type FreelancerEvent,
   type FreelancerKpis,
   type FreelancerVault,
 } from "./mockApi";
+import {
+  kpisFor,
+  listFreelancerEvents as liveEvents,
+  listFreelancerVaults as liveVaults,
+} from "./liveApi";
 
 interface Value {
   vaults: FreelancerVault[];
@@ -42,11 +48,23 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [v, e, k] = await Promise.all([listFreelancerVaults(), listFreelancerEvents(), getFreelancerKpis()]);
+      if (isDemoMode()) {
+        const [v, e, k] = await Promise.all([demoVaults(), demoEvents(), demoKpis()]);
+        if (!alive.current) return;
+        setVaults(v);
+        setEvents(e);
+        setKpis(k);
+      } else {
+        /* the server is the source: vaults first, then the ledger rows for
+           those vaults, then the same earnings selectors for the strip */
+        const v = await liveVaults();
+        const e = await liveEvents(v);
+        if (!alive.current) return;
+        setVaults(v);
+        setEvents(e);
+        setKpis(kpisFor(v));
+      }
       if (!alive.current) return;
-      setVaults(v);
-      setEvents(e);
-      setKpis(k);
       setError(null);
       setPaypalMissing(!hasPayoutEmail());
     } catch (err) {
@@ -66,9 +84,12 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   useEffect(() => {
+    /* the demo store fans out locally; the server has no stream yet, so a real
+       session refreshes on the actions that change it */
+    if (!isDemoMode()) return;
     return subscribe((event) => {
       setEvents((prev) => [event, ...prev]);
-      void getFreelancerKpis()
+      void demoKpis()
         .then(setKpis)
         .catch(() => {});
     });

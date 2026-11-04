@@ -8,7 +8,7 @@
    call once this is no longer a mock. */
 
 import { FX } from "../config/fx";
-import { API_BASE_URL } from "./apiClient";
+import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -283,7 +283,7 @@ function mapBackendStatusToFrontend(s: string): VaultStatus {
   return "held";
 }
 
-function backendVaultToFrontend(bv: any): Vault {
+export function backendVaultToFrontend(bv: any): Vault {
   const freelancer = bv.members?.find((m: any) => m.role === "FREELANCER")?.fullName || "Freelancer";
   return {
     id: bv.id,
@@ -292,8 +292,55 @@ function backendVaultToFrontend(bv: any): Vault {
     amountUSD: Number(bv.amount) || 0,
     status: mapBackendStatusToFrontend(bv.status),
     createdAt: new Date(bv.createdAt || bv.created_at || Date.now()).getTime(),
-    paypalOrderId: bv.id ? `8XK${bv.id.slice(0, 8).toUpperCase()}` : undefined,
+    paypalOrderId: bv.paypalOrderId || bv.paypal_order_id || bv.paypal_capture_id || undefined,
   };
+}
+
+/* the backend's ledger names, folded onto the five the client surface knows */
+const CLIENT_EVENT_TYPE: Record<string, LedgerType> = {
+  FUNDS_AUTHORIZED: "PAYMENT.AUTHORIZED",
+  PAYMENT_CAPTURED: "PAYMENT.CAPTURED",
+  VAULT_CANCELLED: "PAYMENT.VOIDED",
+  FILES_UNLOCKED: "FILES.UNLOCKED",
+  AUDIT_COMPLETED: "AUDIT.COMPLETED",
+};
+
+/** GET /api/vaults — the caller's vaults, in the frontend's shape. */
+export async function listLiveVaults(): Promise<Vault[]> {
+  const res = await apiClient.vaults.list();
+  if (!res.success || !Array.isArray(res.data)) {
+    throw new ApiError("network", res.message || "The vault service didn’t answer.");
+  }
+  return res.data.map(backendVaultToFrontend);
+}
+
+/** GET /api/ledger — the caller's ledger rows, in the frontend's shape. Rows
+    that only exist on the server (payouts, uploads) are left out; the client
+    money views only know the five types above. */
+export async function listLiveEvents(): Promise<LedgerEvent[]> {
+  const res = await apiClient.ledger.list();
+  if (!res.success || !Array.isArray(res.data)) {
+    throw new ApiError("network", res.message || "The ledger service didn’t answer.");
+  }
+
+  const out: LedgerEvent[] = [];
+  for (const raw of res.data) {
+    const type = CLIENT_EVENT_TYPE[String(raw.event_type ?? "").toUpperCase()];
+    if (!type) continue;
+    const id = String(raw.id ?? "");
+    if (!id) continue;
+    const amount = Number(raw.amount);
+    out.push({
+      id,
+      ts: new Date(raw.created_at ?? raw.createdAt ?? Date.now()).getTime(),
+      type,
+      vaultId: String(raw.vault_id ?? raw.vaultId ?? ""),
+      label: String(raw.metadata?.note ?? raw.event_type ?? "Ledger event"),
+      ...(Number.isFinite(amount) && amount > 0 ? { amountUSD: amount } : {}),
+      ...(raw.metadata?.paypalId ? { paypalId: String(raw.metadata.paypalId) } : {}),
+    });
+  }
+  return out.sort((a, b) => b.ts - a.ts);
 }
 
 async function postAction(id: string, action: string): Promise<Vault> {
@@ -429,7 +476,14 @@ export const devVaultIds = () => vaults.map((v) => ({ id: v.id, project: v.proje
 
 export type CheckResult = "queued" | "running" | "pass" | "warn" | "fail";
 
-export type SourceChip = "TEST LOG" | "BROWSER TEST" | "PIXEL SCAN" | "HTTP PROBE" | "DEMO CACHE";
+export type SourceChip =
+  | "TEST LOG"
+  | "BROWSER TEST"
+  | "PIXEL SCAN"
+  | "HTTP PROBE"
+  | "DEMO CACHE"
+  | "FILE INDEX"
+  | "VAULT DATA";
 
 /* a chip that cites a check: the demo-cache chip is an answer property, not a
    check source, so the two are kept apart */
@@ -643,52 +697,61 @@ const seedFor = (id: string): Seed => ROOM_SEED[id] ?? GENERIC_SEED;
 const checkedAt = new Map<string, number>();
 const questionsUsed = new Map<string, number>();
 
-/* GET /api/vaults/{id}/audit-detail — real backend fetch */
+/* a non-2xx answer becomes the room's error state; it never quietly turns
+   into seeded demo data, so a 404 reads as a missing vault instead of a fake
+   one and a 401 sends the reader back to sign in. */
+async function failWith(res: Response, fallback: string): Promise<never> {
+  const body = await res.json().catch(() => ({}) as any);
+  const kind: ApiErrorKind =
+    res.status === 404 ? "not_found" : res.status === 409 ? "state" : "network";
+  throw new ApiError(kind, body?.message || fallback);
+}
+
+/* GET /api/vaults/{id}/audit-detail */
 export async function getVaultDetail(id: string): Promise<VaultDetail> {
-  try {
-    const res = await fetch(`${API_BASE}/api/vaults/${id}/audit-detail`, {
-      headers: authHeaders(),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      const d = json.data;
-      const v = d.vault;
-      const frontendVault: Vault = {
-        id: v.id,
-        project: v.title,
-        freelancer: "Freelancer",
-        amountUSD: Number(v.amount) || 0,
-        status: mapBackendStatusToFrontend(v.status),
-        createdAt: new Date(v.createdAt || v.created_at || Date.now()).getTime(),
-        paypalOrderId: v.id ? `8XK${v.id.slice(0, 8).toUpperCase()}` : undefined,
-      };
-      return {
-        vault: frontendVault,
-        files: (d.files || []).map((f: any) => ({
-          id: f.id,
-          name: f.name,
-          kind: f.kind || "file",
-          meta: f.meta || "",
-        })),
-        checks: (d.checks || []).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          detail: c.detail,
-          source: c.source || "TEST LOG",
-          result: c.result || "pass",
-          state: c.state || "queued",
-          rows: c.rows || [],
-        })),
-        messages: [],
-        suggestions: d.suggestions || ["What was delivered?", "Are there any issues?", "Is the build ready to ship?"],
-        questionsUsed: d.questionsUsed ?? (questionsUsed.get(id) ?? 0),
-        questionLimit: d.questionLimit ?? QUESTION_LIMIT,
-      };
-    }
-  } catch {
-    /* backend unreachable — fall through to in-memory */
-  }
-  /* fallback to in-memory mock if backend fails */
+  if (isDemoMode()) return demoVaultDetail(id);
+
+  const res = await fetch(`${API_BASE}/api/vaults/${id}/audit-detail`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return failWith(res, "The vault could not be opened.");
+
+  const d = (await res.json()).data;
+  const v = d.vault ?? {};
+  return {
+    vault: {
+      id: v.id,
+      project: v.title,
+      freelancer: v.freelancerName || "Freelancer",
+      amountUSD: Number(v.amount) || 0,
+      status: mapBackendStatusToFrontend(v.status),
+      createdAt: new Date(v.createdAt || v.created_at || Date.now()).getTime(),
+      paypalOrderId: v.paypalOrderId || v.paypalCaptureId || undefined,
+    },
+    files: (d.files || []).map((f: any) => ({
+      id: f.id,
+      name: f.name,
+      kind: f.kind || "file",
+      meta: f.meta || "",
+    })),
+    checks: (d.checks || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      detail: c.detail,
+      source: c.source || "TEST LOG",
+      result: c.result || "pass",
+      state: c.state || "queued",
+      rows: c.rows || [],
+    })),
+    messages: [],
+    suggestions: d.suggestions || ["What was delivered?", "Are there any issues?", "Is the build ready to ship?"],
+    questionsUsed: d.questionsUsed ?? 0,
+    questionLimit: d.questionLimit ?? QUESTION_LIMIT,
+  };
+}
+
+/* the offline room, only for a build with no API or an explicit ?demo=1 */
+function demoVaultDetail(id: string): Promise<VaultDetail> {
   return call(() => {
     const v = find(id);
     const seed = seedFor(id);
@@ -707,15 +770,32 @@ export async function getVaultDetail(id: string): Promise<VaultDetail> {
 
 /* GET /api/vaults/{id}/audit-detail (files subset) */
 export async function listFiles(id: string): Promise<VaultFile[]> {
-  try {
-    const detail = await getVaultDetail(id);
-    return detail.files;
-  } catch {
+  if (isDemoMode()) {
     return call(() => {
       find(id);
       return seedFor(id).files.map((f) => ({ ...f }));
     });
   }
+  return (await getVaultDetail(id)).files;
+}
+
+/* GET /api/uploads/download/{fileId} — the endpoint sits behind the bearer
+   token, so the bytes are fetched here and handed to the browser as a blob
+   instead of opening a URL that would arrive unauthenticated. */
+export async function downloadVaultFile(fileId: string, name: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/uploads/download/${encodeURIComponent(fileId)}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return failWith(res, "That file could not be downloaded.");
+
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* POST /api/vaults/{id}/checks/run — runs audit checks on backend, with
@@ -724,38 +804,38 @@ export async function runChecks(
   id: string,
   onProgress?: (checkId: string, state: CheckResult) => void
 ): Promise<VaultCheck[]> {
-  try {
+  if (!isDemoMode()) {
     const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
       method: "POST",
       headers: authHeaders(),
     });
-    if (res.ok) {
-      const json = await res.json();
-      const serverChecks: VaultCheck[] = (json.data?.checks || []).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        detail: c.detail,
-        source: c.source || "TEST LOG",
-        result: c.result || "pass",
-        state: c.state || c.result || "pass",
-        rows: c.rows || [],
-      }));
-      /* Animate progress locally even though server already computed results */
-      const timings = [618, 800, 1000, 618];
-      for (let i = 0; i < serverChecks.length; i++) {
-        const chk = serverChecks[i];
-        onProgress?.(chk.id, "running");
-        await wait(timings[i % timings.length]);
-        onProgress?.(chk.id, chk.result);
-      }
-      checkedAt.set(id, Date.now());
-      emit("AUDIT.COMPLETED", id, "Audit run finished, report ready", {});
-      return serverChecks;
+    if (!res.ok) return failWith(res, "The checks did not finish.");
+
+    const serverChecks: VaultCheck[] = ((await res.json()).data?.checks || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      detail: c.detail,
+      source: c.source || "TEST LOG",
+      result: c.result || "pass",
+      state: c.state || c.result || "pass",
+      rows: c.rows || [],
+    }));
+
+    /* the server has already computed the results; the room still watches them
+       land one card at a time */
+    const timings = [618, 800, 1000, 618];
+    for (let i = 0; i < serverChecks.length; i++) {
+      const chk = serverChecks[i];
+      onProgress?.(chk.id, "running");
+      await wait(timings[i % timings.length]);
+      onProgress?.(chk.id, chk.result);
     }
-  } catch {
-    /* backend unreachable — fall through to mock */
+    checkedAt.set(id, Date.now());
+    emit("AUDIT.COMPLETED", id, "Audit run finished, report ready", {});
+    return serverChecks;
   }
-  /* fallback to mock */
+
+  /* demo: the in-memory audit */
   const v = find(id);
   expectStatus(v, ["held"], "be audited");
   const seed = seedFor(id).checks;
@@ -785,32 +865,30 @@ export async function askAI(
   question: string,
   onToken: (chunk: string) => void
 ): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
-  try {
+  if (!isDemoMode()) {
     const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ question }),
     });
-    if (res.ok) {
-      const json = await res.json();
-      const d = json.data;
-      const text: string = d.text || "";
-      /* trickle tokens locally for the streaming effect */
-      for (const char of text) {
-        onToken(char);
-        await wait(18);
-      }
-      questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
-      return {
-        text,
-        sources: (d.sources || []) as SourceChip[],
-        cached: d.cached ?? false,
-      };
+    if (!res.ok) return failWith(res, "The audit agent did not answer.");
+
+    const d = (await res.json()).data;
+    const text: string = d.text || "";
+    /* trickle tokens locally for the streaming effect */
+    for (const char of text) {
+      onToken(char);
+      await wait(18);
     }
-  } catch {
-    /* backend unreachable — fall through to mock */
+    questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
+    return {
+      text,
+      sources: (d.sources || []) as SourceChip[],
+      cached: d.cached ?? false,
+    };
   }
-  /* fallback to mock */
+
+  /* demo: the scripted answer */
   const v = find(id);
   await wait(latency());
   if (Math.random() < FAIL_RATE) throw new ApiError("network", "The audit agent did not answer.");
@@ -1025,10 +1103,41 @@ const profileOf = (s: SettingsStore): AccountProfile => ({
   paypalEmail: accountRole() === "freelancer" ? s.payoutEmail : null,
 });
 
-/* GET /v1/me/settings */
+/* a real session's member-since line, from the account's own created date */
+const memberSinceOf = (iso: unknown): string => {
+  const at = iso ? new Date(iso as string) : new Date();
+  if (Number.isNaN(at.getTime())) return SETTINGS_MEMBER_SINCE;
+  return at.toLocaleDateString("en-GB", { month: "short", year: "numeric" }).toUpperCase();
+};
+
+/* GET /v1/me/settings — the profile half comes from the server, the rest of the
+   page's preferences are still this browser's */
 export async function getSettings(): Promise<AccountSettings> {
+  const s = load();
+
+  if (!isDemoMode()) {
+    const res = await apiClient.me.get();
+    if (!res.success || !res.data) {
+      throw new ApiError("network", res.message || "Your account could not be loaded.");
+    }
+    const me = res.data;
+    const role: Role = String(me.role).toUpperCase() === "FREELANCER" ? "freelancer" : "client";
+    return {
+      profile: {
+        fullName: me.fullName || s.fullName,
+        email: me.email,
+        role,
+        memberSince: memberSinceOf(me.createdAt),
+        paypalEmail: role === "freelancer" ? s.payoutEmail : null,
+      },
+      notifications: copyNotifs(s.notifications),
+      motion: s.motion,
+      mfaOn: s.mfaOn,
+      payoutRetry: s.payoutRetry,
+    };
+  }
+
   return settingsCall(() => {
-    const s = load();
     return {
       profile: profileOf(s),
       notifications: copyNotifs(s.notifications),
@@ -1082,6 +1191,27 @@ export async function updatePayoutPrefs(patch: { retry: PayoutRetryMode }): Prom
 
 /* PATCH /v1/me */
 export async function updateProfile(patch: { fullName: string }): Promise<AccountProfile> {
+  const name = patch.fullName.trim();
+  if (name.length < 2) throw new ApiError("state", "Name needs at least 2 characters.");
+  if (name.length > 60) throw new ApiError("state", "Name can be at most 60 characters.");
+
+  if (!isDemoMode()) {
+    const res = await apiClient.me.updateProfile({ fullName: name });
+    if (!res.success || !res.data) {
+      throw new ApiError("state", res.message || "Your name could not be saved.");
+    }
+    const s = load();
+    s.fullName = res.data.fullName || name;
+    persist();
+    return {
+      fullName: s.fullName,
+      email: res.data.email ?? accountEmail(),
+      role: accountRole(),
+      memberSince: memberSinceOf(res.data.createdAt),
+      paypalEmail: accountRole() === "freelancer" ? s.payoutEmail : null,
+    };
+  }
+
   return settingsCall(() => {
     const name = patch.fullName.trim();
     if (name.length < 2) throw new ApiError("state", "Name needs at least 2 characters.");
@@ -1119,6 +1249,17 @@ export async function changePassword(
   current: string,
   next: string
 ): Promise<{ sessions: LoginSession[] }> {
+  if (next.length < MIN_PASSWORD) throw new ApiError("state", `Use at least ${MIN_PASSWORD} characters.`);
+
+  if (!isDemoMode()) {
+    const res = await apiClient.me.changePassword({ currentPassword: current, newPassword: next });
+    if (!res.success) {
+      const wrong = /current password/i.test(res.message || "");
+      throw new ApiError(wrong ? "state" : "network", res.message || "The password could not be changed.");
+    }
+    return { sessions: await listSessions() };
+  }
+
   return settingsCall(() => {
     if (!checkCurrentPassword(current)) throw new ApiError("state", WRONG_CURRENT_PASSWORD);
     if (next.length < MIN_PASSWORD) throw new ApiError("state", `Use at least ${MIN_PASSWORD} characters.`);
@@ -1131,11 +1272,20 @@ export async function changePassword(
 
 /* GET /v1/me/sessions */
 export async function listSessions(): Promise<LoginSession[]> {
+  if (!isDemoMode()) {
+    /* the server revokes the other sessions on a password change and keeps no
+       device list of its own, so this browser is the only row there is */
+    return [{ id: "current", device: "This browser", place: "—", lastActive: "this device", current: true }];
+  }
   return settingsCall(() => sessions.map((row) => ({ ...row })));
 }
 
 /* DELETE /v1/me/sessions/{id} */
 export async function revokeSession(id: string): Promise<LoginSession[]> {
+  if (!isDemoMode()) {
+    if (id === "current") throw new ApiError("state", "This device cannot be revoked from here.");
+    return listSessions();
+  }
   return settingsCall(() => {
     const row = sessions.find((s) => s.id === id);
     if (!row) throw new ApiError("not_found", "That session is already gone.");
@@ -1147,6 +1297,7 @@ export async function revokeSession(id: string): Promise<LoginSession[]> {
 
 /* DELETE /v1/me/sessions (every session but this one) */
 export async function revokeOtherSessions(): Promise<LoginSession[]> {
+  if (!isDemoMode()) return listSessions();
   return settingsCall(() => {
     sessions = sessions.filter((s) => s.current);
     return sessions.map((s) => ({ ...s }));
@@ -1179,8 +1330,16 @@ export async function disableTwoFactor(): Promise<{ mfaOn: false }> {
   });
 }
 
-/* GET /v1/me/export — the real service streams a file; the mock builds it here */
+/* GET /v1/me/export — the server returns the payload, the browser wraps it */
 export async function exportData(): Promise<Blob> {
+  if (!isDemoMode()) {
+    const res = await apiClient.me.export();
+    if (!res.success || !res.data) {
+      throw new ApiError("network", res.message || "The export could not be built.");
+    }
+    return new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
+  }
+
   return settingsCall(() => {
     const s = load();
     const payload = {
@@ -1197,6 +1356,15 @@ export async function exportData(): Promise<Blob> {
 
 /* DELETE /v1/me — refused while any vault is held or audited */
 export async function deleteAccount(emailConfirm: string): Promise<void> {
+  if (!isDemoMode()) {
+    const res = await apiClient.me.remove({ email: emailConfirm.trim() });
+    if (!res.success) {
+      throw new ApiError("state", res.message || "The account could not be deleted.");
+    }
+    clearSession();
+    return;
+  }
+
   return settingsCall(() => {
     const held = vaults.filter((v) => v.status === "held" || v.status === "audited");
     if (held.length) throw new ApiError("state", DELETE_BLOCKED);
@@ -1210,6 +1378,10 @@ export async function deleteAccount(emailConfirm: string): Promise<void> {
 /* GET /v1/me/delete-blockers — the vaults standing between the client and
    deletion, with their ids so the modal can link to the audit room */
 export async function listDeleteBlockers(): Promise<Vault[]> {
+  if (!isDemoMode()) {
+    const rows = await listLiveVaults();
+    return rows.filter((v) => v.status === "held" || v.status === "audited");
+  }
   return settingsCall(() =>
     vaults.filter((v) => v.status === "held" || v.status === "audited").map((v) => ({ ...v }))
   );

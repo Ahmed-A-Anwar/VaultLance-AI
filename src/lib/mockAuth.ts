@@ -106,31 +106,82 @@ let resetSends = 0;
 export const resetSendCount = () => resetSends;
 export const noteResetSend = () => (resetSends += 1);
 
-export function requestReset(email: string): { ok: true } | { ok: false; error: string } {
-  void email;
-  return { ok: true };
+export async function requestReset(
+  email: string
+): Promise<{ ok: true; devResetUrl: string | null } | { ok: false; error: string }> {
+  if (isDemoMode()) return { ok: true, devResetUrl: null };
+
+  try {
+    const res = await apiClient.auth.requestPasswordReset(email.trim());
+    if (!res.success) return { ok: false, error: res.message || RESET_SEND_ERROR };
+    return { ok: true, devResetUrl: res.data?.devResetUrl ? String(res.data.devResetUrl) : null };
+  } catch {
+    return { ok: false, error: RESET_SEND_ERROR };
+  }
 }
 
 export type ResetTokenState = "valid" | "expired" | "invalid";
 
-export function verifyResetToken(token: string | null): ResetTokenState {
-  if (token === "demo-valid") return "valid";
-  if (token === "demo-expired") return "expired";
-  return "invalid";
+/* the token is checked by the service that minted it; the demo keeps its two
+   fixed tokens so the dead ends stay reachable */
+export async function verifyResetToken(token: string | null): Promise<ResetTokenState> {
+  if (isDemoMode()) {
+    if (token === "demo-valid") return "valid";
+    if (token === "demo-expired") return "expired";
+    return "invalid";
+  }
+  if (!token) return "invalid";
+
+  try {
+    const res = await apiClient.auth.inspectPasswordReset(token);
+    const state = String(res.data?.state ?? "");
+    return state === "valid" || state === "expired" ? state : "invalid";
+  } catch {
+    return "invalid";
+  }
 }
 
 export function resetPassword(
   token: string | null,
   password: string
-): { ok: true } | { ok: false; error: string } {
-  const state = verifyResetToken(token);
-  if (state !== "valid") {
-    return { ok: false, error: state === "expired" ? "This link has expired." : "This link isn't valid." };
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return resetWith(token ? { token } : null, password);
+}
+
+export function resetPasswordWithAccessToken(
+  accessToken: string,
+  password: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return resetWith({ accessToken }, password);
+}
+
+async function resetWith(
+  proof: { token: string } | { accessToken: string } | null,
+  password: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (isDemoMode()) {
+    const state = await verifyResetToken(proof && "token" in proof ? proof.token : null);
+    if (state !== "valid") {
+      return { ok: false, error: state === "expired" ? "This link has expired." : "This link isn't valid." };
+    }
+    if (password.length < MIN_PASSWORD) {
+      return { ok: false, error: `Use at least ${MIN_PASSWORD} characters.` };
+    }
+    return { ok: true };
   }
+
+  if (!proof) return { ok: false, error: "This link isn't valid." };
   if (password.length < MIN_PASSWORD) {
     return { ok: false, error: `Use at least ${MIN_PASSWORD} characters.` };
   }
-  return { ok: true };
+
+  try {
+    const res = await apiClient.auth.confirmPasswordReset({ ...proof, password });
+    if (!res.success) return { ok: false, error: res.message || "This link isn't valid anymore." };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Couldn't save the new password. Try again." };
+  }
 }
 
 /**
