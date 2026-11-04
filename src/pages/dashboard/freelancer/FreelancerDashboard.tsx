@@ -15,6 +15,7 @@ import { useToast } from "../../../components/shared/Toasts";
 import { FreelancerDataProvider, useFreelancerData } from "../../../components/freelancer/FreelancerData";
 import { FreelancerLedger } from "../../../components/freelancer/FreelancerLedger";
 import { EarningsPage } from "../../../components/freelancer/EarningsPage";
+import { FreelancerPayments } from "../../../components/payments/FreelancerPayments";
 import { KpiRow } from "../../../components/freelancer/KpiRow";
 import { NewVaultDrawer } from "../../../components/freelancer/NewVaultDrawer";
 import { PayoutBanner } from "../../../components/freelancer/PayoutBanner";
@@ -41,13 +42,15 @@ import {
 } from "../../../components/freelancer/mockApi";
 import { fees, formatCents } from "../../../lib/fees";
 import { filterBucket, sortByNeed, type Phase } from "../../../lib/freelancerPhase";
+import { FX } from "../../../config/fx";
 import { NEW_VAULT_EVENT } from "./roles";
+import "../../../styles/payments.css";
 
 const DEV = (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV ?? false;
 const HOUR = 60 * 60 * 1000;
 
 type Filter = "all" | "needs_action" | "in_escrow" | "paid";
-type View = "overview" | "vaults" | "earnings";
+type View = "overview" | "vaults" | "earnings" | "payments";
 
 /* the client's chip labels, uppercase: the row is the client's row */
 const FILTERS: Array<{ key: Filter; label: string }> = [
@@ -90,7 +93,9 @@ function Surface({ email }: { email: string }) {
     ? "vaults"
     : pathname.endsWith("/ledger")
       ? "earnings"
-      : "overview";
+      : pathname.endsWith("/payments") && FX.paymentsPage
+        ? "payments"
+        : "overview";
 
   useEffect(() => {
     const open = () => setDrawer({ step: 1 });
@@ -255,10 +260,12 @@ function Surface({ email }: { email: string }) {
         </div>
       )}
 
-      {view !== "earnings" && <PayoutBanner show={paypalMissing && !bannerOff} />}
+      {/* Earnings and Payments each carry their own inline error card, and the
+          Payments page states the missing PayPal address itself, so neither the
+          banner nor the bar is repeated on those two views. */}
+      {view !== "earnings" && view !== "payments" && <PayoutBanner show={paypalMissing && !bannerOff} />}
 
-      {/* the Earnings page carries its own inline error card with Retry */}
-      {error && view !== "earnings" && (
+      {error && view !== "earnings" && view !== "payments" && (
         <div className="fd-error-bar" role="alert">
           <span>{error}</span>
           <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
@@ -321,6 +328,15 @@ function Surface({ email }: { email: string }) {
           </div>
           {list}
         </section>
+      )}
+
+      {view === "payments" && FX.paymentsPage && (
+        <FreelancerPayments
+          onOpenVault={(id) => {
+            const vault = vaults.find((v) => v.id === id);
+            if (vault) setDetails(vault);
+          }}
+        />
       )}
 
       {view === "earnings" && (

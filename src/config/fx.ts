@@ -30,6 +30,12 @@ export const FX = {
      the freelancer role. false restores the "Freelancer dashboard coming soon"
      panel — the page is kept, only the flag switches it back in. */
   freelancerDashboard: true,
+  /* paymentsPage true mounts the Payments page at /dashboard/payments for both
+     roles: the client's holds and receipts on the route, the freelancer's
+     payouts as a view of its own dashboard. false restores the placeholder
+     heading on the route and lets /dashboard/payments fall back to the
+     freelancer's Overview. */
+  paymentsPage: true,
 } as const;
 
 export const CLIPS = {

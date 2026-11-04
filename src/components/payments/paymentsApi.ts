@@ -40,9 +40,18 @@ export * from "./paymentsModel";
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/* demo switch, same spelling as lib/api's: ?slow=1 stretches every read so the
+   skeletons can be seen */
+const SLOW = typeof location !== "undefined" && new URLSearchParams(location.search).has("slow");
+
 /** The same window the rest of the mock obeys, read from the same config. */
 const latency = () =>
-  MOCK_LATENCY_MS.min + Math.round(Math.random() * (MOCK_LATENCY_MS.max - MOCK_LATENCY_MS.min));
+  SLOW
+    ? 2600
+    : MOCK_LATENCY_MS.min + Math.round(Math.random() * (MOCK_LATENCY_MS.max - MOCK_LATENCY_MS.min));
+
+/* demo switch, same spelling as lib/api's: /dashboard/payments?empty=1 */
+const EMPTY = typeof location !== "undefined" && new URLSearchParams(location.search).has("empty");
 
 const maybeFail = () => {
   if (FX.mockErrors && Math.random() < MOCK_ERROR_RATE) {
@@ -60,10 +69,16 @@ export async function getPayoutProfile(): Promise<PayoutProfile> {
   return { paypalEmail: on ? MOCK_PAYPAL_EMAIL : null, verified: on, currency: "USD" };
 }
 
-/** GET /api/me/payouts — the vault read already carries the delay. */
+/** GET /api/me/payouts — the vault read already carries the delay.
+
+    ?empty=1 is the demo switch lib/api already honours: it answers with no
+    vaults so the empty states can be seen. The freelancer store has no such
+    switch of its own, so it is honoured here, on the read. */
 export async function listPayouts(): Promise<Payout[]> {
   const [vaults, events] = await Promise.all([listFreelancerVaults(), listFreelancerEvents()]);
+  if (SLOW) await wait(latency());
   maybeFail();
+  if (EMPTY) return [];
   return payoutsFrom(vaults, events);
 }
 
@@ -132,14 +147,20 @@ const receiptHtml = (r: Receipt): string => {
 };
 
 /** GET /api/receipts/{id}.pdf — the mock builds a printable page and hands it
-    to the browser's print preview, which is where a PDF would land anyway. */
+    to the browser's print preview, which is where a PDF would land anyway.
+
+    A blob URL, not document.write: `noopener` windows hand back no handle, and
+    writing into a blank one would mean dropping `noopener`. This way the
+    receipt is a real same-origin-free document the browser can print on load. */
 export function downloadReceipt(receipt: Receipt): boolean {
-  const win = window.open("", "_blank", "noopener,noreferrer,width=800,height=900");
-  if (!win) return false;
-  win.document.write(receiptHtml(receipt));
-  win.document.close();
-  win.focus();
-  win.print();
+  const url = URL.createObjectURL(new Blob([receiptHtml(receipt)], { type: "text/html" }));
+  const win = window.open(url, "_blank", "width=800,height=900");
+  if (!win) {
+    URL.revokeObjectURL(url);
+    return false;
+  }
+  win.addEventListener("load", () => win.print(), { once: true });
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return true;
 }
 

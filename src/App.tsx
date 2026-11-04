@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { RouterProvider, createBrowserRouter, Navigate, Outlet, RouteObject, useSearchParams } from "react-router-dom";
 import VaultLayout from "./layouts/VaultLayout";
+import { FX } from "./config/fx";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -21,7 +22,9 @@ const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
 const DashboardOverview = lazy(() => import("./pages/dashboard/Overview"));
 const DashboardVaults = lazy(() => import("./pages/dashboard/VaultsPage"));
 const DashboardLedger = lazy(() => import("./pages/dashboard/LedgerPage"));
-const DashboardPayments = lazy(() => import("./pages/dashboard/Payments"));
+/* the payments placeholder stays behind FX.paymentsPage = false */
+const DashboardPaymentsLegacy = lazy(() => import("./pages/dashboard/Payments"));
+const DashboardPaymentsPage = lazy(() => import("./pages/dashboard/payments/PaymentsPage"));
 /* the settings route keeps its old placeholder inside the new page's flag, so
    FX.settingsPage = false restores the blank area without a route change */
 const DashboardSettings = lazy(() => import("./pages/dashboard/settings/SettingsPage"));
@@ -80,7 +83,10 @@ const routes: RouteObject[] = [
       { index: true, element: <DashboardOverview /> },
       { path: "vaults", element: <DashboardVaults /> },
       { path: "ledger", element: <DashboardLedger /> },
-      { path: "payments", element: <DashboardPayments /> },
+      {
+        path: "payments",
+        element: FX.paymentsPage ? <DashboardPaymentsPage /> : <DashboardPaymentsLegacy />,
+      },
       { path: "settings", element: <DashboardSettings /> },
     ],
   },
