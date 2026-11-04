@@ -138,7 +138,9 @@ function Surface({ email }: { email: string }) {
     return sortByNeed(rows).map((r) => r.vault);
   }, [vaults, query, filter]);
 
-  const name = email.toLowerCase().includes("freelancer") ? "Maya" : displayName(email) || "Maya";
+  /* first name only, however long the full name is: "Good morning, Bruce." */
+  const full = email.toLowerCase().includes("freelancer") ? "Maya" : displayName(email) || "Maya";
+  const name = full.split(/\s+/)[0] || full;
 
   async function act(action: VaultAction, vault: FreelancerVault) {
     if (action === "details" || action === "receipt") {
