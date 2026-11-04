@@ -1,0 +1,38 @@
+# Fly.io config for the VaultLance AI engine (FastAPI).
+#
+# Private service: the API reaches it at http://vaultlance-ai-engine.internal:8000.
+# A public service block is kept ONLY because Fly's health checks need one, and
+# every route except /health demands x-internal-key (app/core/security.py), compared
+# in constant time. To take it fully private, delete [http_service] and the check,
+# then rely on 6PN only — the API needs no change.
+app = "vaultlance-ai-engine"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  APP_ENV = "production"
+  ALLOWED_ORIGINS = ""
+  PAYPAL_MODE = "sandbox"
+  MAX_UPLOAD_SIZE_MB = "50"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # 1 keeps the judge demo warm; set to 0 after the demo window to save money.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

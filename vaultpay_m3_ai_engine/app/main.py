@@ -7,6 +7,8 @@ Wires together all routes, middleware, CORS, and startup events.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.security import require_internal_key
+
 from app.core.config import get_settings
 from app.api.routes import projects, files, verification, paypal
 from app.services.evidence_indexer import ensure_index_exists
@@ -40,6 +42,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Section 2b: every route except /health needs the internal key (constant time).
+# The API is the only caller; there is no CORS on this service.
+app.middleware("http")(require_internal_key)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -94,4 +100,20 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health():
     """Basic health check – returns OK if the server is running."""
-    return {"status": "ok", "app": "VaultPay", "version": "1.0.0"}
+    database_healthy = True
+    try:
+        from sqlalchemy import text
+
+        from app.db.base import engine
+
+        async with engine.connect() as conn:
+            await conn.execute(text("select 1"))
+    except Exception:
+        database_healthy = False
+
+    return {
+        "status": "ok" if database_healthy else "degraded",
+        "service": "vaultlance-ai-engine",
+        "version": "1.0.0",
+        "databaseHealthy": database_healthy,
+    }

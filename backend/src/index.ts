@@ -1,21 +1,20 @@
-import { app } from "./app.js";
+import { app, APP_VERSION } from "./app.js";
 import { config } from "./shared/config.js";
 import { logger } from "./shared/logger.js";
+import { assertSandboxPayPal } from "./shared/paypal.env.js";
+import { ensureMoneySchema } from "./money/schema.js";
+import { startSweeper } from "./money/sweeper.js";
 
 const PORT = config.port;
 
+/* Fail loudly before taking traffic if this is pointed at real money. */
+assertSandboxPayPal();
+
+/* Idempotent; a no-op without DATABASE_URL (tests, in-memory mode). */
+await ensureMoneySchema();
+
 app.listen(PORT, () => {
-  logger.info(`VaultPay API server running on port ${PORT} [env: ${config.env}]`);
-  logger.info(`Endpoints available:`);
-  logger.info(`- POST /api/auth/register`);
-  logger.info(`- POST /api/auth/login`);
-  logger.info(`- GET  /api/auth/me`);
-  logger.info(`- POST /api/vaults`);
-  logger.info(`- GET  /api/vaults`);
-  logger.info(`- GET  /api/vaults/:id`);
-  logger.info(`- PATCH /api/vaults/:id`);
-  logger.info(`- POST /api/vaults/:id/invite`);
-  logger.info(`- POST /api/vaults/:id/accept`);
-  logger.info(`- POST /api/uploads/:vaultId`);
-  logger.info(`- GET  /api/manifests/:vaultId`);
+  logger.info(`VaultPay API ${APP_VERSION} running on port ${PORT} [env: ${config.env}]`);
+  startSweeper();
+  logger.info("Sweeper started: CAPTURE_PENDING vaults are finished every 60s");
 });

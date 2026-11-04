@@ -1,11 +1,10 @@
-# Fly.io config for the VaultLance API. Lives beside the code because the
-# build context is this directory.
+# Fly.io config for the VaultLance API. Build context is this directory.
 #
-# Deliberately no [deploy] release_command: there are no migrations to run
-# (Supabase owns the schema), and a release command that waits on a database it
-# cannot reach is what aborted the deploy with exit code 1.
+# No [deploy] release_command: Supabase owns the schema and the money-loop DDL
+# runs idempotently from the app at boot (src/money/schema.ts), so a release
+# command that waits on a database it cannot reach is not needed.
 app = "vaultlance-ai"
-primary_region = "cdg"
+primary_region = "fra"
 
 [build]
   dockerfile = "Dockerfile"
@@ -13,17 +12,25 @@ primary_region = "cdg"
 [env]
   NODE_ENV = "production"
   PORT = "8080"
+  APP_VERSION = "phase1-money-loop"
+  # Sandbox only: the process refuses to start when this is anything else.
+  PAYPAL_ENV = "sandbox"
+  PUBLIC_API_URL = "https://vaultlance-ai.fly.dev"
+  FRONTEND_URL = "https://vault-lance-ai.vercel.app"
+  FRONTEND_ORIGINS = "https://vault-lance-ai.vercel.app,http://localhost:5173"
+  AI_SERVICE_URL = "http://vaultlance-ai-engine.internal:8000"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "suspend"
+  auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  # 1 = no cold start for judges; lower to 0 after the demo to save money.
+  min_machines_running = 1
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
+    grace_period = "30s"
+    interval = "15s"
     method = "GET"
     path = "/health"
     timeout = "5s"

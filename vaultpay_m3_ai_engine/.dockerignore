@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+uploads/
+*.db
+*.sqlite3
+tests/
+test_ai_verification.py
+test_live_api.py
+.git
