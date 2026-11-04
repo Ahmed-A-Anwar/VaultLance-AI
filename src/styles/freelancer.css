@@ -750,6 +750,15 @@
 
 /* ---- earnings ---- */
 .fd-earnings { display: flex; flex-direction: column; gap: 21px; }
+/* the strip already says Earnings: the page's own line is a mono caption */
+.fd-caption {
+  margin: 0;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
 .fd-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
 .fd-sum {
   height: 89px;

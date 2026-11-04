@@ -322,10 +322,10 @@ function Surface({ email }: { email: string }) {
       )}
 
       {view === "earnings" && (
-        <section className="fd-earnings" aria-labelledby="fd-earn-h2">
-          <h2 id="fd-earn-h2" className="fd-h2">
-            Earnings
-          </h2>
+        <section className="fd-earnings" aria-labelledby="fd-earn-caption">
+          <p id="fd-earn-caption" className="fd-caption">
+            WHAT YOU’VE EARNED AND WHEN IT ARRIVES
+          </p>
           <div className="fd-sums">
             <div className="fd-sum">
               <span className="fd-kpi-label">THIS MONTH</span>
