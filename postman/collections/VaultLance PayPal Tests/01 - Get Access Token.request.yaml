@@ -1,0 +1,39 @@
+$kind: http-request
+url: "{{base_url}}/v1/oauth2/token"
+method: POST
+body:
+  type: urlencoded
+  content:
+    grant_type: client_credentials
+auth:
+  type: basic
+  credentials:
+    username: "{{client_id}}"
+    password: "{{client_secret}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Access token request succeeded\", function () {\r
+
+      \  pm.response.to.have.status(200);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Access token exists\", function () {\r
+
+      \  pm.expect(response.access_token).to.be.a(\"string\");\r
+
+      \  pm.expect(response.access_token.length).to.be.greaterThan(10);\r
+
+      });\r
+
+      \r
+
+      pm.environment.set(\"access_token\", response.access_token);"
+    language: text/javascript
+order: 2000

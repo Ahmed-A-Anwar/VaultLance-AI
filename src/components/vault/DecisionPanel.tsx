@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { HoldButton } from "../shared/HoldButton";
+import { PayPalAuthorizeButton } from "../shared/PayPalAuthorizeButton";
 import { useToast } from "../shared/Toasts";
 import { useRoom } from "./room";
 import { Copy, Check } from "./icons";
@@ -13,7 +14,7 @@ const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD",
 const FEE = 0.05;
 
 export function DecisionPanel() {
-  const { vault, status, busy, authorize, approve, reject, capturedAt } = useRoom();
+  const { vault, status, busy, authorize, approve, reject, capturedAt, reload, checks } = useRoom();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const [counting, setCounting] = useState(0);
@@ -24,6 +25,7 @@ export function DecisionPanel() {
   const tick = useRef(0);
 
   const amount = vault?.amountUSD ?? 0;
+  const hasFailedChecks = checks.some((c) => c.result === "fail" || c.state === "fail");
 
   useEffect(() => {
     if (status === "voided") setAnim("void");
@@ -132,6 +134,15 @@ export function DecisionPanel() {
         <>
           <p className="room-amount">{usd.format(amount)}</p>
           <p className="room-hint">Nothing is spent. PayPal holds the amount until you decide.</p>
+          {vault?.id && (
+            <PayPalAuthorizeButton
+              vaultId={vault.id}
+              amountUSD={amount}
+              onSuccess={() => {
+                void reload();
+              }}
+            />
+          )}
           <button type="button" className="room-primary" onClick={() => void fireAuthorize()} disabled={busy === "authorize"}>
             {busy === "authorize" ? <span className="dash-spin" aria-hidden="true" /> : null}
             {busy === "authorize" ? "Authorizing…" : "Authorize payment"}
@@ -163,10 +174,15 @@ export function DecisionPanel() {
             className="room-hold"
             onConfirm={() => void fireApprove()}
             pending={busy === "approve"}
-            disabled={status !== "audited" || busy === "reject"}
+            disabled={status !== "audited" || busy === "reject" || hasFailedChecks}
             label={status === "held" ? "Approve & pay" : "Hold to approve & pay"}
           />
           {status === "held" && <p className="room-hint room-hint-sm">Run the audit first.</p>}
+          {status === "audited" && hasFailedChecks && (
+            <p className="room-hint room-hint-sm" style={{ color: "#d9534f" }}>
+              ⚠️ Verification failed. Payment locked until issues are resolved.
+            </p>
+          )}
 
           <button
             type="button"

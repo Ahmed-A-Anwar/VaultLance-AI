@@ -1,0 +1,225 @@
+$kind: http-request
+url: "{{base_url}}/v2/checkout/orders"
+method: POST
+headers:
+  Content-Type: application/json
+  Prefer: return=representation
+  PayPal-Request-Id: vaultlance-create-void-001
+body:
+  type: json
+  content: "{\r
+
+    \  \"intent\": \"AUTHORIZE\",\r
+
+    \  \"purchase_units\": [\r
+
+    \    {\r
+
+    \      \"reference_id\": \"vault-demo-002\",\r
+
+    \      \"description\": \"VaultLance AI digital deliverables\",\r
+
+    \      \"custom_id\": \"vault-demo-002\",\r
+
+    \      \"invoice_id\": \"vault-demo-002-void-001\",\r
+
+    \      \"amount\": {\r
+
+    \        \"currency_code\": \"USD\",\r
+
+    \        \"value\": \"10.00\"\r
+
+    \      }\r
+
+    \    }\r
+
+    \  ],\r
+
+    \  \"payment_source\": {\r
+
+    \    \"paypal\": {\r
+
+    \      \"experience_context\": {\r
+
+    \        \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\",\r
+
+    \        \"brand_name\": \"VaultLance AI\",\r
+
+    \        \"locale\": \"en-US\",\r
+
+    \        \"landing_page\": \"LOGIN\",\r
+
+    \        \"shipping_preference\": \"NO_SHIPPING\",\r
+
+    \        \"user_action\": \"CONTINUE\",\r
+
+    \        \"return_url\": \"https://example.com/paypal/success\",\r
+
+    \        \"cancel_url\": \"https://example.com/paypal/cancel\"\r
+
+    \      }\r
+
+    \    }\r
+
+    \  }\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "let response;\r
+
+      \r
+
+      pm.test(\"Response body is valid JSON\", function () {\r
+
+      \  response = pm.response.json();\r
+
+      \  pm.expect(response).to.be.an(\"object\");\r
+
+      });\r
+
+      \r
+
+      /*\r
+
+      \ * A newly created PayPal order normally returns 201.\r
+
+      \ * PayPal can return 200 when an idempotent request retrieves\r
+
+      \ * the result of a previously processed request.\r
+
+      \ */\r
+
+      pm.test(\"Order request succeeded\", function () {\r
+
+      \  pm.expect([200, 201]).to.include(pm.response.code);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Order ID exists\", function () {\r
+
+      \  pm.expect(response.id).to.be.a(\"string\");\r
+
+      \  pm.expect(response.id.length).to.be.greaterThan(5);\r
+
+      });\r
+
+      \r
+
+      /*\r
+
+      \ * PayPal currently returned PAYER_ACTION_REQUIRED in your test.\r
+
+      \ * CREATED may also appear depending on the request/response flow.\r
+
+      \ */\r
+
+      pm.test(\"Order is waiting for buyer approval\", function () {\r
+
+      \  pm.expect([\r
+
+      \    \"CREATED\",\r
+
+      \    \"PAYER_ACTION_REQUIRED\"\r
+
+      \  ]).to.include(response.status);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Order intent is AUTHORIZE\", function () {\r
+
+      \  pm.expect(response.intent).to.eql(\"AUTHORIZE\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Order amount is USD 10.00\", function () {\r
+
+      \  const amount = response.purchase_units?.[0]?.amount;\r
+
+      \r
+
+      \  pm.expect(amount).to.exist;\r
+
+      \  pm.expect(amount.currency_code).to.eql(\"USD\");\r
+
+      \  pm.expect(amount.value).to.eql(\"10.00\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"This is the void-test vault\", function () {\r
+
+      \  const purchaseUnit = response.purchase_units?.[0];\r
+
+      \r
+
+      \  pm.expect(purchaseUnit).to.exist;\r
+
+      \  pm.expect(purchaseUnit.reference_id).to.eql(\"vault-demo-002\");\r
+
+      \  pm.expect(purchaseUnit.custom_id).to.eql(\"vault-demo-002\");\r
+
+      \  pm.expect(purchaseUnit.invoice_id).to.eql(\r
+
+      \    \"vault-demo-002-void-001\"\r
+
+      \  );\r
+
+      });\r
+
+      \r
+
+      const approvalLink = response.links?.find(function (link) {\r
+
+      \  return link.rel === \"payer-action\" || link.rel === \"approve\";\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Buyer approval URL exists\", function () {\r
+
+      \  pm.expect(approvalLink).to.exist;\r
+
+      \  pm.expect(approvalLink.href).to.be.a(\"string\");\r
+
+      \  pm.expect(approvalLink.href).to.include(\r
+
+      \    \"sandbox.paypal.com\"\r
+
+      \  );\r
+
+      });\r
+
+      \r
+
+      pm.environment.set(\"order_id\", response.id);\r
+
+      \r
+
+      if (approvalLink) {\r
+
+      \  pm.environment.set(\"approve_url\", approvalLink.href);\r
+
+      }\r
+
+      \r
+
+      console.log(\"Void-flow order ID:\", response.id);\r
+
+      console.log(\"Order status:\", response.status);\r
+
+      console.log(\"Approval URL:\", approvalLink?.href);"
+    language: text/javascript
+order: 7000

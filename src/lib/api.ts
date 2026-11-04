@@ -640,12 +640,55 @@ const seedFor = (id: string): Seed => ROOM_SEED[id] ?? GENERIC_SEED;
 const checkedAt = new Map<string, number>();
 const questionsUsed = new Map<string, number>();
 
-/* GET /v1/vaults/{id} */
+/* GET /api/vaults/{id}/audit-detail — real backend fetch */
 export async function getVaultDetail(id: string): Promise<VaultDetail> {
+  try {
+    const res = await fetch(`${API_BASE}/api/vaults/${id}/audit-detail`, {
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const d = json.data;
+      const v = d.vault;
+      const frontendVault: Vault = {
+        id: v.id,
+        project: v.title,
+        freelancer: "Freelancer",
+        amountUSD: Number(v.amount) || 0,
+        status: mapBackendStatusToFrontend(v.status),
+        createdAt: new Date(v.createdAt || v.created_at || Date.now()).getTime(),
+        paypalOrderId: v.id ? `8XK${v.id.slice(0, 8).toUpperCase()}` : undefined,
+      };
+      return {
+        vault: frontendVault,
+        files: (d.files || []).map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          kind: f.kind || "file",
+          meta: f.meta || "",
+        })),
+        checks: (d.checks || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          detail: c.detail,
+          source: c.source || "TEST LOG",
+          result: c.result || "pass",
+          state: c.state || "queued",
+          rows: c.rows || [],
+        })),
+        messages: [],
+        suggestions: d.suggestions || ["What was delivered?", "Are there any issues?", "Is the build ready to ship?"],
+        questionsUsed: d.questionsUsed ?? (questionsUsed.get(id) ?? 0),
+        questionLimit: d.questionLimit ?? QUESTION_LIMIT,
+      };
+    }
+  } catch {
+    /* backend unreachable — fall through to in-memory */
+  }
+  /* fallback to in-memory mock if backend fails */
   return call(() => {
     const v = find(id);
     const seed = seedFor(id);
-    /* a vault that already passed its audit opens with the results in place */
     const settled = v.status === "audited" || v.status === "unlocked";
     return {
       vault: { ...v },
@@ -659,27 +702,62 @@ export async function getVaultDetail(id: string): Promise<VaultDetail> {
   });
 }
 
-/* GET /v1/vaults/{id}/files */
+/* GET /api/vaults/{id}/audit-detail (files subset) */
 export async function listFiles(id: string): Promise<VaultFile[]> {
-  return call(() => {
-    find(id);
-    return seedFor(id).files.map((f) => ({ ...f }));
-  });
+  try {
+    const detail = await getVaultDetail(id);
+    return detail.files;
+  } catch {
+    return call(() => {
+      find(id);
+      return seedFor(id).files.map((f) => ({ ...f }));
+    });
+  }
 }
 
-/* POST /v1/vaults/{id}/checks:run — resolves with every result, and calls back
-   per check so the panel can move one card at a time. On the last result the
-   vault is audited and the event bus hears about it. */
+/* POST /api/vaults/{id}/checks/run — runs audit checks on backend, with
+   visual progress animation on the frontend per check card. */
 export async function runChecks(
   id: string,
   onProgress?: (checkId: string, state: CheckResult) => void
 ): Promise<VaultCheck[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const serverChecks: VaultCheck[] = (json.data?.checks || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        detail: c.detail,
+        source: c.source || "TEST LOG",
+        result: c.result || "pass",
+        state: c.state || c.result || "pass",
+        rows: c.rows || [],
+      }));
+      /* Animate progress locally even though server already computed results */
+      const timings = [618, 800, 1000, 618];
+      for (let i = 0; i < serverChecks.length; i++) {
+        const chk = serverChecks[i];
+        onProgress?.(chk.id, "running");
+        await wait(timings[i % timings.length]);
+        onProgress?.(chk.id, chk.result);
+      }
+      checkedAt.set(id, Date.now());
+      emit("AUDIT.COMPLETED", id, "Audit run finished, report ready", {});
+      return serverChecks;
+    }
+  } catch {
+    /* backend unreachable — fall through to mock */
+  }
+  /* fallback to mock */
   const v = find(id);
   expectStatus(v, ["held"], "be audited");
   const seed = seedFor(id).checks;
   const timings = [618, 1000, 1618, 1000];
   const done: VaultCheck[] = [];
-
   for (let i = 0; i < seed.length; i++) {
     const def = seed[i];
     onProgress?.(def.id, "running");
@@ -691,26 +769,49 @@ export async function runChecks(
     onProgress?.(def.id, def.result);
     done.push({ ...def, state: def.result, rows: def.rows.map((r) => ({ ...r })) });
   }
-
   setStatus(id, "audited");
   checkedAt.set(id, Date.now());
   emit("AUDIT.COMPLETED", id, "Audit run finished, report ready", { paypalId: v.paypalOrderId });
   return done;
 }
 
-/* POST /v1/vaults/{id}/chat — server-sent answer. The demo matches keywords
-   instead of calling a model, and always reports itself as a cached answer. */
+/* POST /api/vaults/{id}/chat — calls the real backend AI endpoint.
+   Falls back to in-memory answerFor() if backend is unreachable. */
 export async function askAI(
   id: string,
   question: string,
   onToken: (chunk: string) => void
 ): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ question }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const d = json.data;
+      const text: string = d.text || "";
+      /* trickle tokens locally for the streaming effect */
+      for (const char of text) {
+        onToken(char);
+        await wait(18);
+      }
+      questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
+      return {
+        text,
+        sources: (d.sources || []) as SourceChip[],
+        cached: d.cached ?? false,
+      };
+    }
+  } catch {
+    /* backend unreachable — fall through to mock */
+  }
+  /* fallback to mock */
   const v = find(id);
   await wait(latency());
   if (Math.random() < FAIL_RATE) throw new ApiError("network", "The audit agent did not answer.");
-
   const answer = answerFor(v, question);
-  /* 40 characters a second, the way a model trickles tokens */
   for (const char of answer.text) {
     onToken(char);
     await wait(25);

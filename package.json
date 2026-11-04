@@ -20,6 +20,7 @@
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.2.5",
     "@hookform/resolvers": "^6.0.2",
+    "@paypal/react-paypal-js": "^10.6.1",
     "@supabase/supabase-js": "^2.118.0",
     "ag-grid-community": "^36.2.0",
     "ag-grid-react": "^36.2.0",

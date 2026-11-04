@@ -1,0 +1,46 @@
+$kind: http-request
+url: "{{base_url}}/v2/payments/authorizations/{{authorization_id}}/void"
+method: POST
+headers:
+  Content-Type: application/json
+  PayPal-Request-Id: vaultlance-void-001
+body:
+  type: json
+  content: "{}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Void request succeeded\", function () {\r
+
+      \  pm.expect([200, 204]).to.include(pm.response.code);\r
+
+      });\r
+
+      \r
+
+      if (pm.response.code === 200 && pm.response.text().trim()) {\r
+
+      \  const response = pm.response.json();\r
+
+      \r
+
+      \  pm.test(\"Authorization status is VOIDED\", function () {\r
+
+      \    pm.expect(response.status).to.eql(\"VOIDED\");\r
+
+      \  });\r
+
+      }\r
+
+      \r
+
+      if (pm.response.code === 204) {\r
+
+      \  console.log(\"Authorization voided successfully. Empty body is expected.\");\r
+
+      }"
+    language: text/javascript
+order: 9000
