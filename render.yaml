@@ -1,0 +1,31 @@
+# Render blueprint for the Express API.
+# The Vercel frontend talks to it through VITE_API_URL (see docs/deploy-real-accounts.md).
+services:
+  - type: web
+    name: vaultlance-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://vault-lance-ai.vercel.app
+      # Supabase: accounts and vaults live here. Without these the API falls
+      # back to an in-memory store that a restart wipes.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # PayPal sandbox (order / authorize / capture). Optional for signup.
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
