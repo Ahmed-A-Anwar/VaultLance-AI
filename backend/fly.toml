@@ -1,7 +1,9 @@
-# Fly.io config for the VaultLance API.
-# Deliberately no [deploy] release_command: this service has no migration step
+# Fly.io config for the VaultLance API. Lives beside the code because the
+# build context is this directory.
+#
+# Deliberately no [deploy] release_command: there are no migrations to run
 # (Supabase owns the schema), and a release command that waits on a database it
-# cannot reach is what aborts the deploy with exit code 1.
+# cannot reach is what aborted the deploy with exit code 1.
 app = "vaultlance-ai"
 
 [build]

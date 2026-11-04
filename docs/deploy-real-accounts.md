@@ -83,7 +83,9 @@ in Supabase → Authentication → Users and in `public.users`.
 
 ## Step 2b — Fly.io instead of Render
 
-The repo ships `Dockerfile` and `fly.toml` for the API. There is deliberately no
+The repo ships `backend/Dockerfile` and `backend/fly.toml`, because the Fly
+build context is `backend/` itself — every path in them is backend-relative.
+There is deliberately no
 `[deploy] release_command`: this service has no migrations of its own (Supabase
 owns the schema), and a release command that waits on a database it cannot reach
 is what aborts a deploy with `release_command failed ... exit code 1`.
@@ -99,7 +101,7 @@ fly secrets set \
   FRONTEND_URL=https://vault-lance-ai.vercel.app \
   -a vaultlance-ai
 
-fly deploy -a vaultlance-ai
+fly deploy -c backend/fly.toml -a vaultlance-ai
 ```
 
 If the app's own `fly.toml` (the one Fly generated) still has a
