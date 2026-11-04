@@ -81,6 +81,31 @@ curl -s -X POST https://<service>.onrender.com/api/auth/register \
 The second call must answer `201` with `data.token`; the same email must appear
 in Supabase → Authentication → Users and in `public.users`.
 
+## Step 2b — Fly.io instead of Render
+
+The repo ships `Dockerfile` and `fly.toml` for the API. There is deliberately no
+`[deploy] release_command`: this service has no migrations of its own (Supabase
+owns the schema), and a release command that waits on a database it cannot reach
+is what aborts a deploy with `release_command failed ... exit code 1`.
+
+The image runs `npm start` (`tsx src/index.ts`) on port 8080, which is also the
+`internal_port` and the `PORT` the API reads.
+
+```bash
+fly secrets set \
+  JWT_SECRET=$(openssl rand -hex 32) \
+  SUPABASE_URL=https://<project>.supabase.co \
+  SUPABASE_SERVICE_ROLE_KEY=<service role key> \
+  FRONTEND_URL=https://vault-lance-ai.vercel.app \
+  -a vaultlance-ai
+
+fly deploy -a vaultlance-ai
+```
+
+If the app's own `fly.toml` (the one Fly generated) still has a
+`[deploy] release_command` line, delete it or deploy with this repo's file.
+`fly secrets set` does not take a client IP; the health check is `GET /health`.
+
 ## Step 3 — Vercel (the frontend)
 
 1. Settings → Environment Variables → add

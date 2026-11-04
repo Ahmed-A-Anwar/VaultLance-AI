@@ -1,0 +1,31 @@
+# Fly.io config for the VaultLance API.
+# Deliberately no [deploy] release_command: this service has no migration step
+# (Supabase owns the schema), and a release command that waits on a database it
+# cannot reach is what aborts the deploy with exit code 1.
+app = "vaultlance-ai"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
