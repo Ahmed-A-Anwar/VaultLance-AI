@@ -667,6 +667,14 @@
   height: auto;
   max-height: none;
 }
+/* The earnings grid needs a definite height: AG's root is height:100% of this
+   box, and an auto-height parent resolves that to 0, which is what left the
+   page with an invisible grid. 55 strip + 233 band + 55 toolbar + 68 padding. */
+.fd-earnings .fd-grid {
+  flex: none;
+  height: calc(100svh - 55px - 233px - 55px - 68px);
+  min-height: 377px;
+}
 .fd-grid { flex: 1; min-height: 233px; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
 .fd-grid .ag-root-wrapper { border: none; background: transparent; }
 /* the client's grid rules, selector for selector: 34px rows, mono headers,
