@@ -18,9 +18,20 @@ dotenvConfig();
 const forceInMemory = process.env.USE_IN_MEMORY_DB === "true";
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_PUBLISHABLE_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = serviceRoleKey || process.env.SUPABASE_PUBLISHABLE_KEY;
+
+/* The publishable/anon key is a valid fallback for reads, but it cannot call
+   the admin endpoints: registration goes through auth.admin.createUser, which
+   answers "This endpoint requires a valid Bearer token" when the key is wrong.
+   Say so at boot instead of failing on the first signup. */
+if (!forceInMemory && supabaseUrl && !serviceRoleKey) {
+  console.error(
+    "[supabaseClient] SUPABASE_SERVICE_ROLE_KEY is missing; using the publishable key. " +
+      "Admin calls such as auth.admin.createUser (POST /api/auth/register) will fail with " +
+      "'This endpoint requires a valid Bearer token'. Set the service role key."
+  );
+}
 
 if (!forceInMemory && !supabaseUrl) {
   console.warn(

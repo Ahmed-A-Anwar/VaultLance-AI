@@ -87,6 +87,13 @@ export class AuthService {
 
       if (signUpErr) {
         logger.error("[auth] Supabase signUp error:", signUpErr);
+        /* the admin API rejects anything but the service role key */
+        if (/valid Bearer token/i.test(signUpErr.message || "")) {
+          throw new DatabaseError(
+            "Supabase rejected the admin call: the API is running with the publishable key. " +
+              "Set SUPABASE_SERVICE_ROLE_KEY to the service role key and restart."
+          );
+        }
         if (
           signUpErr.message?.toLowerCase().includes("already registered") ||
           signUpErr.message?.toLowerCase().includes("already been registered")
