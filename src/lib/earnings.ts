@@ -6,6 +6,7 @@
 
 import { freelancerPayoutEstimate } from "./fees";
 import { phaseOf, type Phase, type PayoutStatus } from "./freelancerPhase";
+import type { LedgerEvent as ClientEvent, Vault as ClientVault } from "./api";
 import type { FreelancerEvent, FreelancerEventType, FreelancerVault } from "../components/freelancer/mockApi";
 
 export interface PaidPayout {
@@ -55,9 +56,16 @@ export function paidPayouts(vaults: FreelancerVault[], events: FreelancerEvent[]
     .sort((a, b) => (b.paidAt ?? 0) - (a.paidAt ?? 0));
 }
 
+/** Every cent that has actually arrived, from the payout status alone. This is
+    the one definition: allTimePaidCents, the Payments page's TOTAL PAID and the
+    Overview's PAID OUT all read it. */
+export function paidOut(vaults: FreelancerVault[]): number {
+  return vaults.filter(isPaid).reduce((sum, v) => sum + freelancerPayoutEstimate(v.amountCents), 0);
+}
+
 /** Every cent that has actually arrived. The Overview's PAID OUT is this. */
-export function allTimePaidCents(vaults: FreelancerVault[], events: FreelancerEvent[]): number {
-  return paidPayouts(vaults, events).reduce((sum, p) => sum + p.amountCents, 0);
+export function allTimePaidCents(vaults: FreelancerVault[], _events: FreelancerEvent[] = []): number {
+  return paidOut(vaults);
 }
 
 const sameMonth = (ms: number, now: Date): boolean => {
@@ -255,4 +263,74 @@ export function csvCell(value: string | number | null | undefined): string {
 
 export function toCsv(rows: Array<Array<string | number | null | undefined>>): string {
   return rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+}
+
+/* -------------------------------------------------------------- payments === */
+
+/* The Payments page asks the same questions as the rest of the dashboard, so
+   these names are aliases of the definitions above, never a second sum. */
+export const pendingPayout = pendingPayoutCents;
+export const inEscrow = inEscrowCents;
+
+/* ---- the client's side. The API stores dollars; every figure here is cents,
+   rounded once, at this boundary. */
+
+const toCents = (usd: number | undefined) => Math.round((usd ?? 0) * 100);
+
+/** Money the client has authorized and that is still held: authorized or in
+    audit. A captured or voided vault is no longer held. */
+export function heldTotal(vaults: ClientVault[]): number {
+  return vaults
+    .filter((v) => v.status === "held" || v.status === "audited")
+    .reduce((sum, v) => sum + toCents(v.amountUSD), 0);
+}
+
+/** Money that actually left the client: a vault unlocks on capture. */
+export function capturedTotal(vaults: ClientVault[]): number {
+  return vaults.filter((v) => v.status === "unlocked").reduce((sum, v) => sum + toCents(v.amountUSD), 0);
+}
+
+/** Money the client got back. Every void counts, including a hold that was
+    authorized again afterwards — that history is real, and it is the card's
+    subject. */
+export function voidedTotal(events: ClientEvent[]): number {
+  return events
+    .filter((e) => e.type === "PAYMENT.VOIDED")
+    .reduce((sum, e) => sum + toCents(e.amountUSD), 0);
+}
+
+/** Everything the three freelancer payment cards need, in one pass. */
+export interface PaymentsSummary {
+  paidCents: number;
+  pendingCents: number;
+  failed: FailedPayout[];
+  failedCents: number;
+}
+
+export function paymentsSummary(vaults: FreelancerVault[]): PaymentsSummary {
+  const failed = failedPayouts(vaults);
+  return {
+    paidCents: paidOut(vaults),
+    pendingCents: pendingPayoutCents(vaults),
+    failed,
+    failedCents: failed.reduce((sum, f) => sum + f.estimateCents, 0),
+  };
+}
+
+/** Everything the three client payment cards need, in one pass. */
+export interface ClientPaymentsSummary {
+  heldCents: number;
+  capturedCents: number;
+  voidedCents: number;
+}
+
+export function clientPaymentsSummary(
+  vaults: ClientVault[],
+  events: ClientEvent[]
+): ClientPaymentsSummary {
+  return {
+    heldCents: heldTotal(vaults),
+    capturedCents: capturedTotal(vaults),
+    voidedCents: voidedTotal(events),
+  };
 }

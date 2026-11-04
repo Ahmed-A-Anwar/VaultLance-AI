@@ -6,22 +6,30 @@ import { test, expect } from "@playwright/test";
 import {
   allTimePaidCents,
   buildEarningsRows,
+  capturedTotal,
+  clientPaymentsSummary,
   csvCell,
   earningsSummary,
   failedPayouts,
   filterRows,
+  heldTotal,
+  inEscrow,
   inEscrowCents,
   paidAtOf,
+  paidOut,
   paidPayouts,
+  paymentsSummary,
+  pendingPayout,
   pendingPayoutCents,
   thisMonthPaidCents,
   toCsv,
   totalPaidCents,
+  voidedTotal,
 } from "../src/lib/earnings";
 import { freelancerPayoutEstimate } from "../src/lib/fees";
 
 type V = Parameters<typeof allTimePaidCents>[0][number];
-type E = Parameters<typeof allTimePaidCents>[1][number];
+type E = NonNullable<Parameters<typeof allTimePaidCents>[1]>[number];
 
 /* a calendar month is the viewer's local month, so the fixtures are built in
    local time and the boundary is the same boundary the user's clock shows */
@@ -209,5 +217,79 @@ test.describe("csv", () => {
       ["2026-11-02 09:00", "PAYOUT SENT", 8034],
     ]);
     expect(csv.split("\r\n")).toEqual(["Time,Event,Amount", "2026-11-02 09:00,PAYOUT SENT,8034"]);
+  });
+});
+
+/* ---------------------------------------------------------- payments === */
+
+/* the six freelancer vaults the mock seeds, in the shapes the selectors read */
+const SEED_FREELANCER: V[] = [
+  vault({ id: "v_0001", project: "Icon Set", amountCents: 12_000, payoutStatus: "failed" }),
+  vault({ id: "v_0002", project: "Logo Pack", amountCents: 18_000, uiStatus: "held" }),
+  vault({ id: "v_0003", project: "Pitch Deck", amountCents: 45_000, uiStatus: "awaiting_payment" }),
+  vault({ id: "v_0004", project: "Landing Page", amountCents: 30_000, uiStatus: "awaiting_payment" }),
+  vault({ id: "v_0005", project: "Booking Web App", amountCents: 240_000, uiStatus: "audited" }),
+  vault({ id: "v_0006", project: "Brand Guide", amountCents: 9_000, payoutStatus: "paid" }),
+];
+
+const SEED_EVENTS = [payout("e_03", "v_0006", "2026-10-26T22:27:00Z", 8_034)];
+
+/* the four client vaults, in the API's dollars */
+type CV = Parameters<typeof heldTotal>[0][number];
+type CE = Parameters<typeof voidedTotal>[0][number];
+
+const SEED_CLIENT: CV[] = [
+  { id: "v_logo_pack", project: "Logo Pack", freelancer: "Maya", amountUSD: 180, status: "held", createdAt: 0 },
+  { id: "v_booking_app", project: "Booking Web App", freelancer: "Dev", amountUSD: 2400, status: "audited", createdAt: 0 },
+  { id: "v_brand_guide", project: "Brand Guide", freelancer: "Lena", amountUSD: 90, status: "unlocked", createdAt: 0 },
+  { id: "v_landing_page", project: "Landing Page", freelancer: "Omar", amountUSD: 300, status: "awaiting_payment", createdAt: 0 },
+];
+
+const SEED_CLIENT_EVENTS: CE[] = [
+  { id: "e1", ts: 0, type: "PAYMENT.CAPTURED", vaultId: "v_brand_guide", label: "Capture", amountUSD: 90 },
+  { id: "e2", ts: 0, type: "PAYMENT.VOIDED", vaultId: "v_booking_app", label: "Void", amountUSD: 2400 },
+];
+
+test.describe("payments selectors", () => {
+  test("the freelancer cards read the seed", () => {
+    expect(paidOut(SEED_FREELANCER)).toBe(8034);
+    expect(pendingPayout(SEED_FREELANCER)).toBe(0);
+    /* Logo Pack $180 and Booking Web App $2,400, after both fees */
+    expect(inEscrow(SEED_FREELANCER)).toBe(231_108);
+    expect(failedPayouts(SEED_FREELANCER)).toEqual([
+      { vaultId: "v_0001", project: "Icon Set", estimateCents: 10_722 },
+    ]);
+  });
+
+  test("the client cards read the seed", () => {
+    expect(heldTotal(SEED_CLIENT)).toBe(258_000);
+    expect(capturedTotal(SEED_CLIENT)).toBe(9_000);
+    expect(voidedTotal(SEED_CLIENT_EVENTS)).toBe(240_000);
+  });
+
+  test("Overview PAID OUT, Earnings ALL TIME and Payments TOTAL PAID are one number", () => {
+    const overview = paidOut(SEED_FREELANCER);
+    const earnings = allTimePaidCents(SEED_FREELANCER, SEED_EVENTS);
+    const payments = paymentsSummary(SEED_FREELANCER).paidCents;
+    expect(overview).toBe(8034);
+    expect(earnings).toBe(overview);
+    expect(payments).toBe(overview);
+  });
+
+  test("a captured or voided hold is no longer held; pending is not paid", () => {
+    expect(heldTotal([{ ...SEED_CLIENT[0], status: "unlocked" }])).toBe(0);
+    expect(heldTotal([{ ...SEED_CLIENT[0], status: "voided" }])).toBe(0);
+    expect(heldTotal([{ ...SEED_CLIENT[0] }])).toBe(18_000);
+    const captured = vault({ id: "c1", payoutStatus: "pending", uiStatus: "unlocked" });
+    expect(paidOut([captured])).toBe(0);
+    expect(pendingPayout([captured])).toBe(freelancerPayoutEstimate(captured.amountCents));
+  });
+
+  test("the client summary adds up the three cards in one pass", () => {
+    expect(clientPaymentsSummary(SEED_CLIENT, SEED_CLIENT_EVENTS)).toEqual({
+      heldCents: 258_000,
+      capturedCents: 9_000,
+      voidedCents: 240_000,
+    });
   });
 });
