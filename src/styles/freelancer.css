@@ -225,26 +225,8 @@
   gap: 13px;
   flex-wrap: wrap;
 }
-.fd-filters { display: flex; gap: 8px; }
-.fd-filter {
-  height: 34px;
-  padding: 0 13px;
-  border: 1px solid transparent;
-  border-radius: 13px;
-  background: transparent;
-  font-family: var(--hero-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  color: var(--hero-slate);
-  cursor: pointer;
-  transition: background-color var(--hero-d-236) var(--fd-ease), color var(--hero-d-236) var(--fd-ease);
-}
-.fd-filter:hover { background: rgba(255, 255, 255, 0.35); }
-.fd-filter[aria-pressed="true"] {
-  border-color: var(--fd-hair);
-  background: rgba(255, 255, 255, 0.42);
-  color: var(--hero-ink);
-}
+/* filter chips are the client's: .dash-chip-filter in dashboard.css. No local
+   copy, so the row can never drift from the client's. */
 
 /* ---- vault card: 144px ---- */
 .fd-list { display: flex; flex-direction: column; gap: 13px; }

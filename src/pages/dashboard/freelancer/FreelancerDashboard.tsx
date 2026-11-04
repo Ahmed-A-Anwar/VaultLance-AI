@@ -47,11 +47,12 @@ const HOUR = 60 * 60 * 1000;
 type Filter = "all" | "needs_action" | "in_escrow" | "paid";
 type View = "overview" | "vaults" | "earnings";
 
+/* the client's chip labels, uppercase: the row is the client's row */
 const FILTERS: Array<{ key: Filter; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "needs_action", label: "Needs action" },
-  { key: "in_escrow", label: "In escrow" },
-  { key: "paid", label: "Paid" },
+  { key: "all", label: "ALL" },
+  { key: "needs_action", label: "NEEDS ACTION" },
+  { key: "in_escrow", label: "IN ESCROW" },
+  { key: "paid", label: "PAID" },
 ];
 
 const greetingFor = (now = new Date()) => {
@@ -268,12 +269,12 @@ function Surface({ email }: { email: string }) {
                 Your vaults
               </h2>
               {vaults.length > 0 && (
-                <div className="fd-filters" role="group" aria-label="Filter vaults">
+                <div className="dash-chips" role="group" aria-label="Filter vaults">
                   {FILTERS.map((f) => (
                     <button
                       key={f.key}
                       type="button"
-                      className="fd-filter"
+                      className="dash-chip-filter"
                       aria-pressed={filter === f.key}
                       onClick={() => setFilter(f.key)}
                     >
@@ -300,16 +301,15 @@ function Surface({ email }: { email: string }) {
           <div className="fd-head">
             <h2 id="fd-vaults-h2" className="fd-h2">
               Your vaults
-            </h2>
-            {vaults.length > 0 && (
-              <div className="fd-filters" role="group" aria-label="Filter vaults">
-                {FILTERS.map((f) => (
-                  <button key={f.key} type="button" className="fd-filter" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            </h2>              {vaults.length > 0 && (
+                <div className="dash-chips" role="group" aria-label="Filter vaults">
+                  {FILTERS.map((f) => (
+                    <button key={f.key} type="button" className="dash-chip-filter" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              )}
           </div>
           {list}
         </section>
