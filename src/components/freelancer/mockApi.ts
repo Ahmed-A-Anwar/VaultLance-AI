@@ -12,6 +12,7 @@
 
 import { FX } from "../../config/fx";
 import { freelancerPayoutEstimate } from "../../lib/fees";
+import { allTimePaidCents, inEscrowCents as escrowTotal } from "../../lib/earnings";
 import { phaseOf, type Phase, type PayoutStatus, type UiStatus } from "../../lib/freelancerPhase";
 import { MOCK_ERROR_RATE, MOCK_LATENCY_MS, MOCK_PAYPAL_CAPTURE_PREFIX, REMIND_COOLDOWN_MS, SCAN_RULES } from "./mockConfig";
 import { lookupInvite, registerInvite } from "./inviteRegistry";
@@ -367,22 +368,21 @@ export const normalizeCode = (code: string) => code.trim().toUpperCase();
 
 /* ============================================================ read APIs === */
 
-/** GET /api/me/summary */
+/** GET /api/me/summary — the money comes from lib/earnings, the same
+    selectors the Earnings page uses, so PAID OUT and ALL TIME cannot drift. */
 export async function getFreelancerKpis(): Promise<FreelancerKpis> {
   await latency();
   load();
-  let inEscrowCents = 0;
-  let paidOutCents = 0;
   let inReviewCount = 0;
   for (const v of store.vaults) {
     const phase = phaseOf(v);
-    if (phase === "funded" || phase === "submitted" || phase === "in_review") {
-      inEscrowCents += freelancerPayoutEstimate(v.amountCents);
-    }
     if (phase === "in_review" || phase === "submitted") inReviewCount++;
-    if (phase === "paid") paidOutCents += freelancerPayoutEstimate(v.amountCents);
   }
-  return { inEscrowCents, inReviewCount, paidOutCents };
+  return {
+    inEscrowCents: escrowTotal(store.vaults),
+    inReviewCount,
+    paidOutCents: allTimePaidCents(store.vaults, store.events),
+  };
 }
 
 /** GET /api/vaults?as=freelancer */

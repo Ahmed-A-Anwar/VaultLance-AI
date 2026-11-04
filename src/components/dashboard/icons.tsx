@@ -137,3 +137,12 @@ export const Copy = (p: P) => (
     <path d="M10.6 5.4V4a1.6 1.6 0 0 0-1.6-1.6H4A1.6 1.6 0 0 0 2.4 4v5a1.6 1.6 0 0 0 1.6 1.6h1.4" />
   </svg>
 );
+
+/* the export arrow: down into the tray */
+export const Download = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 2.4v7.2" />
+    <path d="m5.2 7.2 2.8 2.8 2.8-2.8" />
+    <path d="M2.6 11.6v1a1.8 1.8 0 0 0 1.8 1.8h7.2a1.8 1.8 0 0 0 1.8-1.8v-1" />
+  </svg>
+);

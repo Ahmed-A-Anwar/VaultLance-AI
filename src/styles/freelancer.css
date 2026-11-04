@@ -667,24 +667,20 @@
   height: auto;
   max-height: none;
 }
-/* The earnings grid needs a definite height: AG's root is height:100% of this
-   box, and an auto-height parent resolves that to 0, which is what left the
-   page with an invisible grid. 55 strip + 233 band + 55 toolbar + 68 padding. */
-.fd-earnings .fd-grid {
-  flex: none;
-  height: calc(100svh - 55px - 233px - 55px - 68px);
-  min-height: 377px;
-}
+/* The earnings grid's height lives on .fd-earn-grid-shell below, which also
+   hosts the empty state and the popover. */
 .fd-grid { flex: 1; min-height: 233px; position: relative; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
 /* AG wraps itself in a div with an inline height:100%. Inside a flexed box that
    percentage resolves against the pre-flex height, i.e. 0, and the grid paints
    nothing while its rows keep their 34px boxes. Pinning the wrapper to the
-   container's padding box hands it the height the layout already decided. */
+   container's padding box hands it the height the layout already decided, and
+   the 100% (not auto) keeps that height definite so AG's own sections and its
+   pinned rows measure against the container instead of the content. */
 .fd-grid > div {
   position: absolute;
   inset: 0;
-  width: auto !important;
-  height: auto !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 .fd-grid .ag-root-wrapper { border: none; background: transparent; }
 /* the client's grid rules, selector for selector: 34px rows, mono headers,
@@ -816,6 +812,208 @@
 .fd-sum-failed { color: var(--fd-danger); cursor: pointer; text-align: left; }
 .fd-sum-failed:hover { text-decoration: underline; text-underline-offset: 3px; }
 .fd-sum-failed:focus-visible { outline: 2px solid var(--hero-teal); outline-offset: 2px; border-radius: 4px; }
+
+/* ---- earnings toolbar: 55px, filter left, segments middle, export right ---- */
+.fd-earn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 55px;
+}
+.fd-earn-filter { flex: 1 1 auto; min-width: 0; height: 55px; }
+.fd-earn-filter::-webkit-search-cancel-button { cursor: pointer; }
+.fd-earn-seg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.fd-earn-seg-item {
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--fd-hair);
+  border-radius: 13px;
+  background: transparent;
+  color: var(--hero-slate);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: border-color var(--hero-d-236) var(--fd-ease), color var(--hero-d-236) var(--fd-ease);
+}
+.fd-earn-seg-item:hover { color: var(--hero-ink); }
+/* selected reads as the client's ink outline */
+.fd-earn-seg-item[data-on="true"] {
+  border-color: var(--hero-ink);
+  color: var(--hero-ink);
+}
+.fd-earn-seg-item:focus-visible { outline: 2px solid var(--hero-teal); outline-offset: 2px; }
+.fd-earn-export { height: 34px; flex: none; }
+
+/* ---- earnings grid ---- */
+.fd-earn-card { padding: 13px; display: flex; flex-direction: column; }
+.fd-earn-grid-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.fd-earn-grid-main {
+  position: relative;
+  /* the grid's own height: 55 strip + 233 band + 55 toolbar + 68 padding */
+  height: calc(100svh - 55px - 233px - 55px - 68px);
+  min-height: 377px;
+}
+.fd-earn-grid-main .fd-grid {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+.fd-skel-grid-row { height: 34px; }
+
+.fd-inline-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 21px;
+  height: 100%;
+  padding: 34px;
+  text-align: center;
+}
+.fd-inline-error-text { margin: 0; color: var(--fd-danger); font-size: 14px; }
+
+/* the pinned total sits under the rows, one hairline above them */
+.fd-earn-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  height: 34px;
+  margin-top: -1px;
+  padding: 0 13px;
+  border-top: 1px solid rgba(138, 149, 161, 0.4);
+  background: rgba(255, 255, 255, 0.5);
+}
+.fd-total-label {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--hero-ink);
+}
+.fd-total-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.fd-status {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.fd-status[data-tone="success"] { color: var(--fd-success-ink); }
+.fd-status[data-tone="brass"] { color: var(--fd-brass-ink); }
+.fd-status[data-tone="danger"] { color: var(--fd-danger); }
+
+/* the copy affordance appears on the row you are on, not on every row */
+.fd-grid .ag-row:not(.ag-row-hover) .fd-copy > svg { opacity: 0; }
+.fd-grid .fd-copy > svg { transition: opacity var(--hero-d-236) var(--fd-ease); }
+.fd-grid .fd-copy:focus-visible > svg { opacity: 1; }
+
+/* ---- row popover ---- */
+.fd-pop-scrim { position: fixed; inset: 0; z-index: 40; }
+.fd-pop {
+  position: absolute;
+  z-index: 41;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid var(--fd-hair);
+  border-radius: 13px;
+  background: rgba(247, 249, 249, 0.98);
+  box-shadow: 0 8px 21px rgba(14, 21, 32, 0.14);
+  animation: fd-fade var(--hero-d-236) var(--fd-ease);
+}
+.fd-pop-eyebrow {
+  margin: 0;
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--hero-slate);
+}
+.fd-pop-title { margin: 0; font-size: 16px; font-weight: 600; }
+.fd-pop-list { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.fd-pop-list div { display: flex; justify-content: space-between; gap: 13px; }
+.fd-pop-list dt {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--hero-steel);
+}
+.fd-pop-list dd { margin: 0; font-size: 12px; text-align: right; }
+.fd-pop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.fd-pop-actions .fd-btn { height: 34px; }
+
+/* ---- phone rows: 89px each, PayPal behind a tap ---- */
+.fd-earn-list { display: none; flex-direction: column; gap: 13px; margin: 0; padding: 0; list-style: none; }
+.fd-earn-list-item {
+  border: 1px solid var(--fd-hair);
+  border-radius: 13px;
+  background: var(--fd-glass);
+  overflow: hidden;
+}
+.fd-earn-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  height: 89px;
+  padding: 13px 21px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.fd-earn-row:focus-visible { outline: 2px solid var(--hero-teal); outline-offset: -3px; }
+.fd-earn-row-top,
+.fd-earn-row-bottom { display: flex; align-items: baseline; justify-content: space-between; gap: 13px; }
+.fd-earn-row-amt {
+  font-family: var(--hero-font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1;
+}
+.fd-earn-row-bottom { color: var(--hero-slate); font-size: 14px; }
+.fd-earn-row-vault { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-earn-row-time { font-family: var(--hero-font-mono); font-size: 12px; letter-spacing: 0.04em; flex: none; }
+.fd-earn-row-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  padding: 13px 21px;
+  border-top: 1px solid var(--fd-hair);
+}
+.fd-earn-row-more .fd-btn { height: 34px; }
+/* the grid owns the empty state on every width above the phone layout */
+.fd-earn-empty { display: none; }
+
+/* ---- entrance, once per mount ---- */
+@keyframes fd-enter-up {
+  from { opacity: 0; transform: translateY(var(--fd-enter-from, 21px)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fd-enter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fd-earnings .fd-caption { --fd-enter-from: 13px; animation: fd-enter-up var(--hero-d-382) var(--fd-ease) both; }
+.fd-earnings .fd-sum { animation: fd-enter-up var(--hero-d-618) var(--fd-ease) both; }
+.fd-earnings .fd-sum:nth-child(2) { animation-delay: 0.1s; }
+.fd-earnings .fd-sum:nth-child(3) { animation-delay: 0.2s; }
+.fd-earn-grid-main > .fd-empty { height: 100%; justify-content: center; }
+.fd-earn-toolbar { animation: fd-enter-fade var(--hero-d-382) var(--fd-ease) both; animation-delay: 0.1s; }
+.fd-earn-card { animation: fd-enter-fade var(--hero-d-618) var(--fd-ease) both; animation-delay: 0.2s; }
 
 /* ---- drawer: 610px, right, full height ---- */
 .fd-scrim {
@@ -1099,6 +1297,38 @@
 }
 .fd-dev button:hover { background: rgba(184, 137, 58, 0.12); }
 
+/* ---- under 1024: summary row scrolls, toolbar stacks, fewer columns ---- */
+@media (max-width: 1023px) {
+  .fd-sums {
+    display: flex;
+    gap: 13px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .fd-sums::-webkit-scrollbar { display: none; }
+  .fd-sum { flex: 0 0 233px; scroll-snap-align: start; }
+  .fd-earn-toolbar { flex-direction: column; align-items: stretch; min-height: 0; }
+  .fd-earn-filter { width: 100%; }
+  .fd-earn-seg { flex-wrap: wrap; }
+  .fd-earn-export { align-self: flex-start; }
+}
+
+/* ---- under 768: the grid becomes a list ---- */
+@media (max-width: 767px) {
+  .fd-earn-grid-main { height: auto; min-height: 0; }
+  .fd-earn-grid-main .fd-grid,
+  .fd-earn-grid-main .fd-grid-skel,
+  .fd-earn-grid-main .fd-empty { display: none; }
+  /* the inline error is the one thing that still lives in the main box here */
+  .fd-earn-grid-main .fd-inline-error { height: auto; min-height: 233px; }
+  .fd-earn-list { display: flex; }
+  .fd-earn-empty { display: flex; }
+  .fd-earn-total { margin-top: 13px; }
+}
+
 /* ---- 1024–1359: the ledger drops below ---- */
 @media (max-width: 1359px) {
   .fd-lower { grid-template-columns: 1fr; }
@@ -1191,7 +1421,8 @@
 /* ---- reduced motion: final states, instantly ---- */
 @media (prefers-reduced-motion: reduce) {
   .fd-card, .fd-step-body, .fd-drawer, .fd-scrim, .fd-skel, .fd-chip-spin, .fd-spin,
-  .fd-live-dot, .fd-confirm-fill, .fd-grid .ag-row.fd-row-new {
+  .fd-live-dot, .fd-confirm-fill, .fd-grid .ag-row.fd-row-new,
+  .fd-earnings .fd-caption, .fd-earnings .fd-sum, .fd-earn-toolbar, .fd-earn-card, .fd-pop {
     animation: none !important;
     transition: none !important;
   }

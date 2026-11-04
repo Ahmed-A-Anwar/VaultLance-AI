@@ -14,6 +14,7 @@ import { Padlock, VaultGlyph } from "../../../components/dashboard/icons";
 import { useToast } from "../../../components/shared/Toasts";
 import { FreelancerDataProvider, useFreelancerData } from "../../../components/freelancer/FreelancerData";
 import { FreelancerLedger } from "../../../components/freelancer/FreelancerLedger";
+import { EarningsPage } from "../../../components/freelancer/EarningsPage";
 import { KpiRow } from "../../../components/freelancer/KpiRow";
 import { NewVaultDrawer } from "../../../components/freelancer/NewVaultDrawer";
 import { PayoutBanner } from "../../../components/freelancer/PayoutBanner";
@@ -256,7 +257,8 @@ function Surface({ email }: { email: string }) {
 
       {view !== "earnings" && <PayoutBanner show={paypalMissing && !bannerOff} />}
 
-      {error && (
+      {/* the Earnings page carries its own inline error card with Retry */}
+      {error && view !== "earnings" && (
         <div className="fd-error-bar" role="alert">
           <span>{error}</span>
           <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
@@ -322,28 +324,14 @@ function Surface({ email }: { email: string }) {
       )}
 
       {view === "earnings" && (
-        <section className="fd-earnings" aria-labelledby="fd-earn-caption">
-          <p id="fd-earn-caption" className="fd-caption">
-            WHAT YOU’VE EARNED AND WHEN IT ARRIVES
-          </p>
-          <div className="fd-sums">
-            <div className="fd-sum">
-              <span className="fd-kpi-label">THIS MONTH</span>
-              <span className="fd-sum-num">{formatCents(kpis?.paidOutCents ?? 0)}</span>
-            </div>
-            <div className="fd-sum">
-              <span className="fd-kpi-label">ALL TIME</span>
-              <span className="fd-sum-num">{formatCents(kpis?.paidOutCents ?? 0)}</span>
-            </div>
-            <div className="fd-sum">
-              <span className="fd-kpi-label">PENDING PAYOUT</span>
-              <span className="fd-sum-num">{formatCents(kpis?.inEscrowCents ?? 0)}</span>
-            </div>
-          </div>
-          <div className="fd-ledger fd-ledger-wide">
-            <FreelancerLedger events={events} loading={loading} />
-          </div>
-        </section>
+        <EarningsPage
+          vaults={vaults}
+          events={events}
+          loading={loading}
+          error={error}
+          onRetry={() => void refresh()}
+          onOpenVault={setDetails}
+        />
       )}
 
       {drawer && (

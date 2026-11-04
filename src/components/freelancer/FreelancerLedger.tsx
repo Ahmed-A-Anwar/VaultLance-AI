@@ -5,58 +5,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
+import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import type { ColDef, GridApi } from "ag-grid-community";
 import { Copy } from "../dashboard/icons";
 import { useToast } from "../shared/Toasts";
 import { formatCents } from "../../lib/fees";
 import { formatRelative, toMs } from "../../lib/formatRelative";
+import { EVENT_DOT, EVENT_LABEL } from "../../lib/earnings";
 import type { FreelancerEvent, FreelancerEventType } from "./mockApi";
+import { gridTheme } from "./gridTheme";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-
-const gridTheme = themeQuartz.withParams({
-  backgroundColor: "transparent",
-  foregroundColor: "#0e1520",
-  borderColor: "rgba(138, 149, 161, 0.4)",
-  headerBackgroundColor: "transparent",
-  headerTextColor: "#4b5663",
-  chromeBackgroundColor: "transparent",
-  accentColor: "#12a5b5",
-  fontFamily: "var(--hero-font-body)",
-  fontSize: "14px",
-  headerHeight: 34,
-  rowHeight: 34,
-  cellHorizontalPadding: 8,
-  wrapperBorder: false,
-});
-
-/* short labels for the narrow card; the raw type stays in the tooltip */
-const DISPLAY_LABEL: Record<FreelancerEventType, string> = {
-  "VAULT.CREATED": "VAULT CREATED",
-  "CLIENT.INVITED": "CLIENT INVITED",
-  "PAYMENT.AUTHORIZED": "AUTHORIZED",
-  "FILES.SUBMITTED": "FILES SUBMITTED",
-  "AUDIT.COMPLETED": "AUDITED",
-  "PAYMENT.CAPTURED": "CAPTURED",
-  "PAYOUT.SENT": "PAYOUT SENT",
-  "PAYOUT.FAILED": "PAYOUT FAILED",
-  "PAYMENT.VOIDED": "VOIDED",
-  "FILES.UPLOADED": "FILES UPLOADED",
-};
-
-const DOT: Record<string, string> = {
-  "PAYMENT.AUTHORIZED": "var(--hero-brass)",
-  "PAYMENT.CAPTURED": "var(--hero-success)",
-  "PAYMENT.VOIDED": "#c4453d",
-  "FILES.SUBMITTED": "var(--hero-teal)",
-  "FILES.UPLOADED": "var(--hero-teal)",
-  "AUDIT.COMPLETED": "var(--hero-slate)",
-  "PAYOUT.SENT": "var(--hero-success)",
-  "PAYOUT.FAILED": "#c4453d",
-  "CLIENT.INVITED": "var(--hero-brass)",
-  "VAULT.CREATED": "var(--hero-slate)",
-};
 
 export const fullTime = (at: string | number) => {
   const ms = toMs(at);
@@ -71,7 +30,13 @@ export const fullTime = (at: string | number) => {
 };
 
 function EventDot({ type }: { type: string }) {
-  return <span className="fd-dot" style={{ background: DOT[type] ?? "var(--hero-steel)" }} aria-hidden="true" />;
+  return (
+    <span
+      className="fd-dot"
+      style={{ background: EVENT_DOT[type as FreelancerEventType] ?? "var(--hero-steel)" }}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[]; loading: boolean }) {
@@ -133,7 +98,7 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
         cellRenderer: (p: { value: FreelancerEventType }) => (
           <span className="fd-event" title={p.value}>
             <EventDot type={p.value} />
-            {DISPLAY_LABEL[p.value] ?? p.value}
+            {EVENT_LABEL[p.value] ?? p.value}
           </span>
         ),
         tooltipValueGetter: (p) => (p.value as string) ?? "",
