@@ -878,6 +878,9 @@
   gap: 21px;
   height: 100%;
   padding: 34px;
+  border: 1px dashed var(--fd-hair);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.18);
   text-align: center;
 }
 .fd-inline-error-text { margin: 0; color: var(--fd-danger); font-size: 14px; }

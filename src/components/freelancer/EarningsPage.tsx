@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CountUp } from "../dashboard/CountUp";
-import { Download } from "../dashboard/icons";
+import { Download, VaultGlyph } from "../dashboard/icons";
 import { useToast } from "../shared/Toasts";
 import { formatCents } from "../../lib/fees";
 import { formatRelative } from "../../lib/formatRelative";
@@ -79,7 +79,7 @@ export function EarningsPage({ vaults, events, loading, error, onRetry, onOpenVa
       EVENT_LABEL[r.type],
       r.vaultProject,
       r.phase ? PHASE_LABEL[r.phase] : "",
-      r.payoutStatus ?? "",
+      r.payoutStatus ? r.payoutStatus.toUpperCase() : "",
       typeof r.amountCents === "number" ? (r.amountCents / 100).toFixed(2) : "",
       r.paypalId ?? "",
     ]);
@@ -247,11 +247,7 @@ export function EarningsPage({ vaults, events, loading, error, onRetry, onOpenVa
         {!loading && !error && visible.length === 0 && (
           <div className="fd-empty fd-earn-empty">
             <span className="fd-empty-mark" aria-hidden="true">
-              <svg width="89" height="89" viewBox="0 0 89 89" fill="none" aria-hidden="true">
-                <rect x="13" y="21" width="63" height="47" rx="8" stroke="currentColor" strokeWidth="2" />
-                <path d="M13 34h63" stroke="currentColor" strokeWidth="2" />
-                <path d="M31 46h27M31 55h17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
+              <VaultGlyph width="144" height="144" />
             </span>
             <p className="fd-empty-text">{emptyHint}</p>
           </div>

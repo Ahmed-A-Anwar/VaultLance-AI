@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import type { ColDef, GridApi } from "ag-grid-community";
-import { Copy } from "../dashboard/icons";
+import { Copy, VaultGlyph } from "../dashboard/icons";
 import { useToast } from "../shared/Toasts";
 import { formatCents } from "../../lib/fees";
 import { formatRelative, toMs } from "../../lib/formatRelative";
@@ -205,11 +205,7 @@ export function EarningsGrid({ rows, loading, error, onRetry, onOpenVault, empty
       ) : empty ? (
         <div className="fd-empty">
           <span className="fd-empty-mark" aria-hidden="true">
-            <svg width="89" height="89" viewBox="0 0 89 89" fill="none" aria-hidden="true">
-              <rect x="13" y="21" width="63" height="47" rx="8" stroke="currentColor" strokeWidth="2" />
-              <path d="M13 34h63" stroke="currentColor" strokeWidth="2" />
-              <path d="M31 46h27M31 55h17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <VaultGlyph width="144" height="144" />
           </span>
           <p className="fd-empty-text">{emptyHint}</p>
         </div>
