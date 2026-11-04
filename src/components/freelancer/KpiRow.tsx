@@ -12,9 +12,10 @@ import { formatCents } from "../../lib/fees";
 import type { FreelancerKpis } from "./mockApi";
 
 const int = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-/* the client's KPI money format: whole dollars, no cents, so the three cards
-   read as totals rather than as ledger lines */
-const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+/* KPI money is the ledger's money: exact cents, the same formatter the rows
+   use, so $2,311.08 in the card is $2,311.08 in the table. */
+const money = (n: number) => formatCents(Math.round(n * 100));
 
 export function KpiRow({ kpis, failed }: { kpis: FreelancerKpis | null; failed: boolean }) {
   const [summary, setSummary] = useState("");
@@ -46,7 +47,7 @@ export function KpiRow({ kpis, failed }: { kpis: FreelancerKpis | null; failed: 
             <span className="fd-kpi-label">IN ESCROW</span>
           </span>
           <span className="fd-kpi-num">
-            {kpis ? shown(<CountUp value={kpis.inEscrowCents / 100} format={(n) => usd.format(Math.round(n))} />) : <span className="fd-skel fd-skel-num" />}
+            {kpis ? shown(<CountUp value={kpis.inEscrowCents / 100} format={money} />) : <span className="fd-skel fd-skel-num" />}
           </span>
         </div>
 
@@ -70,7 +71,7 @@ export function KpiRow({ kpis, failed }: { kpis: FreelancerKpis | null; failed: 
             <span className="fd-kpi-label">PAID OUT</span>
           </span>
           <span className="fd-kpi-num">
-            {kpis ? shown(<CountUp value={kpis.paidOutCents / 100} format={(n) => usd.format(Math.round(n))} />) : <span className="fd-skel fd-skel-num" />}
+            {kpis ? shown(<CountUp value={kpis.paidOutCents / 100} format={money} />) : <span className="fd-skel fd-skel-num" />}
           </span>
         </div>
       </div>
