@@ -368,22 +368,24 @@
   background: rgba(184, 137, 58, 0.12);
   color: var(--fd-brass-ink);
 }
-.fd-chip[data-phase="submitted"] { border-color: rgba(18, 165, 181, 0.55); color: var(--fd-teal-ink); }
+/* chip text is the contrast-fix text tokens, shared with the client dashboard:
+   slate, brass #7a551a, teal #0a6a74, success #146747, danger #962c26 */
+.fd-chip[data-phase="submitted"] { border-color: rgba(18, 165, 181, 0.55); color: #0a6a74; }
 .fd-chip[data-phase="in_review"] {
   border-color: rgba(18, 165, 181, 0.4);
   background: rgba(18, 165, 181, 0.12);
-  color: var(--fd-teal-ink);
+  color: #0a6a74;
 }
 .fd-chip[data-phase="paid"] {
   border-color: rgba(31, 157, 107, 0.4);
   background: rgba(31, 157, 107, 0.12);
-  color: var(--fd-success-ink);
+  color: #146747;
 }
 .fd-chip[data-phase="payout_failed"],
 .fd-chip[data-phase="voided"] {
   border-color: rgba(196, 69, 61, 0.4);
   background: rgba(196, 69, 61, 0.12);
-  color: var(--fd-danger);
+  color: #962c26;
 }
 .fd-chip-spin {
   width: 10px;
