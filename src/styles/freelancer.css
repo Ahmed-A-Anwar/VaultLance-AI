@@ -65,19 +65,20 @@
   margin: 0 0 13px;
 }
 
-/* ---- upper band: 233px, phi columns ---- */
+/* ---- upper band: 233px, phi columns, both columns vertically centered ---- */
 .fd-band {
   display: grid;
   grid-template-columns: 1.618fr 1fr;
   gap: 21px;
   height: 233px;
-  align-items: start;
+  align-items: center;
+  /* 21px page gap + 13 = the 34px band-to-heading rhythm */
+  margin-bottom: 13px;
 }
 .fd-greet {
   display: flex;
   flex-direction: column;
   gap: 13px;
-  padding-top: 21px;
 }
 .fd-statusline {
   margin: 0;
