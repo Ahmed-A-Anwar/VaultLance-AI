@@ -3,3 +3,7 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# Supabase key material - never commit
+service_role
+service_role*
