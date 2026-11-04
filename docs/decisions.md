@@ -3,6 +3,18 @@
 Short records of changes that alter behaviour the frontend or an operator can
 observe. Newest first.
 
+## 2026-11-04 — A finished audit ends at AWAITING_APPROVAL
+
+**Decision.** `POST /api/vaults/:id/checks/run` now moves the vault
+`SUBMITTED -> VERIFYING -> AWAITING_APPROVAL` instead of stopping at
+`SUBMITTED`.
+
+**Why.** Nothing in the codebase ever produced `AWAITING_APPROVAL`, so the
+approval guard (and therefore the capture) was unreachable: every vault sat at
+`SUBMITTED` forever. All three transitions already exist in
+`ALLOWED_TRANSITIONS`; no map entry was added or removed. This is the audit
+finishing, not a new state.
+
 ## 2026-11-04 — Approval captures; capture only from AWAITING_APPROVAL
 
 **Decision.** `POST /api/vaults/:id/approve` is the capture trigger. It checks
