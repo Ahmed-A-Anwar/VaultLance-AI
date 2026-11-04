@@ -1014,8 +1014,17 @@
   .fd-band { grid-template-columns: 1fr; height: auto; }
   .fd-greet { padding-top: 0; }
   .fd-h1 { font-size: 26px; }
-  .fd-kpis { grid-auto-flow: column; grid-auto-columns: 233px; grid-template-columns: none; width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; }
-  .fd-kpi { scroll-snap-align: start; }
+  /* three cards stay three cards, as on the client: they only shrink */
+  .fd-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; min-width: 0; }
+  .fd-kpi { padding: 8px; height: 76px; }
+  .fd-kpi-label { font-size: 10px; letter-spacing: 0.04em; }
+  .fd-kpi-num { font-size: 21px; }
+  .fd-page .fd-head { gap: 13px; }
+  /* the chip row scrolls sideways instead of breaking into two lines */
+  .fd-head .dash-chips { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; max-width: 100%; padding-bottom: 4px; scrollbar-width: none; }
+  .fd-head .dash-chips::-webkit-scrollbar { display: none; }
+  .fd-head .dash-chip-filter { flex: none; }
+  .fd-step-label { font-size: 10px; }
   .fd-card { grid-template-columns: 1fr; height: auto; min-height: 144px; padding: 21px 21px 55px; }
   .fd-card-right { align-items: stretch; padding-right: 0; }
   .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 3; }
