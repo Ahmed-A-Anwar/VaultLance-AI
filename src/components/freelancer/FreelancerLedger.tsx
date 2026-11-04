@@ -10,6 +10,7 @@ import type { ColDef } from "ag-grid-community";
 import { Copy } from "../dashboard/icons";
 import { useToast } from "../shared/Toasts";
 import { formatCents } from "../../lib/fees";
+import { formatRelative, toMs } from "../../lib/formatRelative";
 import type { FreelancerEvent } from "./mockApi";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -43,24 +44,17 @@ const DOT: Record<string, string> = {
   "VAULT.CREATED": "var(--hero-slate)",
 };
 
-export const fullTime = (ts: number) =>
-  new Date(ts).toLocaleString("en-GB", {
+export const fullTime = (at: string | number) => {
+  const ms = toMs(at);
+  if (ms === null) return "—";
+  return new Date(ms).toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
-
-export function relativeTime(ts: number, now = Date.now()): string {
-  const s = Math.max(0, Math.round((now - ts) / 1000));
-  if (s < 45) return "just now";
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
+};
 
 function EventDot({ type }: { type: string }) {
   return <span className="fd-dot" style={{ background: DOT[type] ?? "var(--hero-steel)" }} aria-hidden="true" />;
@@ -89,8 +83,8 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
         headerName: "TIME",
         field: "at",
         width: 104,
-        valueFormatter: (p) => relativeTime(p.value as number),
-        tooltipValueGetter: (p) => fullTime(p.value as number),
+        valueFormatter: (p) => formatRelative(p.value),
+        tooltipValueGetter: (p) => fullTime(p.value as string),
       },
       {
         headerName: "EVENT",

@@ -389,7 +389,7 @@ function DetailsDrawer({
 }: {
   vault: FreelancerVault;
   phase: Phase;
-  events: Array<{ id: string; at: number; type: string; note?: string }>;
+  events: Array<{ id: string; at: string; type: string; note?: string }>;
   onClose: () => void;
   onAction: (a: VaultAction) => void;
 }) {

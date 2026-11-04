@@ -11,6 +11,7 @@ import {
   MIN_AMOUNT_CENTS,
   MAX_AMOUNT_CENTS,
 } from "../src/lib/fees";
+import { formatRelative } from "../src/lib/formatRelative";
 import {
   phaseOf,
   stepperState,
@@ -163,5 +164,23 @@ test.describe("phase", () => {
     expect(filterBucket("payout_failed")).toBe("needs_action");
     expect(filterBucket("paid_pending")).toBe("in_escrow");
     expect(filterBucket("paid")).toBe("paid");
+  });
+});
+
+test.describe("formatRelative", () => {
+  const now = new Date("2026-11-04T12:00:00Z").getTime();
+
+  test("accepts a Date, an ISO string and ms", () => {
+    expect(formatRelative(new Date(now - 30_000), now)).toBe("just now");
+    expect(formatRelative(new Date(now - 26 * 3_600_000).toISOString(), now)).toBe("1d ago");
+    expect(formatRelative(now - 3 * 3_600_000, now)).toBe("3h ago");
+    expect(formatRelative(String(now - 90_000), now)).toBe("2m ago");
+  });
+
+  test("invalid input renders an em dash, never NaN", () => {
+    for (const bad of [undefined, null, "", "not a time", Number.NaN, "e_10"]) {
+      expect(formatRelative(bad, now)).toBe("—");
+    }
+    expect(formatRelative({ at: 1 }, now)).toBe("—");
   });
 });

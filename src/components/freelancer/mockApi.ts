@@ -63,7 +63,8 @@ export type FreelancerEventType =
 
 export interface FreelancerEvent {
   id: string;
-  at: number;
+  /** ISO timestamp, so a hydrated row is always a string the helper parses */
+  at: string;
   type: FreelancerEventType;
   vaultId: string;
   vaultProject: string;
@@ -115,7 +116,15 @@ function load(): void {
       seed();
       return;
     }
-    store = { vaults: parsed.vaults, events: Array.isArray(parsed.events) ? parsed.events : [] };
+    /* the previous build stored `ts`; a row without a parseable `at` is
+       dropped rather than rendered as "NaNd ago" */
+    const events = Array.isArray(parsed.events) ? parsed.events : [];
+    store = {
+      vaults: parsed.vaults,
+      events: events
+        .map((e) => (typeof e.at === "number" ? { ...e, at: new Date(e.at).toISOString() } : e))
+        .filter((e) => e && typeof e.id === "string" && Number.isFinite(Date.parse(e.at))),
+    };
   } catch {
     seed();
   }
@@ -126,6 +135,9 @@ function load(): void {
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const NOW = Date.now();
+
+/** ISO timestamp `daysAgo` days before the seed ran. */
+const iso = (daysAgo: number): string => new Date(NOW - daysAgo * DAY).toISOString();
 
 const file = (name: string, kb: number): VaultFile => ({ name, sizeBytes: Math.round(kb * 1024) });
 
@@ -147,7 +159,7 @@ function seed(): void {
       payoutStatus: "failed",
       payoutPaypalId: "8XK12345AB678901C",
       createdAt: NOW - 9 * DAY,
-      lastEventAt: NOW - 2 * DAY,
+      lastEventAt: NOW - 26 * HOUR,
     },
     {
       id: "v_0002",
@@ -232,21 +244,22 @@ function seed(): void {
       payoutStatus: "paid",
       payoutPaypalId: "8XK98765ZY432109D",
       createdAt: NOW - 15 * DAY,
-      lastEventAt: NOW - 10 * DAY,
+      lastEventAt: NOW - 8.5 * DAY,
     },
   ];
 
+  /* ten rows across the last nine days: the capture always precedes its payout */
   const events: FreelancerEvent[] = [
-    ev("e_10", NOW - 2 * DAY, "PAYOUT.FAILED", vaults[0], "PayPal rejected the payout", { paypalId: "8XK12345AB678901C" }),
-    ev("e_09", NOW - 2 * DAY, "PAYMENT.CAPTURED", vaults[0], "Capture completed", { amountCents: 10_200 }),
-    ev("e_08", NOW - 10 * HOUR, "AUDIT.COMPLETED", vaults[4], "Client finished the audit"),
-    ev("e_07", NOW - 2 * DAY, "FILES.SUBMITTED", vaults[4], "Manifest locked and delivered"),
-    ev("e_06", NOW - 8 * DAY, "PAYMENT.AUTHORIZED", vaults[4], "Funds secured in escrow", { amountCents: 240_000 }),
-    ev("e_05", NOW - 1 * DAY, "CLIENT.INVITED", vaults[3], "Invite sent to the client"),
-    ev("e_04", NOW - 2 * DAY, "VAULT.CREATED", vaults[2], "Vault created as a draft"),
-    ev("e_03", NOW - 10 * DAY, "PAYOUT.SENT", vaults[5], "Payout sent to PayPal", { amountCents: 8_034, paypalId: "8XK98765ZY432109D" }),
-    ev("e_02", NOW - 11 * DAY, "PAYMENT.CAPTURED", vaults[5], "Capture completed", { amountCents: 9_000 }),
-    ev("e_01", NOW - 3 * DAY, "PAYMENT.VOIDED", { ...vaults[1], project: "Old Retainer" }, "Hold voided by the client"),
+    ev("e_10", iso(26 / 24), "PAYOUT.FAILED", vaults[0], "PayPal rejected the payout", { paypalId: "8XK12345AB678901C" }),
+    ev("e_09", iso(2), "PAYMENT.CAPTURED", vaults[0], "Capture completed", { amountCents: 10_200 }),
+    ev("e_08", iso(10 / 24), "AUDIT.COMPLETED", vaults[4], "Client finished the audit"),
+    ev("e_07", iso(2), "FILES.SUBMITTED", vaults[4], "Manifest locked and delivered"),
+    ev("e_06", iso(8), "PAYMENT.AUTHORIZED", vaults[4], "Funds secured in escrow", { amountCents: 240_000 }),
+    ev("e_05", iso(1), "CLIENT.INVITED", vaults[3], "Invite sent to the client"),
+    ev("e_04", iso(2), "VAULT.CREATED", vaults[2], "Vault created as a draft"),
+    ev("e_03", iso(8.5), "PAYOUT.SENT", vaults[5], "Payout sent to PayPal", { amountCents: 8_034, paypalId: "8XK98765ZY432109D" }),
+    ev("e_02", iso(9), "PAYMENT.CAPTURED", vaults[5], "Capture completed", { amountCents: 9_000 }),
+    ev("e_01", iso(3), "PAYMENT.VOIDED", { ...vaults[1], project: "Old Retainer" }, "Hold voided by the client"),
   ];
 
   store = { vaults, events };
@@ -255,7 +268,7 @@ function seed(): void {
 
 function ev(
   id: string,
-  at: number,
+  at: string,
   type: FreelancerEventType,
   vault: Pick<FreelancerVault, "id" | "project">,
   note: string,
@@ -298,7 +311,7 @@ function find(id: string): FreelancerVault {
 function emit(type: FreelancerEventType, vault: FreelancerVault, note: string, extra: { amountCents?: number; paypalId?: string } = {}): void {
   const e: FreelancerEvent = {
     id: uid("e"),
-    at: Date.now(),
+    at: new Date().toISOString(),
     type,
     vaultId: vault.id,
     vaultProject: vault.project,
@@ -306,7 +319,7 @@ function emit(type: FreelancerEventType, vault: FreelancerVault, note: string, e
     ...extra,
   };
   store.events = [e, ...store.events].slice(0, 200);
-  vault.lastEventAt = e.at;
+  vault.lastEventAt = Date.parse(e.at);
   save();
   for (const cb of listeners) cb(e);
 }
@@ -370,7 +383,7 @@ export async function listFreelancerVaults(): Promise<FreelancerVault[]> {
 export async function listFreelancerEvents(): Promise<FreelancerEvent[]> {
   await latency();
   load();
-  return [...store.events].sort((a, b) => b.at - a.at);
+  return [...store.events].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }
 
 /* =========================================================== mutations === */

@@ -77,7 +77,7 @@ test.describe("seed", () => {
     ]) {
       expect(types.has(type as never)).toBe(true);
     }
-    expect(events[0].at).toBeGreaterThanOrEqual(events[events.length - 1].at);
+    expect(Date.parse(events[0].at)).toBeGreaterThanOrEqual(Date.parse(events[events.length - 1].at));
     expect(events.some((e) => (e.paypalId ?? "").startsWith("8XK"))).toBe(true);
   });
 
