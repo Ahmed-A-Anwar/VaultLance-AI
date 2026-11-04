@@ -22,6 +22,7 @@ import {
 } from "../shared/errors.js";
 import { database } from "../shared/db.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
+import { aiAgentService } from "../ai/ai.service.js";
 import type { VaultStatus } from "../shared/types.js";
 
 const router = Router();
@@ -636,141 +637,25 @@ router.post("/:id/chat", async (req, res, next) => {
       files = dbFiles || [];
     }
 
-    // Build context-aware answer
-    const q = question.toLowerCase();
-    const fileList = files.map((f) => `${f.file_name} (${formatFileSize(f.file_size)}, ${f.mime_type})`).join(", ");
-    const totalSize = files.reduce((s, f) => s + f.file_size, 0);
-    const hasZip = files.some((f) => f.file_name.endsWith(".zip"));
-    const hasDocs = files.some(
-      (f) =>
-        f.file_name.toLowerCase().includes("readme") ||
-        f.file_name.endsWith(".md") ||
-        f.file_name.endsWith(".pdf") ||
-        f.file_name.endsWith(".docx")
-    );
-    const images = files.filter(
-      (f) =>
-        f.mime_type.startsWith("image/") ||
-        f.file_name.endsWith(".svg") ||
-        f.file_name.endsWith(".webp")
-    );
-
-    let answer = "";
-    let sources: string[] = [];
-
-    // Context-aware question matching
-    if (/what.*deliver|what.*file|what.*included|what.*sent|what.*upload/i.test(q)) {
-      answer = `This vault "${vault.title}" contains ${files.length} deliverable${files.length !== 1 ? "s" : ""} totaling ${formatFileSize(totalSize)}:\n\n`;
-      for (const f of files) {
-        answer += `• **${f.file_name}** — ${formatFileSize(f.file_size)} (${f.mime_type})\n`;
-      }
-      if (vault.description) {
-        answer += `\nProject description: "${vault.description}"`;
-      }
-      sources = ["FILE INDEX"];
-
-    } else if (/issue|warning|problem|concern|risk/i.test(q)) {
-      const issues: string[] = [];
-      if (!hasDocs) issues.push("No documentation (README/PDF) was included in the delivery.");
-      if (!hasZip) issues.push("Files are delivered loose without an archive package.");
-      if (totalSize > 50_000_000) issues.push(`Total package size (${formatFileSize(totalSize)}) exceeds the recommended 50 MB limit.`);
-      if (files.length === 0) issues.push("No files have been uploaded to this vault yet.");
-      const hashMissing = files.filter((f) => !f.sha256_hash || f.sha256_hash.length !== 64);
-      if (hashMissing.length > 0) issues.push(`${hashMissing.length} file(s) have missing or invalid integrity hashes.`);
-
-      if (issues.length === 0) {
-        answer = `I reviewed the ${files.length} deliverable(s) in "${vault.title}" and found no issues. All files have valid integrity hashes, documentation is present${hasZip ? ", and an archive package is included" : ""}.`;
-      } else {
-        answer = `I found ${issues.length} potential issue${issues.length > 1 ? "s" : ""} with this delivery:\n\n`;
-        issues.forEach((issue, i) => {
-          answer += `${i + 1}. ${issue}\n`;
-        });
-      }
-      sources = ["FILE INDEX", "TEST LOG"];
-
-    } else if (/archive|zip|package|inside|extract/i.test(q)) {
-      const zips = files.filter((f) => f.file_name.endsWith(".zip"));
-      if (zips.length > 0) {
-        answer = `The delivery contains ${zips.length} archive(s):\n\n`;
-        for (const z of zips) {
-          answer += `• **${z.file_name}** — ${formatFileSize(z.file_size)}, SHA-256: \`${z.sha256_hash.slice(0, 16)}…\`\n`;
-        }
-        answer += `\nThe archive contents can be verified after download. Integrity hash is valid.`;
-      } else {
-        answer = `No archive files (.zip) were found in this delivery. The ${files.length} file(s) are delivered as individual items.`;
-      }
-      sources = ["FILE INDEX"];
-
-    } else if (/image|visual|asset|design|logo|icon|svg|png|webp/i.test(q)) {
-      if (images.length > 0) {
-        answer = `The delivery includes ${images.length} visual asset(s):\n\n`;
-        for (const img of images) {
-          answer += `• **${img.file_name}** — ${formatFileSize(img.file_size)} (${img.mime_type})\n`;
-        }
-        answer += `\nAll image files have valid integrity hashes.`;
-        sources = ["FILE INDEX", "PIXEL SCAN"];
-      } else {
-        answer = `No image or visual asset files were found in this delivery. The ${files.length} file(s) are: ${fileList}.`;
-        sources = ["FILE INDEX"];
-      }
-
-    } else if (/ready.*ship|ready.*approve|ready.*pay|can.*approve|should.*approve|safe.*approve/i.test(q)) {
-      const allHashes = files.every((f) => f.sha256_hash?.length === 64);
-      const hasContent = files.length > 0;
-      const issues: string[] = [];
-      if (!hasContent) issues.push("no files uploaded");
-      if (!hasDocs) issues.push("missing documentation");
-      if (!allHashes) issues.push("some integrity hashes are invalid");
-
-      if (issues.length === 0) {
-        answer = `Based on my analysis, this delivery looks ready to approve:\n\n• **${files.length} files** delivered (${formatFileSize(totalSize)})\n• All integrity hashes verified ✓\n• Documentation included ✓${hasZip ? "\n• Archive package present ✓" : ""}\n\nYou can run the full audit checks from the panel for a detailed report, then approve.`;
-      } else {
-        answer = `I have ${issues.length} concern${issues.length > 1 ? "s" : ""} before approving: ${issues.join(", ")}. I recommend reviewing these items before proceeding with payment.`;
-      }
-      sources = ["FILE INDEX", "TEST LOG"];
-
-    } else if (/test|build|compile|ci|check|lint|pass|fail/i.test(q)) {
-      answer = `To verify the build and test status, please run all checks from the "Checks" panel on the right. The automated audit will verify:\n\n• File integrity (SHA-256 hash verification)\n• Deliverable package completeness\n• Documentation presence\n• Asset quality\n• Package size\n\nCurrently ${files.length} file(s) are staged for audit in vault "${vault.title}".`;
-      sources = ["TEST LOG"];
-
-    } else if (/color|colour|hex|brand|typography|font|style/i.test(q)) {
-      if (images.length > 0 || files.some((f) => f.file_name.includes("brand") || f.file_name.includes("style"))) {
-        const brandFiles = files.filter(
-          (f) =>
-            f.file_name.includes("brand") ||
-            f.file_name.includes("style") ||
-            f.file_name.includes("typography") ||
-            f.mime_type.startsWith("image/")
-        );
-        answer = `I found ${brandFiles.length} brand/style-related file(s) in this delivery:\n\n`;
-        for (const bf of brandFiles) {
-          answer += `• **${bf.file_name}** — ${formatFileSize(bf.file_size)}\n`;
-        }
-        answer += `\nFor precise color extraction and typography analysis, download the files and verify against your brand guidelines.`;
-        sources = ["FILE INDEX", "PIXEL SCAN"];
-      } else {
-        answer = `No brand, style, or image files were found in this delivery. The files present are: ${fileList}.`;
-        sources = ["FILE INDEX"];
-      }
-
-    } else if (/how much|price|cost|amount|payment|fee/i.test(q)) {
-      const fee = Number(vault.amount) * 0.05;
-      const net = Number(vault.amount) - fee;
-      answer = `The vault amount for "${vault.title}" is **$${Number(vault.amount).toLocaleString()}** ${vault.currency || "USD"}.\n\n• Platform fee (5%): $${fee.toLocaleString()}\n• Freelancer receives: $${net.toLocaleString()}\n\nStatus: ${vault.status}`;
-      sources = ["VAULT DATA"];
-
-    } else {
-      // Generic contextual fallback
-      answer = `I'm analyzing vault "${vault.title}" which contains ${files.length} deliverable(s) totaling ${formatFileSize(totalSize)}.\n\nHere's what I can help with:\n• **File review** — What was delivered, file types, sizes\n• **Issue detection** — Missing docs, integrity checks, size warnings\n• **Readiness assessment** — Whether the delivery is ready to approve\n• **Asset analysis** — Visual assets, brand files, archives\n\nFiles in this vault: ${files.length > 0 ? files.map((f) => f.file_name).join(", ") : "none yet"}.\n\nTry asking something specific about the delivery!`;
-      sources = ["FILE INDEX"];
-    }
+    // Call Multi-Provider AI Agent Service (Claude -> OpenAI -> Deterministic Fallback)
+    const aiResult = await aiAgentService.askAgent({
+      vaultId,
+      vaultTitle: vault.title,
+      vaultDescription: vault.description || "",
+      amount: Number(vault.amount) || 0,
+      currency: vault.currency || "USD",
+      question,
+      files,
+    });
 
     return sendSuccess(
       res,
       {
-        text: answer,
-        sources,
-        cached: false,
+        text: aiResult.text,
+        sources: aiResult.sources,
+        provider: aiResult.provider,
+        modelUsed: aiResult.modelUsed,
+        cached: aiResult.cached,
       },
       "AI response generated"
     );
