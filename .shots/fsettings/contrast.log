@@ -1,0 +1,38 @@
+measuring FREELANCER chip (profile)... measuring FREELANCER chip (summary)... measuring VERIFIED chip... measuring Switch track (on): the payload ink... measuring Danger caption... measuring Danger sub copy... [
+ {
+  "label": "FREELANCER chip (profile)",
+  "text": "rgb(122, 85, 26)",
+  "bgSampled": "rgb(220,220,212)",
+  "ratio": 7.94
+ },
+ {
+  "label": "FREELANCER chip (summary)",
+  "text": "rgb(122, 85, 26)",
+  "bgSampled": "rgb(220,220,212)",
+  "ratio": 7.94
+ },
+ {
+  "label": "VERIFIED chip",
+  "text": "rgb(14, 21, 32)",
+  "bgSampled": "rgb(228,228,236)",
+  "ratio": 308.06
+ },
+ {
+  "label": "Switch track (on): the payload ink",
+  "text": "rgb(14, 21, 32)",
+  "bgSampled": "rgb(20,140,156)",
+  "ratio": 77.03
+ },
+ {
+  "label": "Danger caption",
+  "text": "rgb(156, 48, 41)",
+  "bgSampled": "rgb(236,236,236)",
+  "ratio": 10.47
+ },
+ {
+  "label": "Danger sub copy",
+  "text": "rgb(75, 86, 99)",
+  "bgSampled": "rgb(228,236,236)",
+  "ratio": 11.42
+ }
+]
