@@ -1,0 +1,1328 @@
+{
+  "geometry": [
+    {
+      "viewport": "1440x900",
+      "phase": "payout-failed",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Retry payout→",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "funded",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Submit for review→",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Add files",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "draft",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Continue setup→",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Delete draft",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "invited",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Copy invite link",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "submitted",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "in-review",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [],
+      "buttonRows": 0,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "paid-pending",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "paid",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1440x900",
+      "phase": "voided",
+      "cardW": 780,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 806,
+      "infoLeft": 861,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Duplicate vault",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "payout-failed",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Retry payout→",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "funded",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Submit for review→",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Add files",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "draft",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Continue setup→",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Delete draft",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "invited",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Copy invite link",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "submitted",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "in-review",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [],
+      "buttonRows": 0,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "paid-pending",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "paid",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1280x720",
+      "phase": "voided",
+      "cardW": 1123,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 1149,
+      "infoLeft": 1204,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Duplicate vault",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "payout-failed",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Retry payout→",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "funded",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Submit for review→",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Add files",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "draft",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Continue setup→",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Delete draft",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "invited",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Copy invite link",
+          "gapToBottom": 64
+        },
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 2,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "submitted",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "in-review",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [],
+      "buttonRows": 0,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "paid-pending",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "paid",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "1024x768",
+      "phase": "voided",
+      "cardW": 867,
+      "cardH": 144,
+      "leftClipped": false,
+      "leftNeed": 100,
+      "leftHave": 100,
+      "hintLines": 2,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 893,
+      "infoLeft": 948,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": true,
+      "stepRows": 1,
+      "stepH": 30,
+      "labelsVisible": 5,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Duplicate vault",
+          "gapToBottom": 22
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "payout-failed",
+      "cardW": 364,
+      "cardH": 237,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Retry payout→",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "funded",
+      "cardW": 364,
+      "cardH": 237,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Submit for review→",
+          "gapToBottom": 56
+        },
+        {
+          "h": 34,
+          "text": "Add files",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "draft",
+      "cardW": 364,
+      "cardH": 237,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Continue setup→",
+          "gapToBottom": 56
+        },
+        {
+          "h": 34,
+          "text": "Delete draft",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "invited",
+      "cardW": 364,
+      "cardH": 237,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Copy invite link",
+          "gapToBottom": 56
+        },
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "submitted",
+      "cardW": 364,
+      "cardH": 237,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Remind client",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "in-review",
+      "cardW": 364,
+      "cardH": 203,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [],
+      "buttonRows": 0,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "paid-pending",
+      "cardW": 364,
+      "cardH": 237,
+      "leftClipped": false,
+      "leftNeed": 92,
+      "leftHave": 92,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 28,
+      "labelsVisible": 1,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "paid",
+      "cardW": 364,
+      "cardH": 222,
+      "leftClipped": false,
+      "leftNeed": 77,
+      "leftHave": 77,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 13,
+      "labelsVisible": 0,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "View receipt",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    },
+    {
+      "viewport": "390x844",
+      "phase": "voided",
+      "cardW": 364,
+      "cardH": 222,
+      "leftClipped": false,
+      "leftNeed": 77,
+      "leftHave": 77,
+      "hintLines": 1,
+      "hintTitle": true,
+      "hintAria": true,
+      "hintTextRight": 279,
+      "infoLeft": 334,
+      "infoBox": [
+        34,
+        34
+      ],
+      "infoOverlapsHintBox": false,
+      "stepRows": 1,
+      "stepH": 13,
+      "labelsVisible": 0,
+      "buttons": [
+        {
+          "h": 34,
+          "text": "Duplicate vault",
+          "gapToBottom": 56
+        }
+      ],
+      "buttonRows": 1,
+      "buttonsOverlapHint": false,
+      "buttonsOverlapInfo": false,
+      "hintToInfo": 55
+    }
+  ],
+  "nan": {
+    "1440x900": [],
+    "1280x720": [],
+    "1024x768": [],
+    "390x844": []
+  },
+  "loads": {
+    "runs": 20,
+    "withErrorBanner": 0
+  },
+  "ledger": {
+    "1440x900": {
+      "hScroll": null,
+      "ledgerH": 556,
+      "cap": 556,
+      "docOverflowX": 0
+    },
+    "1280x720": {
+      "hScroll": null,
+      "ledgerH": 154,
+      "cap": 445,
+      "docOverflowX": 0
+    },
+    "1024x768": {
+      "hScroll": null,
+      "ledgerH": 154,
+      "cap": 475,
+      "docOverflowX": 0
+    },
+    "390x844": {
+      "hScroll": null,
+      "ledgerH": 154,
+      "cap": 522,
+      "docOverflowX": 0
+    }
+  },
+  "keyboard": {
+    "focusRing": {
+      "outline": "2px solid rgb(18, 165, 181)",
+      "box": [
+        34,
+        34
+      ]
+    },
+    "drawer": {
+      "open": true,
+      "focusInside": true
+    },
+    "closed": {
+      "open": false,
+      "focusBack": true
+    }
+  },
+  "reducedMotion": {
+    "reduced": true,
+    "running": 0,
+    "cardTransition": "0s"
+  },
+  "ledgerSeeded": {
+    "1440x900": {
+      "rows": 10,
+      "gridH": 492,
+      "hScroll": 0,
+      "vScroll": null,
+      "ledgerH": 556,
+      "listH": 972,
+      "cap": 556,
+      "nan": false
+    },
+    "1280x720": {
+      "rows": 10,
+      "gridH": 377,
+      "hScroll": 0,
+      "vScroll": null,
+      "ledgerH": 441,
+      "listH": 972,
+      "cap": 445,
+      "nan": false
+    },
+    "1024x768": {
+      "rows": 10,
+      "gridH": 377,
+      "hScroll": 0,
+      "vScroll": null,
+      "ledgerH": 441,
+      "listH": 972,
+      "cap": 475,
+      "nan": false
+    },
+    "390x844": {
+      "rows": 10,
+      "gridH": 300,
+      "hScroll": 0,
+      "vScroll": null,
+      "ledgerH": 364,
+      "listH": 1516,
+      "cap": 522,
+      "nan": false
+    }
+  }
+}
