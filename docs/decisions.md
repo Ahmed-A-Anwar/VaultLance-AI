@@ -3,6 +3,23 @@
 Short records of changes that alter behaviour the frontend or an operator can
 observe. Newest first.
 
+## 2026-11-04 — The PayPal boot check is advisory, not fatal
+
+**Decision.** `assertSandboxPayPal()` logs an error when `PAYPAL_ENV` is not
+`sandbox` and continues. It does not refuse to start. `paypalBaseUrl()` is
+pinned to `https://api-m.sandbox.paypal.com` and both clients use it, so the
+process cannot address the live API.
+
+**Why.** The strict version threw from `src/index.ts:11` and the deployed app
+went into a restart loop (10 attempts, then stopped), taking the API down during
+the demo window because of an environment value. Pinning the endpoint is the
+real protection; refusing to boot only converts a misconfiguration into an
+outage.
+
+**Deviation.** This relaxes the Phase 1 instruction "PAYPAL_ENV must be sandbox;
+refuse to start otherwise". Approved-by-default is not implied: revert by
+throwing again in `paypal.env.ts` if the hard refusal is wanted.
+
 ## 2026-11-04 — A finished audit ends at AWAITING_APPROVAL
 
 **Decision.** `POST /api/vaults/:id/checks/run` now moves the vault
