@@ -30,15 +30,29 @@ export type VaultAction =
   | "details";
 
 const HINT: Record<Phase, string> = {
-  draft: "Finish setting up and invite your client.",
-  invited: "Waiting for your client to authorize payment.",
-  funded: "Funds are secured. Deliver your files.",
-  submitted: "Manifest locked. Waiting for your client to audit.",
-  in_review: "Your client finished the audit and is deciding.",
+  draft: "Finish setup and invite your client.",
+  invited: "Waiting for the client to fund.",
+  funded: "Funds secured. Deliver your files.",
+  submitted: "Manifest locked. Awaiting audit.",
+  in_review: "Your client is auditing the files.",
   paid_pending: "Your payout is on its way.",
   paid: "Paid out.",
-  payout_failed: "PayPal couldn’t send the payout. Check your PayPal email.",
-  voided: "Hold voided. Funds returned to the client.",
+  payout_failed: "PayPal couldn’t send the payout.",
+  voided: "Voided. Funds returned to client.",
+};
+
+/** How many actions the right rail carries, so the card can clamp its hint to
+    one line exactly when two buttons stack under it. */
+const ACTION_COUNT: Record<Phase, number> = {
+  draft: 2,
+  invited: 2,
+  funded: 2,
+  submitted: 1,
+  in_review: 0,
+  paid_pending: 1,
+  paid: 1,
+  payout_failed: 1,
+  voided: 1,
 };
 
 interface Props {
@@ -78,6 +92,7 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
     <article
       className="fd-card"
       data-phase={phase}
+      data-actions={ACTION_COUNT[phase]}
       data-dim={dimmed ? "true" : undefined}
       data-enter="vault"
       style={{ animationDelay: `${index * 61.8}ms` }}
@@ -112,7 +127,9 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           <Wheel width="13" height="13" />
         </button>
 
-        <p className="fd-card-hint">{HINT[phase]}</p>
+        <p className="fd-card-hint" title={HINT[phase]} aria-label={HINT[phase]}>
+          {HINT[phase]}
+        </p>
 
         <div className="fd-card-actions">
           {phase === "draft" && (

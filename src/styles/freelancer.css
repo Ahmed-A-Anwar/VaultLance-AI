@@ -246,7 +246,8 @@
   gap: 13px;
   height: 144px;
   container-type: inline-size;
-  padding: 13px 13px 13px 21px;
+  /* 21px top and bottom: the content keeps 100px between them */
+  padding: 21px 13px 21px 21px;
   border: 1px solid var(--fd-hair);
   border-radius: 13px;
   background: var(--fd-glass);
@@ -268,7 +269,9 @@
   to { opacity: 1; transform: none; }
 }
 
-.fd-card-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow: hidden; }
+/* head 29 + meta 28 + steps 30 = 87, plus two 4px gaps = 95 of the 100 the
+   21px padding leaves: nothing clips at 144px */
+.fd-card-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow: hidden; }
 .fd-card-head { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
 .fd-card-project {
   margin: 0;
@@ -312,11 +315,13 @@
   gap: 4px;
   min-width: 0;
 }
-/* two lines of 12px and two 34px buttons are 31 + 4 + 76 = 111 of the 118 the
-   144px card has between its padding: nothing crosses the 13px bottom edge */
+/* one line of 12px and two 34px buttons are 16 + 4 + 76 = 96 of the 100 the
+   card has between its 21px padding: nothing crosses the bottom edge.
+   padding-right is the wheel's 34px hit box (-6px inset, so 28px of it sits
+   inside the content box) plus the 55px the hint must clear it by. */
 .fd-card-hint {
   margin: 0;
-  padding-right: 34px;
+  padding-right: 83px;
   text-align: right;
   color: var(--hero-slate);
   font-size: 12px;
@@ -326,33 +331,47 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* two buttons that do not fit the 233px rail wrap into two rows: the hint
+   gives up its second line so the stack still clears the bottom edge */
+.fd-card[data-actions="2"] .fd-card-hint { -webkit-line-clamp: 1; }
+
+/* side by side when both fit, stacked when they wrap; 8px either way */
 .fd-card-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   max-width: 100%;
+  margin-top: auto;
 }
-/* narrow cards stack in one column already; nothing to reflow */
+.fd-card-actions .dash-btn { height: 34px; }
 @container (max-width: 600px) {
-  .fd-card-actions { width: 100%; align-items: stretch; }
+  .fd-card-actions { width: 100%; }
+  .fd-card-actions .dash-btn { flex: 1 1 auto; }
 }
 
-/* the client's wheel: a bare glyph in the top-right corner, brass on hover */
+/* the client's wheel: a bare 13px glyph in the top-right corner, brass on
+   hover, inside a 34px hit box that overhangs the padding by 6px */
 .fd-info {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -6px;
+  right: -6px;
   display: grid;
   place-items: center;
-  width: 21px;
-  height: 21px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 0;
+  border-radius: 50%;
   background: none;
   color: var(--hero-slate);
   cursor: pointer;
   transition: color var(--hero-d-236) var(--fd-ease);
+}
+.fd-info:focus-visible {
+  outline: 2px solid var(--hero-teal);
+  outline-offset: 1px;
 }
 .fd-info svg { transition: transform var(--hero-d-618) var(--fd-ease); }
 .fd-card:hover .fd-info { color: var(--fd-brass); }
@@ -538,7 +557,7 @@
   /* an overlay above the buttons: the card stays 144px while it counts down */
   position: absolute;
   right: 0;
-  bottom: 47px;
+  bottom: 63px;
   max-width: 100%;
   padding: 4px 8px;
   border-radius: 8px;
@@ -1027,7 +1046,7 @@
   .fd-step-label { font-size: 10px; }
   .fd-card { grid-template-columns: 1fr; height: auto; min-height: 144px; padding: 21px 21px 55px; }
   .fd-card-right { align-items: stretch; padding-right: 0; }
-  .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 3; }
+  .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 2; padding-right: 0; }
   .fd-card-actions { justify-content: stretch; }
   .fd-card-actions .fd-btn { flex: 1; }
   .fd-sums { grid-template-columns: 1fr; }
