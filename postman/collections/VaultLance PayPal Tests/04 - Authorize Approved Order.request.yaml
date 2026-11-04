@@ -1,0 +1,59 @@
+$kind: http-request
+url: "{{base_url}}/v2/checkout/orders/{{order_id}}/authorize"
+method: POST
+headers:
+  Content-Type: application/json
+  Prefer: return=representation
+  PayPal-Request-Id: '{{$guid}}'
+body:
+  type: json
+  content: "{}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Order authorization succeeded\", function () {\r
+
+      \  pm.expect([200, 201]).to.include(pm.response.code);\r
+
+      });\r
+
+      \r
+
+      const authorization =\r
+
+      \  response.purchase_units?.[0]?.payments?.authorizations?.[0];\r
+
+      \r
+
+      pm.test(\"Authorization object exists\", function () {\r
+
+      \  pm.expect(authorization).to.exist;\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Authorization ID exists\", function () {\r
+
+      \  pm.expect(authorization.id).to.be.a(\"string\");\r
+
+      });\r
+
+      \r
+
+      if (authorization) {\r
+
+      \  pm.environment.set(\"authorization_id\", authorization.id);\r
+
+      \  console.log(\"Authorization ID:\", authorization.id);\r
+
+      }"
+    language: text/javascript
+order: 5000

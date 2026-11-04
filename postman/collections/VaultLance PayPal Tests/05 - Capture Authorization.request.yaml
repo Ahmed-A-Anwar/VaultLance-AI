@@ -1,0 +1,75 @@
+$kind: http-request
+url: "{{base_url}}/v2/payments/authorizations/{{authorization_id}}/capture"
+method: POST
+headers:
+  Content-Type: application/json
+  Prefer: return=representation
+  PayPal-Request-Id: vaultlance-capture-001
+body:
+  type: json
+  content: "{\r
+
+    \  \"amount\": {\r
+
+    \    \"currency_code\": \"USD\",\r
+
+    \    \"value\": \"10.00\"\r
+
+    \  },\r
+
+    \  \"final_capture\": true,\r
+
+    \  \"note_to_payer\": \"VaultLance deliverables approved.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Capture request succeeded\", function () {\r
+
+      \  pm.expect([200, 201]).to.include(pm.response.code);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Capture status is COMPLETED\", function () {\r
+
+      \  pm.expect(response.status).to.eql(\"COMPLETED\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Captured amount is USD 10.00\", function () {\r
+
+      \  pm.expect(response.amount.currency_code).to.eql(\"USD\");\r
+
+      \  pm.expect(response.amount.value).to.eql(\"10.00\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Capture ID exists\", function () {\r
+
+      \  pm.expect(response.id).to.be.a(\"string\");\r
+
+      \  pm.expect(response.id.length).to.be.greaterThan(5);\r
+
+      });\r
+
+      \r
+
+      pm.environment.set(\"capture_id\", response.id);\r
+
+      console.log(\"Capture ID saved:\", response.id);"
+    language: text/javascript
+order: 6000

@@ -1,0 +1,81 @@
+$kind: http-request
+url: "{{base_url}}/v2/checkout/orders/{{order_id}}/authorize"
+method: POST
+headers:
+  Content-Type: application/json
+  Prefer: return=representation
+  PayPal-Request-Id: vaultlance-authorize-void-001
+body:
+  type: json
+  content: "{}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Authorization request succeeded\", function () {\r
+
+      \  pm.expect([200, 201]).to.include(pm.response.code);\r
+
+      });\r
+
+      \r
+
+      const authorization =\r
+
+      \  response.purchase_units?.[0]?.payments?.authorizations?.[0];\r
+
+      \r
+
+      pm.test(\"Authorization exists\", function () {\r
+
+      \  pm.expect(authorization).to.exist;\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Authorization ID exists\", function () {\r
+
+      \  pm.expect(authorization.id).to.be.a(\"string\");\r
+
+      \  pm.expect(authorization.id.length).to.be.greaterThan(5);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Authorization status is CREATED\", function () {\r
+
+      \  pm.expect(authorization.status).to.eql(\"CREATED\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Authorization amount is USD 10.00\", function () {\r
+
+      \  pm.expect(authorization.amount.currency_code).to.eql(\"USD\");\r
+
+      \  pm.expect(authorization.amount.value).to.eql(\"10.00\");\r
+
+      });\r
+
+      \r
+
+      if (authorization) {\r
+
+      \  pm.environment.set(\"authorization_id\", authorization.id);\r
+
+      }\r
+
+      \r
+
+      console.log(\"Void-flow authorization ID:\", authorization?.id);"
+    language: text/javascript
+order: 8000

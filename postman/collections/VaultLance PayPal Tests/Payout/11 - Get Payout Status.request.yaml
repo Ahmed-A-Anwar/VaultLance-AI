@@ -1,0 +1,104 @@
+$kind: http-request
+url: "{{base_url}}/v1/payments/payouts/{{payout_batch_id}}"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Payout status request succeeded\", function () {\r
+
+      \  pm.response.to.have.status(200);\r
+
+      });\r
+
+      \r
+
+      const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Batch header exists\", function () {\r
+
+      \  pm.expect(response.batch_header).to.exist;\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Batch status is recognized\", function () {\r
+
+      \  pm.expect([\r
+
+      \    \"PENDING\",\r
+
+      \    \"PROCESSING\",\r
+
+      \    \"SUCCESS\",\r
+
+      \    \"DENIED\",\r
+
+      \    \"CANCELED\"\r
+
+      \  ]).to.include(response.batch_header.batch_status);\r
+
+      });\r
+
+      \r
+
+      const items = response.items || [];\r
+
+      \r
+
+      pm.test(\"At least one payout item is returned\", function () {\r
+
+      \  pm.expect(items.length).to.be.greaterThan(0);\r
+
+      });\r
+
+      \r
+
+      if (items.length > 0) {\r
+
+      \  const itemStatus = items[0].transaction_status;\r
+
+      \r
+
+      \  pm.test(\"First payout item has a recognized status\", function () {\r
+
+      \    pm.expect([\r
+
+      \      \"PENDING\",\r
+
+      \      \"SUCCESS\",\r
+
+      \      \"FAILED\",\r
+
+      \      \"UNCLAIMED\",\r
+
+      \      \"RETURNED\",\r
+
+      \      \"BLOCKED\",\r
+
+      \      \"REFUNDED\",\r
+
+      \      \"REVERSED\",\r
+
+      \      \"ONHOLD\"\r
+
+      \    ]).to.include(itemStatus);\r
+
+      \  });\r
+
+      \r
+
+      \  console.log(\"Batch status:\", response.batch_header.batch_status);\r
+
+      \  console.log(\"Item status:\", itemStatus);\r
+
+      }"
+    language: text/javascript
+order: 2000
