@@ -486,12 +486,29 @@
 .fd-step-label {
   font-family: var(--hero-font-mono);
   font-size: 12px;
+  line-height: 1.1;
   color: var(--hero-slate);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.fd-step[data-state="current"] .fd-step-label { color: var(--hero-ink); }
+/* wide card: every label, the current one in ink, the rest at 70% */
+.fd-step:not([aria-current="step"]) .fd-step-label { opacity: 0.7; }
+.fd-step[data-state="current"] .fd-step-label { color: var(--hero-ink); opacity: 1; }
+
+/* narrow card (under 610px): only the current node keeps its label. The other
+   labels are clipped, not removed, so a screen reader still hears the name;
+   the li also carries it as a title for the pointer. */
+@container (max-width: 610px) {
+  .fd-step:not([aria-current="step"]) .fd-step-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
 .fd-step[data-state="danger"] .fd-step-label { color: var(--fd-danger); }
 .fd-card:hover .fd-step-node { box-shadow: 0 0 0 3px rgba(184, 137, 58, 0.12); }
 .fd-card:hover .fd-step[data-state="current"] .fd-step-node {

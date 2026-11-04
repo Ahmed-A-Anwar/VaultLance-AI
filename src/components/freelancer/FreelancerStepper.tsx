@@ -22,6 +22,10 @@ export function FreelancerStepper({ phase }: { phase: Phase }) {
             className="fd-step"
             data-state={state}
             aria-current={i === current ? "step" : undefined}
+            /* on narrow cards only the current label is drawn; every other
+               node keeps its name for the pointer and the screen reader */
+            title={label}
+            aria-label={label}
           >
             <span className="fd-step-node" aria-hidden="true">
               {state === "done" && <Check width="9" height="9" />}
