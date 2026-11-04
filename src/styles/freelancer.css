@@ -644,8 +644,12 @@
   /* the client's pin: under the 55px strip and the 34px page padding */
   top: calc(var(--dash-strip, 55px) + var(--dash-pad, 34px));
   align-self: start;
-  height: var(--dash-lower-h);
-  max-height: var(--dash-lower-h);
+  /* the card follows its rows, floored at the vault list's visible height
+     (the grid area it sits in) and capped at 61.8% of the viewport. The grid
+     scrolls inside once the rows pass the cap. */
+  height: auto;
+  min-height: min(100%, 61.8vh);
+  max-height: 61.8vh;
   overflow: hidden;
 }
 .fd-ledger-head {
