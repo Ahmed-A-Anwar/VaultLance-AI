@@ -1,6 +1,7 @@
-/* VaultCard.tsx — one vault, 144px tall, two columns: what it is on the left
-   (project, phase, client, amount, the five bolts) and what it needs on the
-   right (a hint and up to two actions).
+/* VaultCard.tsx — one vault, 144px tall, in the client dashboard's own card
+   language: project and phase chip on the first line, client and amount on the
+   second ("Maya · $180"), the five-bolt stepper on the third, the wheel in the
+   top-right corner and the card's actions stacked beneath it.
 
    Two actions are irreversible enough to ask twice: submitting a manifest and
    deleting a draft. Both put the state in the label — "Confirm submit" — with
@@ -92,6 +93,9 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
 
         <p className="fd-card-meta">
           <span>{vault.clientName}</span>
+          <span className="fd-card-dot" aria-hidden="true">
+            ·
+          </span>
           <span className="fd-card-amount">{formatCents(vault.amountCents)}</span>
         </p>
 
@@ -105,22 +109,21 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           aria-label={`Details for ${vault.project}`}
           onClick={() => onAction("details", vault)}
         >
-          <Wheel width="14" height="14" />
+          <Wheel width="13" height="13" />
         </button>
 
         <p className="fd-card-hint">{HINT[phase]}</p>
 
         <div className="fd-card-actions">
-          {busy && <span className="fd-spin" aria-hidden="true" />}
-
           {phase === "draft" && (
             <>
-              <button type="button" className="fd-btn fd-btn-primary" disabled={busy} onClick={() => onAction("setup", vault)}>
-                Continue setup
+              <button type="button" className="dash-btn dash-btn-primary" disabled={busy} onClick={() => onAction("setup", vault)}>
+                <span className="dash-btn-label">Continue setup</span>
+                <span className="dash-btn-arrow" aria-hidden="true">→</span>
               </button>
               <button
                 type="button"
-                className="fd-btn fd-btn-ghost is-danger"
+                className="dash-btn dash-btn-danger"
                 disabled={busy}
                 onClick={() => twoStep("delete")}
               >
@@ -131,12 +134,12 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
 
           {phase === "invited" && (
             <>
-              <button type="button" className="fd-btn fd-btn-secondary" disabled={busy} onClick={() => onAction("invite", vault)}>
+              <button type="button" className="dash-btn dash-btn-ghost" disabled={busy} onClick={() => onAction("invite", vault)}>
                 Copy invite link
               </button>
               <button
                 type="button"
-                className="fd-btn fd-btn-ghost fd-btn-mono"
+                className="dash-btn dash-btn-ghost fd-btn-mono"
                 disabled={busy || !!remindLabel}
                 onClick={() => onAction("remind", vault)}
               >
@@ -149,13 +152,16 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
             <>
               <button
                 type="button"
-                className="fd-btn fd-btn-primary"
+                className="dash-btn dash-btn-primary"
                 disabled={busy}
                 onClick={() => (needsFiles ? onAction("upload", vault) : twoStep("submit"))}
               >
-                {needsFiles ? "Upload files" : confirm === "submit" ? "Confirm submit" : "Submit for review"}
+                <span className="dash-btn-label">
+                  {needsFiles ? "Upload files" : confirm === "submit" ? "Confirm submit" : "Submit for review"}
+                </span>
+                <span className="dash-btn-arrow" aria-hidden="true">→</span>
               </button>
-              <button type="button" className="fd-btn fd-btn-secondary" disabled={busy} onClick={() => onAction(needsFiles ? "upload" : "addFiles", vault)}>
+              <button type="button" className="dash-btn dash-btn-ghost" disabled={busy} onClick={() => onAction(needsFiles ? "upload" : "addFiles", vault)}>
                 {needsFiles ? "Upload files" : "Add files"}
               </button>
             </>
@@ -164,7 +170,7 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           {phase === "submitted" && (
             <button
               type="button"
-              className="fd-btn fd-btn-ghost fd-btn-mono"
+              className="dash-btn dash-btn-ghost fd-btn-mono"
               disabled={busy || !!remindLabel}
               onClick={() => onAction("remind", vault)}
             >
@@ -173,22 +179,25 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           )}
 
           {(phase === "paid_pending" || phase === "paid") && (
-            <button type="button" className="fd-btn fd-btn-secondary" disabled={busy} onClick={() => onAction("receipt", vault)}>
+            <button type="button" className="dash-btn dash-btn-ghost" disabled={busy} onClick={() => onAction("receipt", vault)}>
               View receipt
             </button>
           )}
 
           {phase === "payout_failed" && (
-            <button type="button" className="fd-btn fd-btn-primary" disabled={busy} onClick={() => onAction("retry", vault)}>
-              Retry payout
+            <button type="button" className="dash-btn dash-btn-primary" disabled={busy} onClick={() => onAction("retry", vault)}>
+              <span className="dash-btn-label">Retry payout</span>
+              <span className="dash-btn-arrow" aria-hidden="true">→</span>
             </button>
           )}
 
           {phase === "voided" && (
-            <button type="button" className="fd-btn fd-btn-secondary" disabled={busy} onClick={() => onAction("duplicate", vault)}>
+            <button type="button" className="dash-btn dash-btn-ghost" disabled={busy} onClick={() => onAction("duplicate", vault)}>
               Duplicate vault
             </button>
           )}
+
+          {busy && <span className="fd-spin" aria-hidden="true" />}
         </div>
 
         {confirm && (

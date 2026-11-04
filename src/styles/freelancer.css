@@ -65,31 +65,23 @@
   margin: 0 0 13px;
 }
 
-/* ---- upper band: 233px, phi columns, both columns vertically centered ---- */
+/* ---- upper band: the client's 89px, both columns vertically centered ---- */
 .fd-band {
   display: grid;
   grid-template-columns: 1.618fr 1fr;
   gap: 21px;
-  height: 233px;
+  height: var(--dash-upper, 89px);
   align-items: center;
-  /* 21px page gap + 13 = the 34px band-to-heading rhythm */
-  margin-bottom: 13px;
 }
 .fd-greet {
   display: flex;
   flex-direction: column;
   gap: 13px;
 }
-.fd-statusline {
-  margin: 0;
-  font-family: var(--hero-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  color: var(--hero-slate);
-}
-.fd-statusline[data-tone="danger"] {
-  color: var(--fd-danger);
-}
+/* the greeting's line is the client's eyebrow: mono, uppercase, brass mark */
+.fd-statusline { margin: 0; }
+.fd-statusline[data-tone="danger"] { color: var(--fd-danger); }
+.fd-statusline[data-tone="danger"] .dash-eyebrow-mark { background: var(--fd-danger); }
 
 /* ---- KPIs: three 89px cards ---- */
 .fd-kpis {
@@ -106,7 +98,10 @@
   padding: 13px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* the client's card: icon and label, then the number, centred as a group */
+  justify-content: center;
+  gap: 8px;
+  --kpi-accent: var(--hero-brass);
   border: 1px solid var(--fd-hair);
   border-radius: 13px;
   background: var(--fd-glass);
@@ -118,13 +113,16 @@
 .fd-kpi::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
+  left: 0;
+  top: 13px;
+  bottom: 13px;
   width: 3px;
-  background: var(--hero-steel);
+  border-radius: 0 3px 3px 0;
+  background: var(--kpi-accent);
 }
-.fd-kpi[data-accent="brass"]::before { background: var(--fd-brass); }
-.fd-kpi[data-accent="teal"]::before { background: var(--hero-teal); }
-.fd-kpi[data-accent="success"]::before { background: var(--hero-success); }
+.fd-kpi[data-accent="brass"] { --kpi-accent: var(--hero-brass); }
+.fd-kpi[data-accent="teal"] { --kpi-accent: var(--hero-teal); }
+.fd-kpi[data-accent="success"] { --kpi-accent: var(--hero-success); }
 
 .fd-kpi-top {
   display: flex;
@@ -134,20 +132,29 @@
 }
 .fd-kpi-ico {
   display: inline-flex;
-  color: var(--hero-slate);
+  color: var(--kpi-accent);
+  flex: none;
+  line-height: 0;
 }
 .fd-kpi-label {
   font-family: var(--hero-font-mono);
   font-size: 12px;
-  letter-spacing: 0.14em;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
   color: var(--hero-slate);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .fd-kpi-num {
   font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
   font-size: 26px;
   line-height: 1;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ---- skeletons ---- */
@@ -232,13 +239,14 @@
 /* ---- vault card: 144px ---- */
 .fd-list { display: flex; flex-direction: column; gap: 13px; }
 .fd-card {
+  /* the client card's own geometry: content left, a 233px rail for the
+     actions, 13px/21px padding, 144px tall */
   display: grid;
-  grid-template-columns: 1.618fr 1fr;
-  gap: 21px;
+  grid-template-columns: minmax(0, 1fr) 233px;
+  gap: 13px;
   height: 144px;
-  /* the two-button phases fall back to a stack in narrow cards, never here */
   container-type: inline-size;
-  padding: 21px;
+  padding: 13px 13px 13px 21px;
   border: 1px solid var(--fd-hair);
   border-radius: 13px;
   background: var(--fd-glass);
@@ -260,7 +268,7 @@
   to { opacity: 1; transform: none; }
 }
 
-.fd-card-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fd-card-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow: hidden; }
 .fd-card-head { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
 .fd-card-project {
   margin: 0;
@@ -268,18 +276,31 @@
   font-weight: 600;
   font-size: 16px;
 }
+/* "Maya ·  $180", exactly as the client card sets it */
 .fd-card-meta {
   margin: 0;
   display: flex;
   align-items: baseline;
-  gap: 13px;
+  gap: 8px;
   color: var(--hero-slate);
   font-size: 14px;
+  min-width: 0;
 }
+.fd-card-meta > span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fd-card-dot { color: var(--hero-slate); }
 .fd-card-amount {
   font-family: var(--hero-font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
   font-size: 26px;
+  line-height: 1;
+  letter-spacing: -0.01em;
   color: var(--hero-ink);
+  white-space: nowrap;
 }
 
 .fd-card-right {
@@ -287,64 +308,56 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
-  /* the info icon owns the corner; the hint stops 55px short of it */
-  padding-right: 55px;
+  justify-content: space-between;
+  gap: 4px;
   min-width: 0;
 }
+/* two lines of 12px and two 34px buttons are 31 + 4 + 76 = 111 of the 118 the
+   144px card has between its padding: nothing crosses the 13px bottom edge */
 .fd-card-hint {
   margin: 0;
+  padding-right: 34px;
   text-align: right;
   color: var(--hero-slate);
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .fd-card-actions {
-  margin-top: auto;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-  /* 34px buttons, 21px card padding: 13px of air above the bottom edge */
-  margin-bottom: 5px;
   max-width: 100%;
 }
-/* narrow cards stack the pair instead of clipping it: 20 + 4 + 76 = 100 */
+/* narrow cards stack in one column already; nothing to reflow */
 @container (max-width: 600px) {
-  .fd-card-actions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    row-gap: 8px;
-  }
-  .fd-card-actions .fd-btn { width: 100%; }
-  .fd-card-hint { -webkit-line-clamp: 1; }
+  .fd-card-actions { width: 100%; align-items: stretch; }
 }
 
+/* the client's wheel: a bare glyph in the top-right corner, brass on hover */
 .fd-info {
-  /* corner of the column is the card's padding corner: 21px from the edges */
   position: absolute;
   top: 0;
   right: 0;
-  width: 26px;
-  height: 26px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--fd-hair);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--hero-slate);
   cursor: pointer;
-  transition: border-color var(--hero-d-236) var(--fd-ease), color var(--hero-d-236) var(--fd-ease);
+  transition: color var(--hero-d-236) var(--fd-ease);
 }
 .fd-info svg { transition: transform var(--hero-d-618) var(--fd-ease); }
-.fd-info:hover { border-color: var(--hero-teal); color: var(--hero-ink); }
-.fd-info:hover svg { transform: rotate(60deg); }
+.fd-card:hover .fd-info { color: var(--fd-brass); }
+.fd-card:hover .fd-info svg { transform: rotate(60deg); }
+.fd-info:hover { color: var(--hero-ink); }
 
 /* ---- phase chips ---- */
 .fd-chip {
@@ -396,53 +409,56 @@
   animation: fd-spin 1s linear infinite;
 }
 
-/* ---- compact stepper: five 13px nodes on one 21px row, label only on the
-   node the vault stands on. Done nodes are success green with a white check,
-   exactly like the client dashboard. ---- */
+/* ---- the client's stepper, step for step: five equal columns, a hairline
+   from each node to the next, and a label under every node ---- */
 .fd-steps {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-  height: 21px;
+  align-items: flex-start;
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow: hidden;
-  white-space: nowrap;
+  min-width: 0;
 }
 .fd-step {
+  position: relative;
+  flex: 1 1 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
-.fd-step + .fd-step::before {
+.fd-step::before {
   content: "";
-  flex: none;
-  width: 8px;
+  position: absolute;
+  top: 6px;
+  left: 13px;
+  width: calc(100% - 13px);
   height: 1px;
-  background: var(--fd-hair);
+  background: rgba(138, 149, 161, 0.55);
 }
+.fd-step:last-child::before { display: none; }
 .fd-step-node {
-  flex: none;
-  width: 13px;
-  height: 13px;
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
+  width: 13px;
+  height: 13px;
   border: 1px solid var(--hero-steel);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  transition: background-color var(--hero-d-382) var(--fd-ease), border-color var(--hero-d-382) var(--fd-ease),
+    box-shadow var(--hero-d-382) var(--fd-ease);
 }
 .fd-step[data-state="done"] .fd-step-node {
   border-color: var(--hero-success);
   background: var(--hero-success);
-  color: #fff;
 }
 .fd-step[data-state="current"] .fd-step-node {
   border-color: var(--fd-brass);
   background: var(--fd-brass);
-  box-shadow: 0 0 0 3px rgba(184, 137, 58, 0.2), 0 0 13px rgba(184, 137, 58, 0.45);
+  box-shadow: 0 0 0 4px rgba(184, 137, 58, 0.18), 0 0 13px rgba(184, 137, 58, 0.45);
 }
 .fd-step[data-state="danger"] .fd-step-node {
   border-color: var(--fd-danger);
@@ -451,11 +467,17 @@
 .fd-step-label {
   font-family: var(--hero-font-mono);
   font-size: 12px;
-  letter-spacing: 0.1em;
-  color: var(--hero-ink);
+  color: var(--hero-slate);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.fd-step[data-state="current"] .fd-step-label { color: var(--hero-ink); }
 .fd-step[data-state="danger"] .fd-step-label { color: var(--fd-danger); }
+.fd-card:hover .fd-step-node { box-shadow: 0 0 0 3px rgba(184, 137, 58, 0.12); }
+.fd-card:hover .fd-step[data-state="current"] .fd-step-node {
+  box-shadow: 0 0 0 4px rgba(184, 137, 58, 0.22), 0 0 21px rgba(184, 137, 58, 0.5);
+}
 
 /* ---- buttons ---- */
 .fd-btn {
@@ -567,12 +589,15 @@
   text-wrap: balance;
 }
 
-/* ---- ledger ---- */
+/* ---- ledger: the client's sticky card. Its heading lives inside it, and
+   the card's top edge is the vaults heading's box top because both columns
+   start at the row top. Height is the viewport's remainder under the 233px
+   band: 55 strip + 34 pad + 233 band + 34 gap + 34 pad = 390. ---- */
 .fd-ledger {
   display: flex;
   flex-direction: column;
-  gap: 13px;
-  padding: 21px;
+  min-width: 0;
+  padding: 13px 13px 8px;
   border: 1px solid var(--fd-hair);
   border-radius: 13px;
   background: var(--fd-glass);
@@ -580,14 +605,41 @@
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 21px rgba(14, 21, 32, 0.08);
   position: sticky;
-  top: 21px;
+  /* the client's pin: under the 55px strip and the 34px page padding */
+  top: calc(var(--dash-strip, 55px) + var(--dash-pad, 34px));
+  align-self: start;
+  height: var(--dash-lower-h);
+  max-height: var(--dash-lower-h);
+  overflow: hidden;
 }
-.fd-ledger-wide { position: static; }
-.fd-grid { height: 377px; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
+.fd-ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  margin-bottom: 13px;
+}
+.fd-ledger-wide {
+  position: static;
+  align-self: stretch;
+  height: auto;
+  max-height: none;
+}
+.fd-grid { flex: 1; min-height: 233px; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
 .fd-grid .ag-root-wrapper { border: none; background: transparent; }
 /* the client's grid rules, selector for selector: 34px rows, mono headers,
    steel hairlines, no default blue */
 .fd-grid .ag-header { border-bottom: 1px solid rgba(138, 149, 161, 0.4); background: transparent; }
+/* the faint vertical rules between header cells, as on the client ledger */
+.fd-grid .ag-header-cell:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: rgba(138, 149, 161, 0.35);
+}
 .fd-grid .ag-header-cell-text {
   font-family: var(--hero-font-mono);
   font-size: 12px;
@@ -630,10 +682,17 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  max-width: 100%;
+  overflow: hidden;
   border: none;
   background: transparent;
   color: var(--hero-slate);
   cursor: pointer;
+}
+.fd-copy > .fd-mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fd-copy:hover { color: var(--hero-ink); }
 .fd-empty-line { margin: 0; padding: 34px 0; text-align: center; color: var(--hero-slate); font-size: 14px; }
@@ -941,8 +1000,12 @@
 /* ---- 1024–1359: the ledger drops below ---- */
 @media (max-width: 1359px) {
   .fd-lower { grid-template-columns: 1fr; }
-  .fd-ledger { position: static; }
+  .fd-ledger { position: static; height: auto; max-height: none; }
+  .fd-grid { flex: none; height: 377px; }
   .fd-band { height: auto; }
+}
+@media (max-width: 767px) {
+  .fd-grid { height: 300px; }
 }
 
 /* ---- under 768: one column, bottom tabs, sheet drawer ---- */

@@ -87,10 +87,14 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
     const api = apiRef.current;
     const el = wrapRef.current;
     if (!api || !el) return;
+    /* at the client ledger's 454px the row reads TIME | EVENT | AMOUNT |
+       PAYPAL ID; the vault name is the first to go, so the freelancer's
+       compact card matches the client's exactly at that width */
     const w = el.clientWidth;
-    api.setColumnsVisible(["paypalId"], w >= 480);
-    api.setColumnsVisible(["vaultProject"], w >= 360);
-    api.sizeColumnsToFit();
+    api.setColumnsVisible(["vaultProject"], w >= 560);
+    api.setColumnsVisible(["paypalId"], w >= 420);
+    /* no sizeColumnsToFit: it rescales every column and would starve TIME.
+       EVENT is the only flex column, so the fixed widths survive. */
   }, []);
 
   useEffect(() => {
@@ -117,7 +121,7 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
       {
         headerName: "TIME",
         field: "at",
-        width: 96,
+        width: 84,
         valueFormatter: (p) => formatRelative(p.value),
         tooltipValueGetter: (p) => fullTime(p.value as string),
       },
@@ -134,7 +138,7 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
         ),
         tooltipValueGetter: (p) => (p.value as string) ?? "",
       },
-      { headerName: "VAULT", field: "vaultProject", width: 120 },
+      { headerName: "VAULT", field: "vaultProject", width: 110 },
       {
         headerName: "AMOUNT",
         field: "amountCents",
@@ -147,7 +151,7 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
       {
         headerName: "PAYPAL ID",
         field: "paypalId",
-        width: 150,
+        width: 131,
         cellRenderer: (p: { value?: string }) =>
           p.value ? (
             <button

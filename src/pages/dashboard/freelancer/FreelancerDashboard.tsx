@@ -243,7 +243,8 @@ function Surface({ email }: { email: string }) {
             {loading ? (
               <span className="fd-skel fd-skel-line" aria-hidden="true" />
             ) : (
-              <p className="fd-statusline" data-tone={failed ? "danger" : undefined}>
+              <p className="dash-eyebrow dash-greeting-line fd-statusline" data-tone={failed ? "danger" : undefined}>
+                <span className="dash-eyebrow-mark" aria-hidden="true" />
                 {statusLine}
               </p>
             )}
@@ -289,15 +290,13 @@ function Surface({ email }: { email: string }) {
             {list}
           </section>
 
-          <section className="fd-col" aria-labelledby="fd-earn-h">
-            <div className="fd-head">
+          <section className="fd-ledger" aria-labelledby="fd-earn-h">
+            <div className="fd-ledger-head">
               <h2 id="fd-earn-h" className="fd-h2">
                 Earnings
               </h2>
             </div>
-            <div className="fd-ledger">
-              <FreelancerLedger events={events} loading={loading} />
-            </div>
+            <FreelancerLedger events={events} loading={loading} />
           </section>
         </div>
       )}
