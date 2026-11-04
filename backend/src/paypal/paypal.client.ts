@@ -11,6 +11,7 @@
  */
 
 import { logger } from "../shared/logger.js";
+import { paypalBaseUrl } from "../shared/paypal.env.js";
 import { BadRequestError, AppError } from "../shared/errors.js";
 
 interface PayPalTokenCache {
@@ -30,8 +31,7 @@ export class PayPalService {
   }
 
   private get baseUrl(): string {
-    const raw = process.env.PAYPAL_BASE_URL || "https://api-m.sandbox.paypal.com";
-    return raw.replace("https://sandbox.paypal.com", "https://api-m.sandbox.paypal.com");
+    return paypalBaseUrl();
   }
 
   public get webhookId(): string {

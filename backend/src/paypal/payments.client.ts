@@ -11,14 +11,11 @@
  */
 import { AppError } from "../shared/errors.js";
 import { logger } from "../shared/logger.js";
+import { paypalBaseUrl } from "../shared/paypal.env.js";
 
-const SANDBOX = "https://api-m.sandbox.paypal.com";
-const LIVE = "https://api-m.paypal.com";
 const TIMEOUT_MS = 20_000;
 
 let token: { value: string; expiresAt: number } | null = null;
-
-export const paypalBaseUrl = (): string => (process.env.PAYPAL_ENV === "live" ? LIVE : SANDBOX);
 
 async function accessToken(): Promise<string> {
   if (token && token.expiresAt > Date.now() + 60_000) return token.value;
