@@ -535,7 +535,8 @@
 .pay-hold {
   position: relative;
   height: 89px;
-  padding: 13px 21px;
+  /* the last 8px are the progress bar's lane, so the bar never eats the row */
+  padding: 13px 21px 21px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -602,6 +603,10 @@
   color: var(--hero-slate);
 }
 .pay-bar {
+  position: absolute;
+  left: 21px;
+  right: 21px;
+  bottom: 13px;
   display: block;
   flex: none;
   height: 4px;
@@ -727,7 +732,8 @@ button.pay-mcard { cursor: pointer; }
   .pay-grid-wrap .pay-grid,
   .pay-grid-receipts { display: none; }
   .pay-mlist { display: flex; }
-  .pay-hold { padding: 13px; height: auto; min-height: 89px; }
+  .pay-hold { padding: 13px 13px 21px; height: auto; min-height: 89px; }
+  .pay-bar { left: 13px; right: 13px; }
   .pay-hold-meta { gap: 8px; }
   .pay-total { padding: 0 8px; }
 }

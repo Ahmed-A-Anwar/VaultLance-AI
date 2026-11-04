@@ -402,9 +402,7 @@ export function PayoutHistory({
 
       {!error && (
         <div className="pay-total">
-          <span className="pay-total-label">
-            TOTAL NET {filter !== "all" && <span className="fd-dim">· {filter.toUpperCase()}</span>}
-          </span>
+          <span className="pay-total-label">TOTAL NET</span>
           <span className="pay-total-num">{loading ? "—" : formatCents(totalNet)}</span>
         </div>
       )}
