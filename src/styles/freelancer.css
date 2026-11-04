@@ -675,7 +675,17 @@
   height: calc(100svh - 55px - 233px - 55px - 68px);
   min-height: 377px;
 }
-.fd-grid { flex: 1; min-height: 233px; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
+.fd-grid { flex: 1; min-height: 233px; position: relative; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
+/* AG wraps itself in a div with an inline height:100%. Inside a flexed box that
+   percentage resolves against the pre-flex height, i.e. 0, and the grid paints
+   nothing while its rows keep their 34px boxes. Pinning the wrapper to the
+   container's padding box hands it the height the layout already decided. */
+.fd-grid > div {
+  position: absolute;
+  inset: 0;
+  width: auto !important;
+  height: auto !important;
+}
 .fd-grid .ag-root-wrapper { border: none; background: transparent; }
 /* the client's grid rules, selector for selector: 34px rows, mono headers,
    steel hairlines, no default blue */
@@ -759,20 +769,53 @@
   text-transform: uppercase;
   color: var(--hero-slate);
 }
-.fd-sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+.fd-sums {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 13px;
+  min-width: 0;
+}
+/* four fixed rows so the three numbers share a baseline even though the third
+   card carries two lines under it: 13 + 26 + 12 + 12 fits the 89px card */
 .fd-sum {
   height: 89px;
-  padding: 13px 21px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 8px 21px;
+  display: grid;
+  grid-template-rows: 13px 26px 12px 12px;
+  align-content: space-between;
+  min-width: 0;
   border: 1px solid var(--fd-hair);
   border-radius: 13px;
   background: var(--fd-glass);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
-.fd-sum-num { font-family: var(--hero-font-display); font-size: 26px; line-height: 1; }
+.fd-sum-num {
+  font-family: var(--hero-font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.fd-sum-sub {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--hero-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.fd-sum-sub-key { color: var(--hero-steel); }
+.fd-sum-failed { color: var(--fd-danger); cursor: pointer; text-align: left; }
+.fd-sum-failed:hover { text-decoration: underline; text-underline-offset: 3px; }
+.fd-sum-failed:focus-visible { outline: 2px solid var(--hero-teal); outline-offset: 2px; border-radius: 4px; }
 
 /* ---- drawer: 610px, right, full height ---- */
 .fd-scrim {
