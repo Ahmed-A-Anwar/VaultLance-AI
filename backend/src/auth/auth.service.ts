@@ -699,7 +699,14 @@ export class AuthService {
 
     /* money in motion blocks deletion: authorized, submitted, or waiting on the
        client's decision */
-    const blocking = ["AUTHORIZED", "IN_PROGRESS", "SUBMITTED", "VERIFYING", "AWAITING_APPROVAL"];
+    const blocking = [
+      "AUTHORIZED",
+      "IN_PROGRESS",
+      "SUBMITTED",
+      "VERIFYING",
+      "AWAITING_APPROVAL",
+      "CAPTURE_PENDING",
+    ];
     const inMotion = (status: string) => blocking.includes(String(status).toUpperCase());
 
     if (isSupabaseConfigured() && supabase) {
@@ -718,6 +725,26 @@ export class AuthService {
         );
       }
 
+      /* a payout still on its way out blocks deletion too */
+      const ownedIds = (owned || []).map((v: any) => v.id);
+      if (ownedIds.length) {
+        const { data: payouts } = await supabase
+          .from("vault_payouts")
+          .select("vault_id, status")
+          .in("vault_id", ownedIds);
+        const unsettled = (payouts || []).filter((p: any) =>
+          ["creating", "pending", "failed"].includes(String(p.status))
+        );
+        if (unsettled.length) {
+          throw new ConflictError(
+            `Settlement is still open for vault(s) ${unsettled
+              .map((p: any) => p.vault_id)
+              .join(", ")}. Resolve the payout first.`,
+            "DELETE_BLOCKED"
+          );
+        }
+      }
+
       /* memberships first, so no vault points at a user that is gone */
       const { error: memberErr } = await supabase.from("vault_members").delete().eq("user_id", userId);
       if (memberErr) throw new DatabaseError(`Account deletion failed: ${memberErr.message}`);
@@ -733,6 +760,9 @@ export class AuthService {
         throw new DatabaseError(`Account deletion failed: ${authErr.message}`);
       }
       if (authErr) logger.info(`[auth] auth user ${userId} was already deleted`);
+
+      /* money records stay; the person behind them does not */
+      await supabase.from("ledger_events").update({ actor_id: null }).eq("actor_id", userId);
 
       await sessionStore.revokeAllForUser(userId);
       return;
