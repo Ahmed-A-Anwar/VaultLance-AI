@@ -11,6 +11,8 @@ import {
   type VaultStatus,
   type LedgerType,
 } from "../../lib/api";
+import { API_BASE_URL, isDemoMode } from "../../lib/apiClient";
+import { listEvents as listLocalEvents, listVaults as listLocalVaults } from "../../lib/api";
 
 interface DashDataValue {
   vaults: Vault[];
@@ -35,8 +37,11 @@ function getToken(): string {
 }
 
 async function fetchLiveVaults(): Promise<Vault[]> {
+  /* a demo build has no server to ask, so it reads the local store the same
+     surfaces write to */
+  if (isDemoMode()) return listLocalVaults();
   const token = getToken();
-  const res = await fetch("http://localhost:3000/api/vaults", {
+  const res = await fetch(`${API_BASE_URL}/vaults`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error("Failed to fetch vaults from server");
@@ -66,8 +71,9 @@ async function fetchLiveVaults(): Promise<Vault[]> {
 }
 
 async function fetchLiveLedger(): Promise<LedgerEvent[]> {
+  if (isDemoMode()) return listLocalEvents();
   const token = getToken();
-  const res = await fetch("http://localhost:3000/api/ledger", {
+  const res = await fetch(`${API_BASE_URL}/ledger`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error("Failed to fetch ledger from server");

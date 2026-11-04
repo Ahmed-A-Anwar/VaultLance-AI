@@ -8,6 +8,7 @@
    call once this is no longer a mock. */
 
 import { FX } from "../config/fx";
+import { API_BASE_URL } from "./apiClient";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -258,7 +259,9 @@ export async function listEvents(): Promise<LedgerEvent[]> {
 /* -------------------------------------------------------------- writes --- */
 
 /* ── real backend helpers ─────────────────────────────────────────────── */
-const API_BASE = "http://localhost:3000";
+/* the same resolution the api client uses: an explicit VITE_API_URL, otherwise
+   the deployment's own origin, otherwise the local Express app */
+const API_BASE = API_BASE_URL.replace(/\/api$/, "");
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
