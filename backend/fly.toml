@@ -5,6 +5,7 @@
 # (Supabase owns the schema), and a release command that waits on a database it
 # cannot reach is what aborted the deploy with exit code 1.
 app = "vaultlance-ai"
+primary_region = "cdg"
 
 [build]
   dockerfile = "Dockerfile"
