@@ -725,8 +725,14 @@ export class AuthService {
       const { error: rowErr } = await supabase.from("users").delete().eq("id", userId);
       if (rowErr) throw new DatabaseError(`Account deletion failed: ${rowErr.message}`);
 
+      /* the auth user can already be gone by the time we ask: the profile
+         delete cascades into auth in this project, and a retry after a partial
+         delete lands here too. Deleting twice is not a failure. */
       const { error: authErr } = await supabase.auth.admin.deleteUser(userId);
-      if (authErr) throw new DatabaseError(`Account deletion failed: ${authErr.message}`);
+      if (authErr && !/user not found/i.test(authErr.message || "")) {
+        throw new DatabaseError(`Account deletion failed: ${authErr.message}`);
+      }
+      if (authErr) logger.info(`[auth] auth user ${userId} was already deleted`);
 
       await sessionStore.revokeAllForUser(userId);
       return;
