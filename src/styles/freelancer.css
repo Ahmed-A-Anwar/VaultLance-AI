@@ -355,7 +355,9 @@
    hover, inside a 34px hit box that overhangs the padding by 6px */
 .fd-info {
   position: absolute;
-  top: -6px;
+  /* -10 keeps the 34px box clear of a two-button stack, whose top button
+     starts 24px into the 100px content box */
+  top: -10px;
   right: -6px;
   display: grid;
   place-items: center;
@@ -1065,9 +1067,12 @@
   .fd-head .dash-chips::-webkit-scrollbar { display: none; }
   .fd-head .dash-chip-filter { flex: none; }
   .fd-step-label { font-size: 10px; }
-  .fd-card { grid-template-columns: 1fr; height: auto; min-height: 144px; padding: 21px 21px 55px; }
-  .fd-card-right { align-items: stretch; padding-right: 0; }
-  .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 2; padding-right: 0; }
+  .fd-card { position: relative; grid-template-columns: 1fr; height: auto; min-height: 144px; padding: 21px 21px 55px; }
+  /* one column: anchor the wheel to the card's own corner so its 34px box
+     cannot sit over the action stack below it */
+  .fd-card-right { position: static; align-items: stretch; padding-right: 0; }
+  .fd-info { top: 8px; right: 8px; }
+  .fd-card-hint { text-align: left; max-width: none; -webkit-line-clamp: 2; }
   .fd-card-actions { justify-content: stretch; }
   .fd-card-actions .fd-btn { flex: 1; }
   .fd-sums { grid-template-columns: 1fr; }
