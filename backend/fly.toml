@@ -1,34 +1,34 @@
-# Fly.io config for the VaultLance API. Lives beside the code because the
-# build context is this directory.
+# fly.toml app configuration file generated for vaultlance-ai on 2026-11-04T16:29:25Z
 #
-# Deliberately no [deploy] release_command: there are no migrations to run
-# (Supabase owns the schema), and a release command that waits on a database it
-# cannot reach is what aborted the deploy with exit code 1.
-app = "vaultlance-ai"
-primary_region = "cdg"
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'vaultlance-ai'
+primary_region = 'cdg'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  NODE_ENV = "production"
-  PORT = "8080"
+  NODE_ENV = 'production'
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "suspend"
+  auto_stop_machines = 'suspend'
   auto_start_machines = true
   min_machines_running = 0
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
-    method = "GET"
-    path = "/health"
-    timeout = "5s"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
 
 [[vm]]
-  memory = "512mb"
-  cpu_kind = "shared"
+  memory = '512mb'
+  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 512
