@@ -1,19 +1,31 @@
 /* TopStrip.tsx — 55px of transparent chrome over the page gradient: the route's
-   name, the vault search, the bell and the one brass action. */
+   name, the vault search, the bell and the one brass action.
 
-import { Bell, Search } from "./icons";
+   The client's action is "Join a vault" and is the default. A role that needs a
+   different action passes `primary`; the default branch renders the same button
+   it always did, so the client's strip is byte-identical. */
+
+import { Bell, Plus, Search } from "./icons";
 import { useDashUi } from "./ui";
+
+interface PrimaryAction {
+  label: string;
+  withPlus?: boolean;
+  onClick: () => void;
+}
 
 export function TopStrip({
   title,
   onJoin,
   showSearch = true,
+  primary,
 }: {
   title: string;
   onJoin: () => void;
   /* only the areas that list vaults have anything to search: Ledger, Payments
      and Settings drop the field and the strip tightens to two columns */
   showSearch?: boolean;
+  primary?: PrimaryAction;
 }) {
   const { query, setQuery, unread, markRead } = useDashUi();
 
@@ -46,9 +58,16 @@ export function TopStrip({
           {unread && <span className="dash-bell-dot" aria-hidden="true" />}
         </button>
 
-        <button type="button" className="dash-cta" onClick={onJoin}>
-          Join a vault
-        </button>
+        {primary ? (
+          <button type="button" className="dash-cta dash-cta-primary" onClick={primary.onClick}>
+            {primary.withPlus && <Plus width="14" height="14" aria-hidden="true" />}
+            {primary.label}
+          </button>
+        ) : (
+          <button type="button" className="dash-cta" onClick={onJoin}>
+            Join a vault
+          </button>
+        )}
       </div>
     </header>
   );

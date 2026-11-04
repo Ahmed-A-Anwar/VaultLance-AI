@@ -1,0 +1,297 @@
+[
+ {
+  "shot": "free-1920x1080",
+  "cardH": 89,
+  "ratio": 1.618,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "free-noemail-1920x1080",
+  "state": "maya.chen@paypal.example Change email"
+ },
+ {
+  "shot": "client-1920x1080",
+  "cardH": 89,
+  "ratio": 1.618,
+  "rowH": 89,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": null,
+  "hScrollRegions": []
+ },
+ {
+  "shot": "client-receipts-1920x1080",
+  "cardH": 89,
+  "ratio": 1.618,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "client-empty-1920x1080",
+  "text": "No active holds."
+ },
+ {
+  "shot": "empty-1920x1080",
+  "text": "Payout history ALL PAID PENDING FAILED No payouts yet. Paid vaults appear here. TOTAL NET $0.00 Payout method VERIFIED m"
+ },
+ {
+  "shot": "loading-1920x1080",
+  "skeletons": 10
+ },
+ {
+  "shot": "free-1440x900",
+  "cardH": 89,
+  "ratio": 1.618,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "free-noemail-1440x900",
+  "state": "maya.chen@paypal.example Change email"
+ },
+ {
+  "shot": "client-1440x900",
+  "cardH": 89,
+  "ratio": 1.618,
+  "rowH": 89,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": null,
+  "hScrollRegions": []
+ },
+ {
+  "shot": "client-receipts-1440x900",
+  "cardH": 89,
+  "ratio": 1.618,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "client-empty-1440x900",
+  "text": "No active holds."
+ },
+ {
+  "shot": "empty-1440x900",
+  "text": "Payout history ALL PAID PENDING FAILED No payouts yet. Paid vaults appear here. TOTAL NET $0.00 Payout method VERIFIED m"
+ },
+ {
+  "shot": "loading-1440x900",
+  "skeletons": 10
+ },
+ {
+  "shot": "free-1280x720",
+  "cardH": 89,
+  "ratio": 1,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "free-noemail-1280x720",
+  "state": "maya.chen@paypal.example Change email"
+ },
+ {
+  "shot": "client-1280x720",
+  "cardH": 89,
+  "ratio": 1,
+  "rowH": 89,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": null,
+  "hScrollRegions": []
+ },
+ {
+  "shot": "client-receipts-1280x720",
+  "cardH": 89,
+  "ratio": 1,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "client-empty-1280x720",
+  "text": "No active holds."
+ },
+ {
+  "shot": "empty-1280x720",
+  "text": "Payout history ALL PAID PENDING FAILED No payouts yet. Paid vaults appear here. TOTAL NET $0.00 Payout method VERIFIED m"
+ },
+ {
+  "shot": "loading-1280x720",
+  "skeletons": 10
+ },
+ {
+  "shot": "free-1024x768",
+  "cardH": 89,
+  "ratio": 1,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "free-noemail-1024x768",
+  "state": "maya.chen@paypal.example Change email"
+ },
+ {
+  "shot": "client-1024x768",
+  "cardH": 89,
+  "ratio": 1,
+  "rowH": 89,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": null,
+  "hScrollRegions": []
+ },
+ {
+  "shot": "client-receipts-1024x768",
+  "cardH": 89,
+  "ratio": 1,
+  "rowH": 55,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "ag-measurement-container",
+   "ag-header-cell ag-column-first ag-header",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a",
+   "ag-header-cell ag-header-parent-hidden a"
+  ]
+ },
+ {
+  "shot": "client-empty-1024x768",
+  "text": "No active holds."
+ },
+ {
+  "shot": "empty-1024x768",
+  "text": "Payout history ALL PAID PENDING FAILED No payouts yet. Paid vaults appear here. TOTAL NET $0.00 Fee columns are hidden a"
+ },
+ {
+  "shot": "loading-1024x768",
+  "skeletons": 10
+ },
+ {
+  "shot": "free-390x844",
+  "cardH": 76,
+  "ratio": 1,
+  "rowH": 0,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": [
+   "fd-sr"
+  ]
+ },
+ {
+  "shot": "free-noemail-390x844",
+  "state": "maya.chen@paypal.example Change email"
+ },
+ {
+  "shot": "client-390x844",
+  "cardH": 76,
+  "ratio": 1,
+  "rowH": 129,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": null,
+  "hScrollRegions": []
+ },
+ {
+  "shot": "client-receipts-390x844",
+  "cardH": 76,
+  "ratio": 1,
+  "rowH": 0,
+  "gapCards": "21px",
+  "sidebar": "21px",
+  "docOverflow": 0,
+  "gridOverflow": 0,
+  "hScrollRegions": []
+ },
+ {
+  "shot": "client-empty-390x844",
+  "text": "No active holds."
+ },
+ {
+  "shot": "empty-390x844",
+  "text": "Payout history ALL PAID PENDING FAILED No payouts yet. Paid vaults appear here. TOTAL NET $0.00 Fee columns are hidden a"
+ },
+ {
+  "shot": "loading-390x844",
+  "skeletons": 10
+ }
+]

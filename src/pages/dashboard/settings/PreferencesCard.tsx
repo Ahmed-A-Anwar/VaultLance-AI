@@ -12,7 +12,7 @@ import { SectionCard } from "../../../components/settings/SectionCard";
 import { Segmented } from "../../../components/settings/Segmented";
 import { DirtyFooter, type SaveState } from "../../../components/settings/DirtyFooter";
 import { useToast } from "../../../components/shared/Toasts";
-import { updatePreferences, type MotionPref } from "../../../lib/api";
+import { updatePreferences, type MotionPref, type Role } from "../../../lib/api";
 
 const SPIN = 618;
 
@@ -22,20 +22,30 @@ const OPTIONS: ReadonlyArray<{ value: MotionPref; label: string }> = [
   { value: "full", label: "Full" },
 ];
 
-const SHORTCUTS: Array<{ keys: string[]; what: string }> = [
-  { keys: ["/"], what: "Focus the audit chat composer" },
-  { keys: ["Space"], what: "Hold to approve a vault" },
-  { keys: ["Esc"], what: "Close a dialog" },
-];
+/* each role's own shortcut list: the keys belong to that role's surfaces */
+const SHORTCUTS_BY_ROLE: Record<Role, Array<{ keys: string[]; what: string }>> = {
+  client: [
+    { keys: ["/"], what: "Focus the audit chat composer" },
+    { keys: ["Space"], what: "Hold to approve a vault" },
+    { keys: ["Esc"], what: "Close a dialog" },
+  ],
+  freelancer: [
+    { keys: ["N"], what: "New vault" },
+    { keys: ["/"], what: "Focus search" },
+    { keys: ["Esc"], what: "Close dialogs" },
+  ],
+};
 
 export function PreferencesCard({
   motion,
+  role = "client",
   onSaved,
   onDirty,
   resetSignal,
   onPreview,
 }: {
   motion: MotionPref;
+  role?: Role;
   onSaved: (next: MotionPref) => void;
   onDirty: (dirty: boolean) => void;
   resetSignal: number;
@@ -47,6 +57,7 @@ export function PreferencesCard({
 
   const dirty = draft !== motion;
   const saved = useMemo(() => motion, [motion]);
+  const SHORTCUTS = SHORTCUTS_BY_ROLE[role];
 
   useEffect(() => onDirty(dirty), [dirty, onDirty]);
 

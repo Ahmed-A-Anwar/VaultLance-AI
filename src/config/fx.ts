@@ -17,13 +17,26 @@ export const FX = {
      across. false restores the old placeholder href ("#").
 
      mockErrors true lets the reset screens fail on 5% of submissions, so the
-     failure paths stay reachable. false makes every submission succeed. */
+     failure paths stay reachable. false makes every submission succeed.
+     Default false: a random failure is not something a review should have to
+     negotiate. The freelancer dashboard reaches its error state on demand
+     from the Shift+D panel's "Force error" button instead. */
   forgotFlow: true,
-  mockErrors: true,
+  mockErrors: false,
   /* settingsPage true mounts the client settings page at /dashboard/settings.
      false restores the blank area the dashboard shipped with. */
   settingsPage: true,
-};
+  /* freelancerDashboard true mounts the freelancer dashboard on /dashboard for
+     the freelancer role. false restores the "Freelancer dashboard coming soon"
+     panel — the page is kept, only the flag switches it back in. */
+  freelancerDashboard: true,
+  /* paymentsPage true mounts the Payments page at /dashboard/payments for both
+     roles: the client's holds and receipts on the route, the freelancer's
+     payouts as a view of its own dashboard. false restores the placeholder
+     heading on the route and lets /dashboard/payments fall back to the
+     freelancer's Overview. */
+  paymentsPage: true,
+} as const;
 
 export const CLIPS = {
   wheel: {

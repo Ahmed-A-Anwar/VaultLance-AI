@@ -286,6 +286,12 @@
   background: rgba(18, 165, 181, 0.12);
   color: var(--set-teal-text);
 }
+/* the same chip's shape, in the brass tone the freelancer rail badge carries:
+   the tint is the same 12% style over the existing hero brass. */
+.set-chip-freelancer {
+  background: rgba(184, 137, 58, 0.12);
+  color: var(--set-brass-text);
+}
 .set-summary-meta {
   display: flex;
   flex-direction: column;

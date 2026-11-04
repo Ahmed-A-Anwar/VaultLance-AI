@@ -1,0 +1,355 @@
+{
+  "390": {
+    "populatedCards": 6,
+    "populatedErrorBar": false,
+    "emptyCards": 0,
+    "drawerCards": 6,
+    "overflowX": 0
+  },
+  "1024": {
+    "populatedCards": 6,
+    "populatedErrorBar": false,
+    "emptyCards": 0,
+    "drawerCards": 6,
+    "overflowX": 0
+  },
+  "1280": {
+    "populatedCards": 6,
+    "populatedErrorBar": false,
+    "emptyCards": 0,
+    "drawerCards": 6,
+    "overflowX": 0
+  },
+  "1440": {
+    "populatedCards": 6,
+    "populatedErrorBar": false,
+    "emptyCards": 0,
+    "drawerCards": 6,
+    "overflowX": 0
+  },
+  "1920": {
+    "populatedCards": 6,
+    "populatedErrorBar": false,
+    "emptyCards": 0,
+    "drawerCards": 6,
+    "overflowX": 0
+  },
+  "phaseCards": [
+    {
+      "project": "Payout Failed",
+      "slug": "payout-failed",
+      "chip": "PAYOUT FAILED",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "Retry payout→"
+      ]
+    },
+    {
+      "project": "Funded",
+      "slug": "funded",
+      "chip": "FUNDED",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "Submit for review→",
+        "Add files"
+      ]
+    },
+    {
+      "project": "Draft",
+      "slug": "draft",
+      "chip": "DRAFT",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "Continue setup→",
+        "Delete draft"
+      ]
+    },
+    {
+      "project": "Invited",
+      "slug": "invited",
+      "chip": "AWAITING CLIENT",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "Copy invite link",
+        "Remind client"
+      ]
+    },
+    {
+      "project": "Submitted",
+      "slug": "submitted",
+      "chip": "SUBMITTED",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "Remind client"
+      ]
+    },
+    {
+      "project": "In Review",
+      "slug": "in-review",
+      "chip": "IN REVIEW",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": []
+    },
+    {
+      "project": "Paid Pending",
+      "slug": "paid-pending",
+      "chip": "PAYOUT PENDING",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "View receipt"
+      ]
+    },
+    {
+      "project": "Paid",
+      "slug": "paid",
+      "chip": "PAID",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "View receipt"
+      ]
+    },
+    {
+      "project": "Voided",
+      "slug": "voided",
+      "chip": "VOIDED",
+      "nodes": [
+        "todo",
+        "todo",
+        "todo",
+        "todo",
+        "todo"
+      ],
+      "labels": [
+        "INVITED",
+        "FUNDED",
+        "SUBMITTED",
+        "APPROVED",
+        "PAID"
+      ],
+      "buttons": [
+        "Duplicate vault"
+      ]
+    }
+  ],
+  "nanSweep": {
+    "hits": [],
+    "aria": []
+  },
+  "reducedMotion": {
+    ".fd-card": {
+      "transition": "0s",
+      "animationName": "none",
+      "animationDuration": "0s"
+    },
+    ".dash-btn": {
+      "transition": "0.001s",
+      "animationName": "none",
+      "animationDuration": "0.001s"
+    },
+    ".fd-info": {
+      "transition": "0.001s",
+      "animationName": "none",
+      "animationDuration": "0.001s"
+    },
+    ".fd-chip": {
+      "transition": "0.001s",
+      "animationName": "none",
+      "animationDuration": "0.001s"
+    },
+    ".dash-chip-filter": {
+      "transition": "0.001s",
+      "animationName": "none",
+      "animationDuration": "0.001s"
+    },
+    "runningAnimations": 0,
+    "reduced": true
+  },
+  "keyboard": {
+    "stops": 45,
+    "invisible": 0,
+    "unreachableChips": false,
+    "unreachableInfo": false,
+    "sample": [
+      {
+        "tag": "a",
+        "cls": "skip",
+        "label": "Skip to content",
+        "ring": "rgb(53, 96, 138)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-skip",
+        "label": "Skip to content",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-wordmark",
+        "label": "VaultLance AI",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-nav-item is-active",
+        "label": "Overview",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-nav-item",
+        "label": "Vaults",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-nav-item",
+        "label": "Earnings",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-nav-item",
+        "label": "Payments",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "cls": "dash-nav-item",
+        "label": "Settings",
+        "ring": "rgb(18, 165, 181)",
+        "shadow": false,
+        "visible": true
+      }
+    ],
+    "opened": {
+      "open": true,
+      "focusInside": true,
+      "focused": "fd-icon-btn",
+      "labelledby": "fd-details-h",
+      "modal": "true"
+    },
+    "afterEscape": {
+      "open": false,
+      "focusReturned": true,
+      "active": "fd-info"
+    }
+  }
+}

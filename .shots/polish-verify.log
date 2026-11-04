@@ -1,0 +1,7 @@
+done 1440 900
+done 1280 720
+done 1024 768
+done 390 844
+20 loads: 0 banners
+kb {"focusRing":{"outline":"2px solid rgb(18, 165, 181)","box":[34,34]},"drawer":{"open":true,"focusInside":true},"closed":{"open":false,"focusBack":true}} rm {"reduced":true,"running":0,"cardTransition":"0s"}
+wrote docs/dashboard/polish/report.json

@@ -7,15 +7,19 @@
 
 import { SignOut } from "../../../components/dashboard/icons";
 import { initialsOf } from "../../../components/settings/initials";
+import { formatCents } from "../../../lib/fees";
 import type { AccountProfile } from "../../../lib/api";
 
 export function AccountSummary({
   profile,
   vaultCount,
+  earned,
   onSignOut,
 }: {
   profile: AccountProfile;
   vaultCount: number | null;
+  /* freelancers only: what has actually been paid out, live on save */
+  earned?: number | null;
   onSignOut: () => void;
 }) {
   return (
@@ -38,8 +42,11 @@ export function AccountSummary({
         </div>
       </div>
 
-      {/* the shared chip's shape and type, in the teal that means "signed in" */}
-      <span className="dash-chip set-chip-client" data-testid="summary-role">
+      {/* the shared chip's shape and tone: teal means client, brass means freelancer */}
+      <span
+        className={`dash-chip ${profile.role === "freelancer" ? "set-chip-freelancer" : "set-chip-client"}`}
+        data-testid="summary-role"
+      >
         {profile.role.toUpperCase()}
       </span>
 
@@ -52,6 +59,12 @@ export function AccountSummary({
           <span className="set-meta-key">VAULTS</span>
           <span className="set-meta-val">{vaultCount ?? "—"}</span>
         </p>
+        {profile.role === "freelancer" && (
+          <p className="set-meta-line">
+            <span className="set-meta-key">EARNED</span>
+            <span className="set-meta-val">{earned != null ? formatCents(earned) : "—"}</span>
+          </p>
+        )}
         <p className="set-meta-line">
           <span className="set-meta-key">SANDBOX DEMO</span>
         </p>
