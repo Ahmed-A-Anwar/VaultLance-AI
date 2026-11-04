@@ -581,10 +581,42 @@
   top: 21px;
 }
 .fd-ledger-wide { position: static; }
-.fd-grid { height: 377px; }
+.fd-grid { height: 377px; scrollbar-width: thin; scrollbar-color: rgba(138, 149, 161, 0.4) transparent; }
 .fd-grid .ag-root-wrapper { border: none; background: transparent; }
-.fd-grid .ag-row { border-color: rgba(138, 149, 161, 0.22); }
+/* the client's grid rules, selector for selector: 34px rows, mono headers,
+   steel hairlines, no default blue */
+.fd-grid .ag-header { border-bottom: 1px solid rgba(138, 149, 161, 0.4); background: transparent; }
+.fd-grid .ag-header-cell-text {
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-slate);
+}
+.fd-grid .ag-header-cell-label { color: var(--hero-slate); }
+.fd-grid .ag-cell {
+  font-family: var(--hero-font-body);
+  font-size: 14px;
+  color: var(--hero-ink);
+  line-height: 34px;
+}
+.fd-grid .ag-row { border-color: rgba(138, 149, 161, 0.22); background: transparent; }
+.fd-grid .ag-row-hover,
+.fd-grid .ag-row:hover { background: rgba(18, 165, 181, 0.08); }
+.fd-grid .ag-row-selected { background: rgba(18, 165, 181, 0.08) !important; }
+.fd-grid .ag-cell-focus,
+.fd-grid .ag-cell-focus:not(.ag-cell-range-selected),
+.fd-grid .ag-cell:focus-within {
+  outline: 2px solid rgba(18, 165, 181, 0.55);
+  outline-offset: -3px;
+  border-radius: 8px;
+  background: rgba(18, 165, 181, 0.06);
+}
 .fd-grid .ag-row.fd-row-new { animation: fd-flash 1s var(--fd-ease); }
+/* thin steel scrollbar, transparent track */
+.fd-grid ::-webkit-scrollbar { width: 8px; height: 8px; }
+.fd-grid ::-webkit-scrollbar-track { background: transparent; }
+.fd-grid ::-webkit-scrollbar-thumb { background: rgba(138, 149, 161, 0.4); border-radius: 8px; }
 @keyframes fd-flash {
   from { background: rgba(184, 137, 58, 0.18); }
   to { background: transparent; }

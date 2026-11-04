@@ -289,11 +289,15 @@ function Surface({ email }: { email: string }) {
             {list}
           </section>
 
-          <section className="fd-ledger" aria-labelledby="fd-earn-h">
-            <h2 id="fd-earn-h" className="fd-h2">
-              Earnings
-            </h2>
-            <FreelancerLedger events={events} loading={loading} />
+          <section className="fd-col" aria-labelledby="fd-earn-h">
+            <div className="fd-head">
+              <h2 id="fd-earn-h" className="fd-h2">
+                Earnings
+              </h2>
+            </div>
+            <div className="fd-ledger">
+              <FreelancerLedger events={events} loading={loading} />
+            </div>
           </section>
         </div>
       )}

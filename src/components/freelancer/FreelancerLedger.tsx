@@ -3,15 +3,15 @@
    every colour from a token. A new event slides in at the top and flashes
    brass, because the point of the card is to be noticed when it changes. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
-import type { ColDef } from "ag-grid-community";
+import type { ColDef, GridApi } from "ag-grid-community";
 import { Copy } from "../dashboard/icons";
 import { useToast } from "../shared/Toasts";
 import { formatCents } from "../../lib/fees";
 import { formatRelative, toMs } from "../../lib/formatRelative";
-import type { FreelancerEvent } from "./mockApi";
+import type { FreelancerEvent, FreelancerEventType } from "./mockApi";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -30,6 +30,20 @@ const gridTheme = themeQuartz.withParams({
   cellHorizontalPadding: 8,
   wrapperBorder: false,
 });
+
+/* short labels for the narrow card; the raw type stays in the tooltip */
+const DISPLAY_LABEL: Record<FreelancerEventType, string> = {
+  "VAULT.CREATED": "VAULT CREATED",
+  "CLIENT.INVITED": "CLIENT INVITED",
+  "PAYMENT.AUTHORIZED": "AUTHORIZED",
+  "FILES.SUBMITTED": "FILES SUBMITTED",
+  "AUDIT.COMPLETED": "AUDITED",
+  "PAYMENT.CAPTURED": "CAPTURED",
+  "PAYOUT.SENT": "PAYOUT SENT",
+  "PAYOUT.FAILED": "PAYOUT FAILED",
+  "PAYMENT.VOIDED": "VOIDED",
+  "FILES.UPLOADED": "FILES UPLOADED",
+};
 
 const DOT: Record<string, string> = {
   "PAYMENT.AUTHORIZED": "var(--hero-brass)",
@@ -62,9 +76,30 @@ function EventDot({ type }: { type: string }) {
 
 export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[]; loading: boolean }) {
   const toast = useToast();
-  const gridApi = useRef<{ ensureIndexVisible: (i: number) => void } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const apiRef = useRef<GridApi | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const seen = useRef<string | null>(null);
+
+  /* flex columns that always fit the card: PayPal ID hides first, then the
+     vault name, so the grid never grows a horizontal scrollbar */
+  const fit = useCallback(() => {
+    const api = apiRef.current;
+    const el = wrapRef.current;
+    if (!api || !el) return;
+    const w = el.clientWidth;
+    api.setColumnsVisible(["paypalId"], w >= 480);
+    api.setColumnsVisible(["vaultProject"], w >= 360);
+    api.sizeColumnsToFit();
+  }, []);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fit]);
 
   useEffect(() => {
     const top = events[0];
@@ -82,7 +117,7 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
       {
         headerName: "TIME",
         field: "at",
-        width: 104,
+        width: 96,
         valueFormatter: (p) => formatRelative(p.value),
         tooltipValueGetter: (p) => fullTime(p.value as string),
       },
@@ -90,26 +125,29 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
         headerName: "EVENT",
         field: "type",
         flex: 1,
-        minWidth: 150,
-        cellRenderer: (p: { value: string }) => (
-          <span className="fd-event">
+        minWidth: 140,
+        cellRenderer: (p: { value: FreelancerEventType }) => (
+          <span className="fd-event" title={p.value}>
             <EventDot type={p.value} />
-            {p.value}
+            {DISPLAY_LABEL[p.value] ?? p.value}
           </span>
         ),
+        tooltipValueGetter: (p) => (p.value as string) ?? "",
       },
-      { headerName: "VAULT", field: "vaultProject", width: 132 },
+      { headerName: "VAULT", field: "vaultProject", width: 120 },
       {
         headerName: "AMOUNT",
         field: "amountCents",
-        width: 104,
+        width: 96,
+        minWidth: 96,
+        type: "rightAligned",
         valueFormatter: (p) => (typeof p.value === "number" ? formatCents(p.value) : "—"),
         cellClass: "fd-cell-num",
       },
       {
         headerName: "PAYPAL ID",
         field: "paypalId",
-        width: 168,
+        width: 150,
         cellRenderer: (p: { value?: string }) =>
           p.value ? (
             <button
@@ -147,7 +185,7 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
   }
 
   return (
-    <div className="fd-grid ag-theme-quartz-dark">
+    <div className="fd-grid ag-theme-quartz-dark" ref={wrapRef}>
       <AgGridReact<FreelancerEvent>
         theme={gridTheme}
         rowData={events}
@@ -155,10 +193,12 @@ export function FreelancerLedger({ events, loading }: { events: FreelancerEvent[
         headerHeight={34}
         rowHeight={34}
         suppressCellFocus={false}
+        tooltipShowDelay={200}
         getRowId={(p) => p.data?.id ?? ""}
         getRowClass={(p) => (p.data?.id === flashId ? "fd-row-new" : undefined)}
         onGridReady={(p) => {
-          gridApi.current = p.api as unknown as { ensureIndexVisible: (i: number) => void };
+          apiRef.current = p.api;
+          fit();
         }}
         onRowClicked={(p) =>
           p.data && toast({ message: `${p.data.type} · ${p.data.vaultProject}`, tone: "info" })
