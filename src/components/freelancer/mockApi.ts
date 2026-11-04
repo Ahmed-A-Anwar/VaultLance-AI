@@ -289,10 +289,23 @@ function ev(
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** 300–618ms, plus the deliberate failure behind FX.mockErrors. */
+/** How many upcoming reads the dev panel has asked to fail. */
+let forcedErrors = 0;
+
+/** Shift+D → "Force error": the next read fails, so the banner is reachable
+    without a dice roll. Nothing else can produce a failure any more. */
+export function forceMockError(): void {
+  forcedErrors = 1;
+}
+
+/** 300–618ms, plus a failure only when the dev panel asked for one. */
 async function latency(): Promise<void> {
   const span = MOCK_LATENCY_MS.max - MOCK_LATENCY_MS.min;
   await wait(MOCK_LATENCY_MS.min + Math.round(Math.random() * span));
+  if (forcedErrors > 0) {
+    forcedErrors -= 1;
+    throw new Error("The vault service didn’t answer. Try again.");
+  }
   if (FX.mockErrors && Math.random() < MOCK_ERROR_RATE) {
     throw new Error("The vault service didn’t answer. Try again.");
   }

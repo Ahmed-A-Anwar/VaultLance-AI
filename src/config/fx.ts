@@ -17,9 +17,12 @@ export const FX = {
      across. false restores the old placeholder href ("#").
 
      mockErrors true lets the reset screens fail on 5% of submissions, so the
-     failure paths stay reachable. false makes every submission succeed. */
+     failure paths stay reachable. false makes every submission succeed.
+     Default false: a random failure is not something a review should have to
+     negotiate. The freelancer dashboard reaches its error state on demand
+     from the Shift+D panel's "Force error" button instead. */
   forgotFlow: true,
-  mockErrors: true,
+  mockErrors: false,
   /* settingsPage true mounts the client settings page at /dashboard/settings.
      false restores the blank area the dashboard shipped with. */
   settingsPage: true,

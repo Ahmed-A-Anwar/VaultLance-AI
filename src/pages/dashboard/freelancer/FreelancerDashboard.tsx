@@ -23,6 +23,7 @@ import { trapFocus } from "../../../components/freelancer/focusTrap";
 import {
   deleteDraft,
   duplicateVault,
+  forceMockError,
   inviteClient,
   phaseOfVault,
   remindClient,
@@ -375,6 +376,7 @@ function Surface({ email }: { email: string }) {
           <button type="button" onClick={() => void simulatePayoutSent("v_0005")}>Capture + payout sent</button>
           <button type="button" onClick={() => void simulatePayoutFailed("v_0006")}>Payout failed</button>
           <button type="button" onClick={() => { setHasPaypalEmail(false); setBannerOff(false); toast({ message: "PayPal email cleared (mock).", tone: "info" }); }}>Hide PayPal email</button>
+          <button type="button" onClick={() => { forceMockError(); void refresh(); }}>Force error</button>
           <button type="button" onClick={() => { resetFreelancerData(); void refresh(); }}>Reset mock data</button>
           <button type="button" onClick={() => setDev(false)}>Close</button>
         </div>
