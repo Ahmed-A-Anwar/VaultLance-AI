@@ -752,6 +752,17 @@ export async function simulatePayoutSent(id: string): Promise<void> {
   emit("PAYOUT.SENT", v, "Payout sent to PayPal", { amountCents: freelancerPayoutEstimate(v.amountCents), paypalId: v.payoutPaypalId });
 }
 
+/** A dev switch for the account-delete flow: every vault parked where nothing
+    is in motion (draft and paid), so delete's guard has nothing to list. */
+export async function cleanAllVaults(): Promise<void> {
+  for (const v of store.vaults) {
+    v.uiStatus = "awaiting_payment";
+    v.payoutStatus = undefined;
+    v.submittedAt = undefined;
+  }
+  save();
+}
+
 /** PayPal rejects the payout. */
 export async function simulatePayoutFailed(id: string): Promise<void> {
   const v = find(id);

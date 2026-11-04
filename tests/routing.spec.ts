@@ -83,12 +83,13 @@ async function expectOwnPage(page: Page, role: Role, path: string) {
   }
 }
 
-/** the rail marks exactly this route's item active */
+/** the rail marks exactly this route's item active, and the strip names it */
 async function expectRailActive(page: Page, role: Role, path: string) {
   const label = RAIL_LABELS[role][path];
   const active = page.locator(".dash-nav-item.is-active");
   await expect(active).toHaveCount(1);
   await expect(active).toContainText(label);
+  await expect(page.locator(".dash-title")).toHaveText(label);
 }
 
 for (const role of ["client", "freelancer"] as Role[]) {

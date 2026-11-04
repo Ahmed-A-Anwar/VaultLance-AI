@@ -27,6 +27,7 @@ import { PhaseChip } from "../../../components/freelancer/PhaseChip";
 import { VaultCard, type VaultAction } from "../../../components/freelancer/VaultCard";
 import { trapFocus } from "../../../components/freelancer/focusTrap";
 import {
+  cleanAllVaults,
   deleteDraft,
   duplicateVault,
   forceMockError,
@@ -329,8 +330,9 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
           <button type="button" onClick={() => void simulateAuditApproved("v_0005")}>Audit completed</button>
           <button type="button" onClick={() => void simulatePayoutSent("v_0005")}>Capture + payout sent</button>
           <button type="button" onClick={() => void simulatePayoutFailed("v_0006")}>Payout failed</button>
-          <button type="button" onClick={() => { setPayoutEmail(null); setBannerOff(false); toast({ message: "PayPal email cleared (mock).", tone: "info" }); }}>Hide PayPal email</button>
+          <button type="button" onClick={() => { setPayoutEmail(null); setBannerOff(false); void refresh(); toast({ message: "PayPal email cleared (mock).", tone: "info" }); }}>Hide PayPal email</button>
           <button type="button" onClick={() => { forceMockError(); void refresh(); }}>Force error</button>
+            <button type="button" onClick={async () => { await cleanAllVaults(); await refresh(); }}>All vaults clean</button>
           <button type="button" onClick={() => { resetFreelancerData(); void refresh(); }}>Reset mock data</button>
           <button type="button" onClick={() => setDev(false)}>Close</button>
         </div>
