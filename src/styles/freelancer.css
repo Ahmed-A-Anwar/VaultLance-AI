@@ -946,6 +946,21 @@
   .dash[data-freelancer] .dash-body { padding-bottom: 76px; }
 }
 
+/* ---- the strip's brass action: scoped to the freelancer shell, so the
+   client's strip never matches this selector and renders byte-identical ---- */
+.dash[data-freelancer] .dash-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(184, 137, 58, 0.55);
+  background: linear-gradient(180deg, #e2b867 0%, #b8893a 100%);
+  color: var(--hero-ink);
+}
+.dash[data-freelancer] .dash-cta-primary:hover {
+  border-color: rgba(184, 137, 58, 0.8);
+  background: linear-gradient(180deg, #e2b867 0%, #b8893a 100%);
+}
+
 /* ---- reduced motion: final states, instantly ---- */
 @media (prefers-reduced-motion: reduce) {
   .fd-card, .fd-step-body, .fd-drawer, .fd-scrim, .fd-skel, .fd-chip-spin, .fd-spin,
