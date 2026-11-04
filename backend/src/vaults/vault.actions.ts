@@ -571,8 +571,10 @@ router.post("/:id/checks/run", async (req, res, next) => {
     const checks = generateChecksForFiles(files, vault.description || "");
     const results = checks.map((c) => ({ ...c, state: c.result }));
 
-    // Transition to SUBMITTED (audited)
+    // Transition to SUBMITTED (audited), then to the client's decision:
     await updateVaultStatus(vaultId, "SUBMITTED");
+    await updateVaultStatus(vaultId, "VERIFYING");
+    await updateVaultStatus(vaultId, "AWAITING_APPROVAL");
     await insertLedgerEvent(
       vaultId,
       req.user.id,
