@@ -36,7 +36,6 @@ import {
   remindRemainingMs,
   resetFreelancerData,
   retryPayout,
-  setHasPaypalEmail,
   simulateAuditApproved,
   simulateClientAuthorized,
   simulatePayoutFailed,
@@ -47,6 +46,7 @@ import {
   type FreelancerVault,
 } from "../../../components/freelancer/mockApi";
 import { fees, formatCents } from "../../../lib/fees";
+import { setPayoutEmail } from "../../../lib/api";
 import { filterBucket, sortByNeed, type Phase } from "../../../lib/freelancerPhase";
 import { NEW_VAULT_EVENT } from "./roles";
 import "../../../styles/payments.css";
@@ -329,7 +329,7 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
           <button type="button" onClick={() => void simulateAuditApproved("v_0005")}>Audit completed</button>
           <button type="button" onClick={() => void simulatePayoutSent("v_0005")}>Capture + payout sent</button>
           <button type="button" onClick={() => void simulatePayoutFailed("v_0006")}>Payout failed</button>
-          <button type="button" onClick={() => { setHasPaypalEmail(false); setBannerOff(false); toast({ message: "PayPal email cleared (mock).", tone: "info" }); }}>Hide PayPal email</button>
+          <button type="button" onClick={() => { setPayoutEmail(null); setBannerOff(false); toast({ message: "PayPal email cleared (mock).", tone: "info" }); }}>Hide PayPal email</button>
           <button type="button" onClick={() => { forceMockError(); void refresh(); }}>Force error</button>
           <button type="button" onClick={() => { resetFreelancerData(); void refresh(); }}>Reset mock data</button>
           <button type="button" onClick={() => setDev(false)}>Close</button>

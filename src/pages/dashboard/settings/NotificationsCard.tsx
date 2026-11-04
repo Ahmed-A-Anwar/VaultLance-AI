@@ -1,6 +1,11 @@
-/* NotificationsCard.tsx — six events, two channels each, one exception: the
-   weekly summary has no in-app digest, so its in-app switch is not rendered
-   (hidden, not disabled: there is nothing there to turn on).
+/* NotificationsCard.tsx — the events that reach an inbox or a badge, two
+   channels each, one exception: the weekly summary has no in-app digest, so
+   its in-app switch is not rendered (hidden, not disabled: there is nothing
+   there to turn on).
+
+   The rows are keyed by role: the client's list is what it shipped with; the
+   freelancer's speaks the other side of the same vault — and adds the two
+   money rows that only exist on this side (payout sent, payout failed).
 
    "Mute all" is the visible domino: every switch gets a 0.0618s later start than
    the one above it, so the card reads as one gesture rather than eleven. */
@@ -10,29 +15,50 @@ import { SectionCard } from "../../../components/settings/SectionCard";
 import { Switch } from "../../../components/settings/Switch";
 import { DirtyFooter, type SaveState } from "../../../components/settings/DirtyFooter";
 import { useToast } from "../../../components/shared/Toasts";
-import { updateNotifications, type NotificationPrefs, type NotifKey } from "../../../lib/api";
+import { updateNotifications, type NotificationPrefs, type NotifKey, type Role } from "../../../lib/api";
 
 const SPIN = 618;
 
-const ROWS: Array<{ key: NotifKey; title: string; desc: string; emailOnly?: boolean }> = [
-  { key: "payment_authorized", title: "Payment authorized", desc: "Funds are held for a new vault." },
-  { key: "audit_completed", title: "Audit completed", desc: "The audit agent has a report for you." },
-  { key: "payment_captured", title: "Payment captured", desc: "Approved funds move to the freelancer." },
-  { key: "files_unlocked", title: "Files unlocked", desc: "A delivery opened after capture." },
-  { key: "hold_voided", title: "Hold voided", desc: "A hold was released and nothing was charged." },
-  { key: "weekly_summary", title: "Weekly summary", desc: "One email a week with your vault totals.", emailOnly: true },
-];
+interface NotifRow {
+  key: NotifKey;
+  title: string;
+  desc: string;
+  emailOnly?: boolean;
+}
+
+const ROWS_BY_ROLE: Record<Role, NotifRow[]> = {
+  client: [
+    { key: "payment_authorized", title: "Payment authorized", desc: "Funds are held for a new vault." },
+    { key: "audit_completed", title: "Audit completed", desc: "The audit agent has a report for you." },
+    { key: "payment_captured", title: "Payment captured", desc: "Approved funds move to the freelancer." },
+    { key: "files_unlocked", title: "Files unlocked", desc: "A delivery opened after capture." },
+    { key: "hold_voided", title: "Hold voided", desc: "A hold was released and nothing was charged." },
+    { key: "weekly_summary", title: "Weekly summary", desc: "One email a week with your vault totals.", emailOnly: true },
+  ],
+  freelancer: [
+    { key: "payment_authorized", title: "Client authorized payment", desc: "Money is now held in escrow." },
+    { key: "files_unlocked", title: "Client opened your files", desc: "A client opened your delivery." },
+    { key: "audit_completed", title: "Audit completed", desc: "A vault's audit has a verdict." },
+    { key: "payment_captured", title: "Payment captured", desc: "Held money was released to you." },
+    { key: "payout_sent", title: "Payout sent", desc: "The money reached your PayPal account." },
+    { key: "payout_failed", title: "Payout failed", desc: "A payout bounced and needs attention." },
+    { key: "hold_voided", title: "Hold voided", desc: "A hold was released and nothing moved." },
+    { key: "weekly_summary", title: "Weekly summary", desc: "One email a week with your earnings totals.", emailOnly: true },
+  ],
+};
 
 const clone = (prefs: NotificationPrefs): NotificationPrefs =>
   Object.fromEntries(Object.entries(prefs).map(([k, v]) => [k, { ...v }])) as NotificationPrefs;
 
 export function NotificationsCard({
   prefs,
+  role = "client",
   onSaved,
   onDirty,
   resetSignal,
 }: {
   prefs: NotificationPrefs;
+  role?: Role;
   onSaved: (next: NotificationPrefs) => void;
   onDirty: (dirty: boolean) => void;
   resetSignal: number;
@@ -41,6 +67,7 @@ export function NotificationsCard({
   const [draft, setDraft] = useState<NotificationPrefs>(() => clone(prefs));
   const [state, setState] = useState<SaveState>("idle");
   const [domino, setDomino] = useState(false);
+  const ROWS = ROWS_BY_ROLE[role];
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(prefs), [draft, prefs]);
 

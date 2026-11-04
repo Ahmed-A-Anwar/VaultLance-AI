@@ -65,7 +65,6 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 export const FAILURE_REASON = "PayPal could not reach the recipient.";
 
 /** The freelancer's PayPal address. Mock, and the only place it is written. */
-export const MOCK_PAYPAL_EMAIL = "maya.chen@paypal.example";
 
 /* ============================================================== transforms === */
 

@@ -16,12 +16,16 @@ import {
   WRONG_CURRENT_PASSWORD,
   checkCurrentPassword,
   clearSession,
+  emailError,
   readSession,
   roleFor,
   type Role,
 } from "./mockAuth";
 
 export type VaultStatus = "awaiting_payment" | "held" | "audited" | "unlocked" | "voided";
+
+/* the same role union mockAuth produces; the settings layer reads it */
+export type { Role };
 
 export interface Vault {
   id: string;
@@ -770,6 +774,8 @@ export type NotifKey =
   | "payment_captured"
   | "files_unlocked"
   | "hold_voided"
+  | "payout_sent"
+  | "payout_failed"
   | "weekly_summary";
 
 export interface NotifPref {
@@ -792,6 +798,8 @@ export interface AccountSettings {
   notifications: NotificationPrefs;
   motion: MotionPref;
   mfaOn: boolean;
+  /* the freelancer's failed-payout behavior; clients read it too and ignore it */
+  payoutRetry: PayoutRetryMode;
 }
 
 export const SETTINGS_MEMBER_SINCE = "OCT 2026";
@@ -806,6 +814,9 @@ export const NOTIF_DEFAULTS: NotificationPrefs = {
   payment_captured: { email: true, inapp: true },
   files_unlocked: { email: true, inapp: true },
   hold_voided: { email: true, inapp: true },
+  /* the freelancer's two money rows: payout moved / payout failed */
+  payout_sent: { email: true, inapp: true },
+  payout_failed: { email: true, inapp: true },
   /* one email a week; there is no in-app digest to toggle */
   weekly_summary: { email: true, inapp: false },
 };
@@ -829,7 +840,15 @@ interface SettingsStore {
   notifications: NotificationPrefs;
   motion: MotionPref;
   mfaOn: boolean;
+  /* the freelancer's payout address: one value that the Overview banner, the
+     Payments page's payout-method card and the Settings profile card all read */
+  payoutEmail: string | null;
+  /* what happens after a failed payout: retried automatically or confirmed */
+  payoutRetry: PayoutRetryMode;
 }
+
+/** What a failed payout does: hit it again on its own, or wait for a yes. */
+export type PayoutRetryMode = "retry_auto" | "ask_first";
 
 const accountEmail = () => readSession()?.email ?? "client@vaultlance.demo";
 const accountRole = (): Role => readSession()?.role ?? roleFor(accountEmail());
@@ -851,6 +870,10 @@ function load(): SettingsStore {
     notifications: copyNotifs(NOTIF_DEFAULTS),
     motion: "system",
     mfaOn: false,
+    /* freelancers start addressable so the demo's money flows work; Settings
+       and the dev panel can clear it, which is what the banner reacts to */
+    payoutEmail: PAYOUT_EMAIL_DEFAULT,
+    payoutRetry: "ask_first",
   };
   try {
     const raw = window.sessionStorage.getItem(SETTINGS_KEY);
@@ -860,6 +883,9 @@ function load(): SettingsStore {
       if (saved.notifications) base.notifications = { ...copyNotifs(NOTIF_DEFAULTS), ...saved.notifications };
       if (saved.motion === "system" || saved.motion === "reduce" || saved.motion === "full") base.motion = saved.motion;
       if (typeof saved.mfaOn === "boolean") base.mfaOn = saved.mfaOn;
+      if ("payoutEmail" in saved && (saved.payoutEmail === null || typeof saved.payoutEmail === "string"))
+        base.payoutEmail = saved.payoutEmail;
+      if (saved.payoutRetry === "retry_auto" || saved.payoutRetry === "ask_first") base.payoutRetry = saved.payoutRetry;
     }
   } catch {
     /* an unreadable mirror is the same as an empty one */
@@ -892,7 +918,7 @@ const profileOf = (s: SettingsStore): AccountProfile => ({
   email: accountEmail(),
   role: accountRole(),
   memberSince: SETTINGS_MEMBER_SINCE,
-  paypalEmail: accountRole() === "freelancer" ? "payouts@vaultlance.demo" : null,
+  paypalEmail: accountRole() === "freelancer" ? s.payoutEmail : null,
 });
 
 /* GET /v1/me/settings */
@@ -904,7 +930,49 @@ export async function getSettings(): Promise<AccountSettings> {
       notifications: copyNotifs(s.notifications),
       motion: s.motion,
       mfaOn: s.mfaOn,
+      payoutRetry: s.payoutRetry,
     };
+  });
+}
+
+/** The mock payout address freelancers start with: the same one string the
+    Overview banner, the Payments payout-method card and Settings read. */
+export const PAYOUT_EMAIL_DEFAULT = "maya.chen@paypal.example";
+
+/** Synchronous read for the views that must not wait on a fetch: the Overview
+    banner's condition and the Payments page's payout-method card. */
+export const readPayoutEmail = (): string | null => load().payoutEmail;
+export const hasPayoutEmail = (): boolean => !!load().payoutEmail;
+
+/** Dev helper: clears the address so the banner's absence is answerable. */
+export function setPayoutEmail(email: string | null): void {
+  const s = load();
+  s.payoutEmail = email;
+  persist();
+}
+
+/* PUT /v1/me/payout-profile — the payout address, validated here so Settings
+   cannot save an unusable one. */
+export async function updatePayoutProfile(patch: { paypalEmail: string }): Promise<AccountProfile> {
+  return settingsCall(() => {
+    const email = patch.paypalEmail.trim();
+    if (!email) throw new ApiError("state", "Add a PayPal email.");
+    const problem = emailError(email);
+    if (problem) throw new ApiError("state", problem);
+    const s = load();
+    s.payoutEmail = email;
+    persist();
+    return profileOf(s);
+  });
+}
+
+/* PUT /v1/me/payout-prefs — what a failed payout does next. */
+export async function updatePayoutPrefs(patch: { retry: PayoutRetryMode }): Promise<{ payoutRetry: PayoutRetryMode }> {
+  return settingsCall(() => {
+    const s = load();
+    s.payoutRetry = patch.retry;
+    persist();
+    return { payoutRetry: s.payoutRetry };
   });
 }
 

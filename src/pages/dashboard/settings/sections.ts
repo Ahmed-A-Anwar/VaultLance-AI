@@ -5,7 +5,7 @@
 
 import type { Role } from "../../../lib/mockAuth";
 
-export type SectionKey = "profile" | "notifications" | "security" | "preferences" | "danger";
+export type SectionKey = "profile" | "payouts" | "notifications" | "security" | "preferences" | "danger";
 
 export interface SectionDef {
   key: SectionKey;
@@ -15,6 +15,8 @@ export interface SectionDef {
   title: string;
   caption: string;
   danger?: boolean;
+  /* role gate: a section only one side of the arrangement gets */
+  freelancerOnly?: boolean;
 }
 
 export const SECTION_DEFS: Record<SectionKey, SectionDef> = {
@@ -23,6 +25,13 @@ export const SECTION_DEFS: Record<SectionKey, SectionDef> = {
     label: "Profile",
     title: "Profile",
     caption: "HOW YOU APPEAR TO FREELANCERS",
+  },
+  payouts: {
+    key: "payouts",
+    label: "Payouts",
+    title: "Payouts",
+    caption: "WHERE THE MONEY LANDS",
+    freelancerOnly: true,
   },
   notifications: {
     key: "notifications",
@@ -53,11 +62,17 @@ export const SECTION_DEFS: Record<SectionKey, SectionDef> = {
 
 export const SECTIONS: Record<Role, SectionKey[]> = {
   client: ["profile", "notifications", "security", "preferences", "danger"],
-  /* nothing to configure yet: /dashboard renders the freelancer coming-soon view */
-  freelancer: [],
+  /* the freelancer's settings: payouts sits right after the profile, which owns
+     the payout email the Overview banner and the Payments page read */
+  freelancer: ["profile", "payouts", "notifications", "security", "preferences", "danger"],
 };
 
 export const listFor = (role: Role): SectionDef[] => SECTIONS[role].map((key) => SECTION_DEFS[key]);
 
 export const isSectionKey = (value: string): value is SectionKey =>
-  value === "profile" || value === "notifications" || value === "security" || value === "preferences" || value === "danger";
+  value === "profile" ||
+  value === "payouts" ||
+  value === "notifications" ||
+  value === "security" ||
+  value === "preferences" ||
+  value === "danger";

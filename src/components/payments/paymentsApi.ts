@@ -12,9 +12,8 @@
    time so the error and retry paths stay reachable. */
 
 import { FX } from "../../config/fx";
-import { listEvents, listVaults } from "../../lib/api";
+import { hasPayoutEmail, listEvents, listVaults, readPayoutEmail } from "../../lib/api";
 import {
-  hasPaypalEmail,
   listFreelancerEvents,
   listFreelancerVaults,
   retryPayout as retryFreelancerPayout,
@@ -24,7 +23,6 @@ import {
   FAILURE_REASON,
   HOLD_DAYS,
   HONOR_DAYS,
-  MOCK_PAYPAL_EMAIL,
   holdsFrom,
   payoutsFrom,
   receiptsFrom,
@@ -61,12 +59,13 @@ const maybeFail = () => {
 
 /* ================================================================= reads === */
 
-/** GET /api/me/payout-profile */
+/** GET /api/me/payout-profile — the one payout address the account settings
+    store owns, so the Overview banner, Settings and this card cannot drift. */
 export async function getPayoutProfile(): Promise<PayoutProfile> {
   await wait(latency());
   maybeFail();
-  const on = hasPaypalEmail();
-  return { paypalEmail: on ? MOCK_PAYPAL_EMAIL : null, verified: on, currency: "USD" };
+  const on = hasPayoutEmail();
+  return { paypalEmail: readPayoutEmail(), verified: on, currency: "USD" };
 }
 
 /** GET /api/me/payouts — the vault read already carries the delay.

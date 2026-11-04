@@ -21,12 +21,20 @@ import { useMotionPref } from "./useMotionPref";
 import { SettingsNav } from "./SettingsNav";
 import { AccountSummary } from "./AccountSummary";
 import { ProfileCard } from "./ProfileCard";
+import { PayoutsCard } from "./PayoutsCard";
 import { NotificationsCard } from "./NotificationsCard";
 import { SecurityCard } from "./SecurityCard";
 import { PreferencesCard } from "./PreferencesCard";
 import { DangerCard } from "./DangerCard";
 import { UnsavedDialog } from "./UnsavedDialog";
-import type { AccountProfile, MotionPref, NotificationPrefs } from "../../../lib/api";
+import { paidOut } from "../../../lib/earnings";
+import type {
+  AccountProfile,
+  MotionPref,
+  NotificationPrefs,
+  PayoutRetryMode,
+} from "../../../lib/api";
+import type { FreelancerEvent, FreelancerVault } from "../../../components/freelancer/mockApi";
 import "../../../styles/settings.css";
 
 const SCROLL_MS = 618;
@@ -39,7 +47,17 @@ export default function SettingsRoute() {
   return <SettingsPage />;
 }
 
-function SettingsPage() {
+export function SettingsPage({
+  /* the freelancer's data, handed in by its dashboard chrome: the summary's
+     EARNED line and the danger card's phase-based blocking read from it */
+  freelancer,
+  /* called after the payout email changes, so the chrome's banner state and
+     the Payments page read the same value without a reload */
+  onPayoutSaved,
+}: {
+  freelancer?: { vaults: FreelancerVault[]; events: FreelancerEvent[] };
+  onPayoutSaved?: () => void;
+} = {}) {
   const { session, updateUser, signOut } = useSession();
   const { vaults } = useDashData();
   const { data, loading, error, reload, patch } = useSettings();
@@ -76,6 +94,7 @@ function SettingsPage() {
   const setters = useMemo(
     () => ({
       profile: dirtyFor("profile"),
+      payouts: dirtyFor("payouts"),
       notifications: dirtyFor("notifications"),
       security: dirtyFor("security"),
       preferences: dirtyFor("preferences"),
@@ -246,14 +265,21 @@ function SettingsPage() {
   };
 
   const savedProfile = (next: AccountProfile) => {
+    const payoutChanged = data ? next.paypalEmail !== data.profile.paypalEmail : false;
     patch({ profile: next });
     updateUser({ fullName: next.fullName });
     announce("Profile saved.");
+    if (payoutChanged) onPayoutSaved?.();
   };
 
   const savedNotifications = (next: NotificationPrefs) => {
     patch({ notifications: next });
     announce("Notifications saved.");
+  };
+
+  const savedPayouts = (next: { retry: PayoutRetryMode; notifications: NotificationPrefs }) => {
+    patch({ payoutRetry: next.retry, notifications: next.notifications });
+    announce("Payout settings saved.");
   };
 
   const motionSaved = (next: MotionPref) => {
@@ -326,8 +352,19 @@ function SettingsPage() {
               onDirty={setters.profile}
               resetSignal={resetSignal}
             />
+            {data.profile.role === "freelancer" && (
+              <PayoutsCard
+                retryMode={data.payoutRetry}
+                payoutNotify={data.notifications.payout_sent.email}
+                notifications={data.notifications}
+                onSaved={savedPayouts}
+                onDirty={setters.payouts}
+                resetSignal={resetSignal}
+              />
+            )}
             <NotificationsCard
               prefs={data.notifications}
+              role={data.profile.role}
               onSaved={savedNotifications}
               onDirty={setters.notifications}
               resetSignal={resetSignal}
@@ -335,17 +372,23 @@ function SettingsPage() {
             <SecurityCard mfaOn={data.mfaOn} onMfaChange={mfaChanged} />
             <PreferencesCard
               motion={savedMotion}
+              role={data.profile.role}
               onSaved={motionSaved}
               onDirty={setters.preferences}
               resetSignal={resetSignal}
               onPreview={setPreview}
             />
-            <DangerCard email={data.profile.email} onDeleted={() => navigate("/", { replace: true })} />
+            <DangerCard
+              email={data.profile.email}
+              role={data.profile.role}
+              onDeleted={() => navigate("/", { replace: true })}
+            />
           </div>
 
           <AccountSummary
             profile={data.profile}
-            vaultCount={vaults.length}
+            vaultCount={data.profile.role === "freelancer" ? freelancer?.vaults.length ?? null : vaults.length}
+            earned={freelancer ? paidOut(freelancer.vaults) : undefined}
             onSignOut={signOutNow}
           />
         </div>

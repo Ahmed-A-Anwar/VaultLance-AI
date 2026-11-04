@@ -14,19 +14,61 @@ import { Field } from "../../../components/settings/Field";
 import { Modal } from "../../../components/settings/Modal";
 import { HoldButton } from "../../../components/shared/HoldButton";
 import { useToast } from "../../../components/shared/Toasts";
-import { deleteAccount, exportData, listDeleteBlockers, type Vault } from "../../../lib/api";
+import { deleteAccount, exportData, listDeleteBlockers, type Role } from "../../../lib/api";
+import {
+  deleteFreelancerAccount,
+  exportFreelancerData,
+  listFreelancerDeleteBlockers,
+} from "./freelancerSettingsApi";
+import { formatCents } from "../../../lib/fees";
+import type { DeleteBlocker } from "../../../components/freelancer/deleteBlockers";
 
-export function DangerCard({ email, onDeleted }: { email: string; onDeleted: () => void }) {
+/* one row shape for the modal list, whichever role is asking */
+interface BlockerRow {
+  id: string;
+  project: string;
+  href: string;
+  meta: string;
+}
+
+export function DangerCard({ email, role = "client", onDeleted }: { email: string; role?: Role; onDeleted: () => void }) {
   const push = useToast();
   const [exporting, setExporting] = useState(false);
   const [open, setOpen] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [blockers, setBlockers] = useState<Vault[] | null>(null);
+  const [blockers, setBlockers] = useState<BlockerRow[] | null>(null);
   const [typed, setTyped] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [dim, setDim] = useState(false);
   const [pulsed, setPulsed] = useState(false);
   const root = useRef<HTMLDivElement | null>(null);
+
+  /* the phase model answers for the freelancer; the client statuses answer
+     for the client. The prompt lines differ with the role (they name the
+     money the role actually has in motion), and so does the list's link. */
+  const isFreelancer = role === "freelancer";
+
+  const readBlockers = (): Promise<BlockerRow[]> =>
+    isFreelancer
+      ? listFreelancerDeleteBlockers().then((rows: DeleteBlocker[]) =>
+          rows.map((b) => ({
+            id: b.id,
+            project: b.project,
+            href: "/dashboard/vaults",
+            meta: `${b.status} · ${formatCents(b.amountCents)}`,
+          }))
+        )
+      : listDeleteBlockers().then((rows) =>
+          rows.map((v) => ({
+            id: v.id,
+            project: v.project,
+            href: `/vault/${v.id}`,
+            meta: `${v.status.toUpperCase()} · $${v.amountUSD.toLocaleString("en-US")}`,
+          }))
+        );
+
+  const runExport = isFreelancer ? exportFreelancerData : exportData;
+  const runDelete = isFreelancer ? deleteFreelancerAccount : deleteAccount;
 
   /* one pulse, the first time the card is in view */
   useEffect(() => {
@@ -48,7 +90,7 @@ export function DangerCard({ email, onDeleted }: { email: string; onDeleted: () 
   const run = async () => {
     setExporting(true);
     try {
-      const blob = await exportData();
+      const blob = await runExport();
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
@@ -71,7 +113,7 @@ export function DangerCard({ email, onDeleted }: { email: string; onDeleted: () 
     setBlockers(null);
     setChecking(true);
     try {
-      setBlockers(await listDeleteBlockers());
+      setBlockers(await readBlockers());
     } catch (e) {
       push({ message: e instanceof Error ? e.message : "Couldn't check your vaults.", tone: "error" });
       setOpen(false);
@@ -83,7 +125,7 @@ export function DangerCard({ email, onDeleted }: { email: string; onDeleted: () 
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      await deleteAccount(typed);
+      await runDelete(typed);
       setDim(true);
       push({ message: "Account deleted.", tone: "info" });
       window.setTimeout(() => {
@@ -146,16 +188,18 @@ export function DangerCard({ email, onDeleted }: { email: string; onDeleted: () 
 
         {blocked && blockers && (
           <div className="set-blocked">
-            <p className="set-blocked-h">Resolve these vaults first.</p>
-            <p className="set-block-sub">Your held funds must be approved or voided.</p>
+            <p className="set-blocked-h">
+              {isFreelancer ? "Finish or resolve these vaults first." : "Resolve these vaults first."}
+            </p>
+            <p className="set-block-sub">
+              {isFreelancer ? "Money is still in motion." : "Your held funds must be approved or voided."}
+            </p>
             <ul className="set-blocked-list">
-              {blockers.map((vault) => (
-                <li key={vault.id}>
-                  <a className="set-blocked-link" href={`/vault/${vault.id}`}>
-                    {vault.project}
-                    <span className="set-blocked-meta">
-                      {vault.status.toUpperCase()} · ${vault.amountUSD.toLocaleString("en-US")}
-                    </span>
+              {blockers.map((blocker) => (
+                <li key={blocker.id}>
+                  <a className="set-blocked-link" href={blocker.href}>
+                    {blocker.project}
+                    <span className="set-blocked-meta">{blocker.meta}</span>
                   </a>
                 </li>
               ))}

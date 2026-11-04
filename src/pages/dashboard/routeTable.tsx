@@ -19,9 +19,8 @@ const ClientPayments = lazy(() => import("./payments/PaymentsPage"));
 const PaymentsPlaceholder = lazy(() => import("./Payments"));
 const ClientSettings = lazy(() => import("./settings/SettingsPage"));
 
-/* the freelancer's five areas: one component per route. Settings arrives with
-   the freelancer settings slice; until then the row has no component and the
-   shell shows NotAvailable — never the Overview. */
+/* the freelancer's five areas: one component per route, settings included —
+   the same page with the role's own section list and data. */
 const FOverview = lazy(() =>
   import("./freelancer/FreelancerDashboard").then((m) => ({ default: m.FOverview }))
 );
@@ -33,6 +32,9 @@ const FEarnings = lazy(() =>
 );
 const FPayments = lazy(() =>
   import("./freelancer/FreelancerDashboard").then((m) => ({ default: m.FPayments }))
+);
+const FSettings = lazy(() =>
+  import("./freelancer/FreelancerSettings").then((m) => ({ default: m.FSettings }))
 );
 
 export type DashPath =
@@ -57,7 +59,7 @@ export const DASH_ROUTES: Record<DashPath, RouteEntry> = {
     client: FX.paymentsPage ? ClientPayments : PaymentsPlaceholder,
     freelancer: FX.paymentsPage ? FPayments : null,
   },
-  "/dashboard/settings": { client: ClientSettings, freelancer: null },
+  "/dashboard/settings": { client: ClientSettings, freelancer: FSettings },
 };
 
 export type DashResolution =

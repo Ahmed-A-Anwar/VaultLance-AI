@@ -4,9 +4,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { hasPayoutEmail } from "../../lib/api";
 import {
   getFreelancerKpis,
-  hasPaypalEmail,
   listFreelancerEvents,
   listFreelancerVaults,
   subscribe,
@@ -48,7 +48,7 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
       setEvents(e);
       setKpis(k);
       setError(null);
-      setPaypalMissing(!hasPaypalEmail());
+      setPaypalMissing(!hasPayoutEmail());
     } catch (err) {
       if (!alive.current) return;
       setError(err instanceof Error ? err.message : "The vault service didn’t answer.");

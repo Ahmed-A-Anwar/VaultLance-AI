@@ -20,6 +20,8 @@ export interface FieldProps {
   /* the submit failure, the only one a screen reader interrupts for */
   alert?: boolean;
   hint?: string;
+  /* a chip that sits beside the visible label (the payout VERIFIED/NOT SET) */
+  labelExtra?: ReactNode;
   autoComplete?: string;
   inputMode?: "email" | "text";
   readOnly?: boolean;
@@ -37,15 +39,15 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
     onChange,
     onBlur,
     error,
-    alert = false,
-    hint,
-    autoComplete,
-    inputMode,
-    readOnly = false,
-    locked = false,
-    trailing,
-    testId,
-  },
+    alert = false,  hint,
+  labelExtra,
+  autoComplete,
+  inputMode,
+  readOnly = false,
+  locked = false,
+  trailing,
+  testId,
+},
   ref
 ) {
   const errorId = `${id}-err`;
@@ -56,6 +58,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
     <div className="set-field">
       <label className="set-label" htmlFor={id}>
         {label}
+        {labelExtra}
       </label>
       <div className={`set-input-wrap${locked ? " is-locked" : ""}${trailing ? " has-trail" : ""}`}>
         {locked && <Padlock className="set-input-lock" width="16" height="16" />}

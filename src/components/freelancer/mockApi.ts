@@ -716,12 +716,10 @@ export function subscribe(cb: (event: FreelancerEvent) => void): () => void {
 
 /* ====================================================== dev simulators === */
 
-/** A dev switch for the payout banner: seed has an email, this takes it away. */
-let paypalOn = true;
-export const hasPaypalEmail = () => paypalOn;
-export function setHasPaypalEmail(on: boolean): void {
-  paypalOn = on;
-}
+/* The payout address moved to the account settings store (src/lib/api.ts), so
+   there is one value behind the Overview banner, the Payments payout-method
+   card and the Settings profile card. The dev panel calls setPayoutEmail(null)
+   there; the simulators below do not need the address to work. */
 
 /** The client authorizes the hold. */
 export async function simulateClientAuthorized(id: string): Promise<void> {

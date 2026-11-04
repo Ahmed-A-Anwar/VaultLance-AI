@@ -29,9 +29,9 @@ const HEADINGS: Record<string, Record<string, string | RegExp>> = {
     "/dashboard/vaults": "Vaults",
     "/dashboard/ledger": "Earnings",
     "/dashboard/payments": "Payments",
-    /* slice 2 puts the freelancer settings page here; until then the table row
-       has no component and the shell says so — never the Overview */
-    "/dashboard/settings": "Not available for your role",
+    /* the freelancer's own settings page — the client's grid wearing the
+       role's sections, payouts included */
+    "/dashboard/settings": "Settings.",
   },
 };
 
@@ -128,11 +128,8 @@ test("the pure resolver: route rows, notAvailable rows, unknown paths", () => {
   for (const path of Object.keys(HEADINGS.client)) {
     expect(resolveDashArea("client", path)).toEqual({ kind: "route" });
   }
-  // the freelancer's settings row has no component of its own until slice 2
-  expect(resolveDashArea("freelancer", "/dashboard/settings")).toEqual({
-    kind: "notAvailable",
-    role: "freelancer",
-  });
+  // every table row exists for the freelancer too, settings included
+  expect(resolveDashArea("freelancer", "/dashboard/settings")).toEqual({ kind: "route" });
   // no session: the shell shows the client gate until the guard navigates
   expect(resolveDashArea(null, "/dashboard")).toEqual({ kind: "notAvailable", role: "client" });
 });
