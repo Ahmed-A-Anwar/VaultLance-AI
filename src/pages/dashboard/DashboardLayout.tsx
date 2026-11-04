@@ -105,7 +105,13 @@ function Surface() {
         <main id="main" className="dash-body">
           {isFreelancer ? (
             FX.freelancerDashboard ? (
-              <FreelancerDashboard email={session.email} />
+              /* the freelancer chrome owns the data provider and the drawers and
+                 persists across routes; the area itself comes from the route
+                 table via Outlet, so /dashboard/settings no longer falls back
+                 to the Overview (routeTable.tsx keys every path by role) */
+              <FreelancerDashboard email={session.email}>
+                <Outlet />
+              </FreelancerDashboard>
             ) : (
               <FreelancerView email={session.email} />
             )

@@ -90,6 +90,7 @@ export function FreelancerPayments({ onOpenVault }: { onOpenVault: (vaultId: str
   return (
     <div className="pay-page" data-role="freelancer">
       <div className="pay-head">
+        <h1 className="sr-only">Payments</h1>
         <p className="pay-caption">HOW YOU GET PAID</p>
       </div>
 

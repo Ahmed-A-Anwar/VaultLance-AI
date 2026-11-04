@@ -1,7 +1,8 @@
 import { lazy, Suspense } from "react";
 import { RouterProvider, createBrowserRouter, Navigate, Outlet, RouteObject, useSearchParams } from "react-router-dom";
 import VaultLayout from "./layouts/VaultLayout";
-import { FX } from "./config/fx";
+import { DashArea } from "./pages/dashboard/RoleGate";
+import { NotFoundPage } from "./pages/dashboard/RoleGate";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -17,17 +18,9 @@ const ClientFiles = lazy(() => import("./pages/ClientFiles"));
 const Console = lazy(() => import("./pages/Console"));
 const Demo = lazy(() => import("./pages/Demo"));
 /* the client dashboard. One shell for every area, so the rail and the strip
-   never remount between its routes. */
+   never remount between its routes. The area each path renders comes from the
+   route table (pages/dashboard/routeTable.tsx), not from the route tree. */
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
-const DashboardOverview = lazy(() => import("./pages/dashboard/Overview"));
-const DashboardVaults = lazy(() => import("./pages/dashboard/VaultsPage"));
-const DashboardLedger = lazy(() => import("./pages/dashboard/LedgerPage"));
-/* the payments placeholder stays behind FX.paymentsPage = false */
-const DashboardPaymentsLegacy = lazy(() => import("./pages/dashboard/Payments"));
-const DashboardPaymentsPage = lazy(() => import("./pages/dashboard/payments/PaymentsPage"));
-/* the settings route keeps its old placeholder inside the new page's flag, so
-   FX.settingsPage = false restores the blank area without a route change */
-const DashboardSettings = lazy(() => import("./pages/dashboard/settings/SettingsPage"));
 
 const Fallback = () => <p role="status" style={{ padding: "var(--s-8)" }}>Loading…</p>;
 
@@ -75,19 +68,18 @@ const routes: RouteObject[] = [
   { path: "/v/:token/files", element: <ClientFiles /> },
   { path: "/console", element: <Console /> },
   { path: "/demo", element: <Demo /> },
-  /* the client dashboard: a guarded shell with one area per route */
+  /* the dashboard: a guarded shell with one area per path, keyed by the route
+     table. The wildcard keeps unknown /dashboard paths inside the shell. */
   {
     path: "/dashboard",
     element: <DashboardLayout />,
     children: [
-      { index: true, element: <DashboardOverview /> },
-      { path: "vaults", element: <DashboardVaults /> },
-      { path: "ledger", element: <DashboardLedger /> },
-      {
-        path: "payments",
-        element: FX.paymentsPage ? <DashboardPaymentsPage /> : <DashboardPaymentsLegacy />,
-      },
-      { path: "settings", element: <DashboardSettings /> },
+      { index: true, element: <DashArea path="/dashboard" /> },
+      { path: "vaults", element: <DashArea path="/dashboard/vaults" /> },
+      { path: "ledger", element: <DashArea path="/dashboard/ledger" /> },
+      { path: "payments", element: <DashArea path="/dashboard/payments" /> },
+      { path: "settings", element: <DashArea path="/dashboard/settings" /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
   { path: "*", element: <p className="wrap" style={{ paddingBlock: "var(--s-20)" }}>Nothing here. <a href="/">The instrument is over here.</a></p> },

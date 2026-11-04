@@ -1,13 +1,17 @@
-/* FreelancerDashboard.tsx — the freelancer surface. One provider, three views
-   chosen by the path (Overview, Vaults, Earnings), the two drawers they open,
-   and a dev panel behind Shift+D.
+/* FreelancerDashboard.tsx — the freelancer surface, split one level.
 
-   Mock data only, from the freelancer's own module. Nothing here reads the
-   client dashboard's live rows: the two roles share the invite registry and
-   nothing else. */
+   FreelancerDashboard is the chrome: the data provider, the strip's drawer,
+   the details drawer, the dev panel. It persists across all five routes, so
+   the data the pages read never remounts on a rail click.
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+   The page that renders inside it comes from the shell's route table
+   (pages/dashboard/routeTable.tsx): FOverview, FVaults, FEarnings, FPayments —
+   and, with the settings slice, FSettings. There is no default view and no
+   fall-through: a path the table does not give this role is handled by the
+   shell's "Not available" page, never by the Overview. */
+
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { displayName } from "../../../components/dashboard/session";
 import { useDashUi } from "../../../components/dashboard/ui";
 import { Padlock, VaultGlyph } from "../../../components/dashboard/icons";
@@ -38,11 +42,12 @@ import {
   simulatePayoutFailed,
   simulatePayoutSent,
   submitForReview,
+  type FreelancerEvent,
+  type FreelancerKpis,
   type FreelancerVault,
 } from "../../../components/freelancer/mockApi";
 import { fees, formatCents } from "../../../lib/fees";
 import { filterBucket, sortByNeed, type Phase } from "../../../lib/freelancerPhase";
-import { FX } from "../../../config/fx";
 import { NEW_VAULT_EVENT } from "./roles";
 import "../../../styles/payments.css";
 
@@ -50,7 +55,6 @@ const DEV = (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV ?? 
 const HOUR = 60 * 60 * 1000;
 
 type Filter = "all" | "needs_action" | "in_escrow" | "paid";
-type View = "overview" | "vaults" | "earnings" | "payments";
 
 /* the client's chip labels, uppercase: the row is the client's row */
 const FILTERS: Array<{ key: Filter; label: string }> = [
@@ -73,12 +77,116 @@ const reminderLabel = (v: FreelancerVault): string | null => {
   return `REMIND IN ${Math.ceil(left / HOUR)}H`;
 };
 
-/* ============================================================== surface === */
+/* ====================================================== page context === */
 
-function Surface({ email }: { email: string }) {
-  const { vaults, events, kpis, loading, error, paypalMissing, refresh, applyVault, dropVault } = useFreelancerData();
+/* what a page needs from the chrome around it. One object, memoised once, so a
+   rail click re-renders pages with the same data the previous route read. */
+interface FreelancerPageCtx {
+  name: string;
+  vaults: FreelancerVault[];
+  events: FreelancerEvent[];
+  kpis: FreelancerKpis | null;
+  loading: boolean;
+  error: string | null;
+  paypalMissing: boolean;
+  /** dev panel's skip: false = the banner was manually re-enabled */
+  bannerOff: boolean;
+  filter: Filter;
+  setFilter: (f: Filter) => void;
+  busyId: string | null;
+  refresh: () => Promise<void>;
+  act: (action: VaultAction, vault: FreelancerVault) => Promise<void>;
+  openDetails: (vault: FreelancerVault) => void;
+  openDrawer: () => void;
+}
+
+const FreelancerCtx = createContext<FreelancerPageCtx | null>(null);
+
+function useFreelancerPage(): FreelancerPageCtx {
+  const ctx = useContext(FreelancerCtx);
+  if (!ctx) throw new Error("freelancer page rendered outside its chrome");
+  return ctx;
+}
+
+/* the vault grid Overview and Vaults share: skeletons, cards, empty state */
+function FreelancerList() {
+  const { vaults, loading, filter, act, busyId, openDrawer } = useFreelancerPage();
   const { query } = useDashUi();
-  const { pathname } = useLocation();
+  /* the remind label counts down; one tick a minute is enough */
+  const [, setMinute] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setMinute((n) => n + 1), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = vaults
+      .map((v) => ({ vault: v, phase: phaseOfVault(v) }))
+      .filter(({ vault }) => !q || vault.project.toLowerCase().includes(q) || vault.clientName.toLowerCase().includes(q))
+      .filter(({ phase }) => filter === "all" || filterBucket(phase) === filter);
+    return sortByNeed(rows).map((r) => r.vault);
+  }, [vaults, query, filter]);
+
+  return (
+    <div className="fd-list">
+      {loading
+        ? [0, 1, 2].map((i) => <div key={i} className="fd-skel fd-skel-card" style={{ animationDelay: `${i * 61.8}ms` }} />)
+        : visible.map((vault, i) => (
+            <VaultCard
+              key={vault.id}
+              vault={vault}
+              phase={phaseOfVault(vault)}
+              index={i}
+              busy={busyId === vault.id}
+              remindLabel={reminderLabel(vault)}
+              onAction={(a, v) => void act(a, v)}
+            />
+          ))}
+      {!loading && visible.length === 0 && (
+        <div className="fd-empty">
+          <span className="fd-empty-mark" aria-hidden="true">
+            <VaultGlyph width="144" height="144" />
+          </span>
+          <p className="fd-empty-text">
+            {vaults.length === 0 ? "No vaults yet. Create your first vault." : "Nothing in this filter."}
+          </p>
+          {vaults.length === 0 && (
+            <button type="button" className="fd-btn fd-btn-primary" onClick={openDrawer}>
+              New vault
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* the chips above the grid, identical on both pages that list vaults */
+function FreelancerFilterChips() {
+  const { filter, setFilter } = useFreelancerPage();
+  return (
+    <div className="dash-chips" role="group" aria-label="Filter vaults">
+      {FILTERS.map((f) => (
+        <button
+          key={f.key}
+          type="button"
+          className="dash-chip-filter"
+          aria-pressed={filter === f.key}
+          onClick={() => setFilter(f.key)}
+        >
+          {f.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================ chrome === */
+
+function Chrome({ email, children }: { email: string; children: ReactNode }) {
+  const { vaults, events, kpis, loading, error, paypalMissing, refresh, applyVault, dropVault } = useFreelancerData();
   const toast = useToast();
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -87,15 +195,6 @@ function Surface({ email }: { email: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [dev, setDev] = useState(false);
   const [bannerOff, setBannerOff] = useState(false);
-  const [, setMinute] = useState(0);
-
-  const view: View = pathname.endsWith("/vaults")
-    ? "vaults"
-    : pathname.endsWith("/ledger")
-      ? "earnings"
-      : pathname.endsWith("/payments") && FX.paymentsPage
-        ? "payments"
-        : "overview";
 
   useEffect(() => {
     const open = () => setDrawer({ step: 1 });
@@ -114,36 +213,6 @@ function Surface({ email }: { email: string }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  /* the remind label counts down; one tick a minute is enough */
-  useEffect(() => {
-    const timer = window.setInterval(() => setMinute((n) => n + 1), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const phases = useMemo(() => vaults.map(phaseOfVault), [vaults]);
-  const failed = phases.filter((p) => p === "payout_failed").length;
-  const needFiles = vaults.filter((v) => phaseOfVault(v) === "funded" && v.filesCount === 0).length;
-  const waiting = phases.filter((p) => p === "invited" || p === "submitted").length;
-
-  const statusLine = loading
-    ? null
-    : failed > 0
-      ? `${failed} PAYOUT FAILED`
-      : needFiles > 0
-        ? `${needFiles} VAULT${needFiles === 1 ? "" : "S"} NEED YOUR FILES`
-        : waiting > 0
-          ? `${waiting} VAULT${waiting === 1 ? "" : "S"} WAITING ON CLIENTS`
-          : "ALL CLEAR";
-
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const rows = vaults
-      .map((v) => ({ vault: v, phase: phaseOfVault(v) }))
-      .filter(({ vault }) => !q || vault.project.toLowerCase().includes(q) || vault.clientName.toLowerCase().includes(q))
-      .filter(({ phase }) => filter === "all" || filterBucket(phase) === filter);
-    return sortByNeed(rows).map((r) => r.vault);
-  }, [vaults, query, filter]);
 
   /* first name only, however long the full name is: "Good morning, Bruce." */
   const full = email.toLowerCase().includes("freelancer") ? "Maya" : displayName(email) || "Maya";
@@ -169,7 +238,7 @@ function Surface({ email }: { email: string }) {
         await navigator.clipboard?.writeText(link);
         toast({ message: "Invite link copied.", tone: "success" });
       } catch (e) {
-        toast({ message: e instanceof Error ? e.message : "Couldn’t copy the link.", tone: "error" });
+        toast({ message: e instanceof Error ? e.message : "Couldn't copy the link.", tone: "error" });
       }
       return;
     }
@@ -206,149 +275,30 @@ function Surface({ email }: { email: string }) {
     }
   }
 
-  const list = (
-    <div className="fd-list">
-      {loading
-        ? [0, 1, 2].map((i) => <div key={i} className="fd-skel fd-skel-card" style={{ animationDelay: `${i * 61.8}ms` }} />)
-        : visible.map((vault, i) => (
-            <VaultCard
-              key={vault.id}
-              vault={vault}
-              phase={phaseOfVault(vault)}
-              index={i}
-              busy={busyId === vault.id}
-              remindLabel={reminderLabel(vault)}
-              onAction={(a, v) => void act(a, v)}
-            />
-          ))}
-      {!loading && visible.length === 0 && (
-        <div className="fd-empty">
-          <span className="fd-empty-mark" aria-hidden="true">
-            <VaultGlyph width="144" height="144" />
-          </span>
-          <p className="fd-empty-text">
-            {vaults.length === 0 ? "No vaults yet. Create your first vault." : "Nothing in this filter."}
-          </p>
-          {vaults.length === 0 && (
-            <button type="button" className="fd-btn fd-btn-primary" onClick={() => setDrawer({ step: 1 })}>
-              New vault
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+  const ctx = useMemo<FreelancerPageCtx>(
+    () => ({
+      name,
+      vaults,
+      events,
+      kpis,
+      loading,
+      error,
+      paypalMissing,
+      filter,
+      setFilter,
+      busyId,
+      bannerOff,
+      refresh,
+      act,
+      openDetails: setDetails,
+      openDrawer: () => setDrawer({ step: 1 }),
+    }),
+    [name, vaults, events, kpis, loading, error, paypalMissing, bannerOff, filter, busyId, refresh, applyVault, dropVault]
   );
 
   return (
-    <div className="fd-page" data-view={view}>
-      {view === "overview" && (
-        <div className="fd-band">
-          <div className="fd-greet">
-            <h1 className="fd-h1">
-              {greetingFor()}, {name}.
-            </h1>
-            {loading ? (
-              <span className="fd-skel fd-skel-line" aria-hidden="true" />
-            ) : (
-              <p className="dash-eyebrow dash-greeting-line fd-statusline" data-tone={failed ? "danger" : undefined}>
-                <span className="dash-eyebrow-mark" aria-hidden="true" />
-                {statusLine}
-              </p>
-            )}
-          </div>
-          <KpiRow kpis={kpis} failed={!kpis && !!error} />
-        </div>
-      )}
-
-      {/* Earnings and Payments each carry their own inline error card, and the
-          Payments page states the missing PayPal address itself, so neither the
-          banner nor the bar is repeated on those two views. */}
-      {view !== "earnings" && view !== "payments" && <PayoutBanner show={paypalMissing && !bannerOff} />}
-
-      {error && view !== "earnings" && view !== "payments" && (
-        <div className="fd-error-bar" role="alert">
-          <span>{error}</span>
-          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
-            Retry
-          </button>
-        </div>
-      )}
-
-      {view === "overview" && (
-        <div className="fd-lower">
-          <section className="fd-col" aria-labelledby="fd-vaults-h">
-            <div className="fd-head">
-              <h2 id="fd-vaults-h" className="fd-h2">
-                Your vaults
-              </h2>
-              {vaults.length > 0 && (
-                <div className="dash-chips" role="group" aria-label="Filter vaults">
-                  {FILTERS.map((f) => (
-                    <button
-                      key={f.key}
-                      type="button"
-                      className="dash-chip-filter"
-                      aria-pressed={filter === f.key}
-                      onClick={() => setFilter(f.key)}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {list}
-          </section>
-
-          <section className="fd-ledger" aria-labelledby="fd-earn-h">
-            <div className="fd-ledger-head">
-              <h2 id="fd-earn-h" className="fd-h2">
-                Earnings
-              </h2>
-            </div>
-            <FreelancerLedger events={events} loading={loading} />
-          </section>
-        </div>
-      )}
-
-      {view === "vaults" && (
-        <section className="fd-col fd-wide" aria-labelledby="fd-vaults-h2">
-          <div className="fd-head">
-            <h2 id="fd-vaults-h2" className="fd-h2">
-              Your vaults
-            </h2>              {vaults.length > 0 && (
-                <div className="dash-chips" role="group" aria-label="Filter vaults">
-                  {FILTERS.map((f) => (
-                    <button key={f.key} type="button" className="dash-chip-filter" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-          </div>
-          {list}
-        </section>
-      )}
-
-      {view === "payments" && FX.paymentsPage && (
-        <FreelancerPayments
-          onOpenVault={(id) => {
-            const vault = vaults.find((v) => v.id === id);
-            if (vault) setDetails(vault);
-          }}
-        />
-      )}
-
-      {view === "earnings" && (
-        <EarningsPage
-          vaults={vaults}
-          events={events}
-          loading={loading}
-          error={error}
-          onRetry={() => void refresh()}
-          onOpenVault={setDetails}
-        />
-      )}
+    <FreelancerCtx.Provider value={ctx}>
+      {children}
 
       {drawer && (
         <NewVaultDrawer
@@ -385,6 +335,142 @@ function Surface({ email }: { email: string }) {
           <button type="button" onClick={() => setDev(false)}>Close</button>
         </div>
       )}
+    </FreelancerCtx.Provider>
+  );
+}
+
+/* ============================================================== pages === */
+
+export function FOverview() {
+  const { name, vaults, events, kpis, loading, error, paypalMissing, bannerOff, refresh } = useFreelancerPage();
+
+  const phases = vaults.map(phaseOfVault);
+  const failed = phases.filter((p) => p === "payout_failed").length;
+  const needFiles = vaults.filter((v) => phaseOfVault(v) === "funded" && v.filesCount === 0).length;
+  const waiting = phases.filter((p) => p === "invited" || p === "submitted").length;
+
+  const statusLine = loading
+    ? null
+    : failed > 0
+      ? `${failed} PAYOUT FAILED`
+      : needFiles > 0
+        ? `${needFiles} VAULT${needFiles === 1 ? "" : "S"} NEED YOUR FILES`
+        : waiting > 0
+          ? `${waiting} VAULT${waiting === 1 ? "" : "S"} WAITING ON CLIENTS`
+          : "ALL CLEAR";
+
+  return (
+    <div className="fd-page" data-view="overview">
+      <div className="fd-band">
+        <div className="fd-greet">
+          <h1 className="fd-h1">
+            {greetingFor()}, {name}.
+          </h1>
+          {loading ? (
+            <span className="fd-skel fd-skel-line" aria-hidden="true" />
+          ) : (
+            <p className="dash-eyebrow dash-greeting-line fd-statusline" data-tone={failed ? "danger" : undefined}>
+              <span className="dash-eyebrow-mark" aria-hidden="true" />
+              {statusLine}
+            </p>
+          )}
+        </div>
+        <KpiRow kpis={kpis} failed={!kpis && !!error} />
+      </div>
+
+      <PayoutBanner show={paypalMissing && !bannerOff} />
+
+      {error && (
+        <div className="fd-error-bar" role="alert">
+          <span>{error}</span>
+          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="fd-lower">
+        <section className="fd-col" aria-labelledby="fd-vaults-h">
+          <div className="fd-head">
+            <h2 id="fd-vaults-h" className="fd-h2">
+              Your vaults
+            </h2>
+            {vaults.length > 0 && <FreelancerFilterChips />}
+          </div>
+          <FreelancerList />
+        </section>
+
+        <section className="fd-ledger" aria-labelledby="fd-earn-h">
+          <div className="fd-ledger-head">
+            <h2 id="fd-earn-h" className="fd-h2">
+              Earnings
+            </h2>
+          </div>
+          <FreelancerLedger events={events} loading={loading} />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+export function FVaults() {
+  const { vaults, error, paypalMissing, bannerOff, refresh } = useFreelancerPage();
+
+  return (
+    <div className="fd-page" data-view="vaults">
+      <h1 className="sr-only">Vaults</h1>
+      <PayoutBanner show={paypalMissing && !bannerOff} />
+
+      {error && (
+        <div className="fd-error-bar" role="alert">
+          <span>{error}</span>
+          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      <section className="fd-col fd-wide" aria-labelledby="fd-vaults-h2">
+        <div className="fd-head">
+          <h2 id="fd-vaults-h2" className="fd-h2">
+            Your vaults
+          </h2>
+          {vaults.length > 0 && <FreelancerFilterChips />}
+        </div>
+        <FreelancerList />
+      </section>
+    </div>
+  );
+}
+
+export function FEarnings() {
+  const { vaults, events, loading, error, refresh, openDetails } = useFreelancerPage();
+
+  return (
+    <div className="fd-page" data-view="earnings">
+      <EarningsPage
+        vaults={vaults}
+        events={events}
+        loading={loading}
+        error={error}
+        onRetry={() => void refresh()}
+        onOpenVault={openDetails}
+      />
+    </div>
+  );
+}
+
+export function FPayments() {
+  const { vaults, openDetails } = useFreelancerPage();
+
+  return (
+    <div className="fd-page" data-view="payments">
+      <FreelancerPayments
+        onOpenVault={(id) => {
+          const vault = vaults.find((v) => v.id === id);
+          if (vault) openDetails(vault);
+        }}
+      />
     </div>
   );
 }
@@ -495,10 +581,12 @@ function DetailsDrawer({
 
 /* ============================================================== entry === */
 
-export function FreelancerDashboard({ email }: { email: string }) {
+/* the chrome: mounted once by the dashboard shell, rendered once per route with
+   its Outlet as the child. Data and drawers never remount on a rail click. */
+export function FreelancerDashboard({ email, children }: { email: string; children: ReactNode }) {
   return (
     <FreelancerDataProvider>
-      <Surface email={email} />
+      <Chrome email={email}>{children}</Chrome>
     </FreelancerDataProvider>
   );
 }

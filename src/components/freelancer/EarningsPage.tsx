@@ -97,6 +97,7 @@ export function EarningsPage({ vaults, events, loading, error, onRetry, onOpenVa
 
   return (
     <section className="fd-earnings" aria-labelledby="fd-earn-caption">
+      <h1 className="sr-only">Earnings</h1>
       <p id="fd-earn-caption" className="fd-caption">
         WHAT YOU’VE EARNED AND WHEN IT ARRIVES
       </p>
