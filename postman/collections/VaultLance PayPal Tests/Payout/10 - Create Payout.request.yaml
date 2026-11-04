@@ -1,0 +1,119 @@
+$kind: http-request
+url: "{{base_url}}/v1/payments/payouts"
+method: POST
+headers:
+  Content-Type: application/json
+  PayPal-Request-Id: vaultlance-payout-request-001
+  Accept: application/json
+body:
+  type: json
+  content: "{\r
+
+    \  \"sender_batch_header\": {\r
+
+    \    \"sender_batch_id\": \"vaultlance-batch-001\",\r
+
+    \    \"email_subject\": \"VaultLance payout\",\r
+
+    \    \"email_message\": \"Your deliverables were approved.\"\r
+
+    \  },\r
+
+    \  \"items\": [\r
+
+    \    {\r
+
+    \      \"recipient_type\": \"EMAIL\",\r
+
+    \      \"receiver\": \"{{freelancer_email}}\",\r
+
+    \      \"amount\": {\r
+
+    \        \"value\": \"9.00\",\r
+
+    \        \"currency\": \"USD\"\r
+
+    \      },\r
+
+    \      \"note\": \"vault-demo-001 payout\",\r
+
+    \      \"sender_item_id\": \"vault-demo-001-payout-001\"\r
+
+    \    }\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Payout API returned an accepted response\", function () {\r
+
+      \  pm.expect([200, 201]).to.include(pm.response.code);\r
+
+      });\r
+
+      \r
+
+      const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Payout batch ID exists\", function () {\r
+
+      \  pm.expect(response.batch_header).to.exist;\r
+
+      \  pm.expect(response.batch_header.payout_batch_id).to.be.a(\"string\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Initial batch status is valid\", function () {\r
+
+      \  const status = response.batch_header.batch_status;\r
+
+      \r
+
+      \  pm.expect([\r
+
+      \    \"PENDING\",\r
+
+      \    \"PROCESSING\",\r
+
+      \    \"SUCCESS\",\r
+
+      \    \"DENIED\"\r
+
+      \  ]).to.include(status);\r
+
+      });\r
+
+      \r
+
+      if (response.batch_header?.payout_batch_id) {\r
+
+      \  pm.environment.set(\r
+
+      \    \"payout_batch_id\",\r
+
+      \    response.batch_header.payout_batch_id\r
+
+      \  );\r
+
+      \r
+
+      \  console.log(\r
+
+      \    \"Payout batch ID:\",\r
+
+      \    response.batch_header.payout_batch_id\r
+
+      \  );\r
+
+      }"
+    language: text/javascript
+order: 1000

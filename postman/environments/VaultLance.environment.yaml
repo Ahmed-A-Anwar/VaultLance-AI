@@ -1,0 +1,22 @@
+name: VaultLance
+values:
+  - key: base_url
+    value: ''
+  - key: client_id
+    value: ''
+  - key: client_secret
+    value: ''
+  - key: access_token
+    value: ''
+  - key: order_id
+    value: ''
+  - key: approve_url
+    value: ''
+  - key: authorization_id
+    value: ''
+  - key: capture_id
+    value: ''
+  - key: freelancer_email
+    value: ''
+  - key: payout_batch_id
+    value: ''

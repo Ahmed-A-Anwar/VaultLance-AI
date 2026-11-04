@@ -1,0 +1,38 @@
+$kind: http-request
+url: "{{base_url}}/v2/payments/authorizations/{{authorization_id}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Authorization details returned\", function () {\r
+
+      \  pm.response.to.have.status(200);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Authorization status is VOIDED\", function () {\r
+
+      \  pm.expect(response.status).to.eql(\"VOIDED\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Authorization amount is USD 10.00\", function () {\r
+
+      \  pm.expect(response.amount.currency_code).to.eql(\"USD\");\r
+
+      \  pm.expect(response.amount.value).to.eql(\"10.00\");\r
+
+      });"
+    language: text/javascript
+order: 10000

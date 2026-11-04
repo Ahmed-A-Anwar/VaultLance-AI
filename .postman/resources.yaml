@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 2db9846e-47cc-4077-9bd3-605c95fd97c5
+
+cloudResources:
+  collections:
+    ../postman/collections/VaultLance PayPal Tests: 417d2ab1-d638-4c60-b2a5-9574114dc126
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

@@ -13,6 +13,7 @@ import {
   type VaultStatus,
 } from "../../lib/api";
 import { HoldButton } from "../shared/HoldButton";
+import { PayPalAuthorizeButton } from "../shared/PayPalAuthorizeButton";
 import { StatusChip } from "../shared/StatusChip";
 import { Stepper } from "./Stepper";
 import { PadlockOpen, Wheel } from "./icons";
@@ -134,15 +135,26 @@ export function VaultCard({
 
         <div className="dash-vault-actions">
           {vault.status === "awaiting_payment" && (
-            <button
-              type="button"
-              className="dash-btn dash-btn-primary"
-              onClick={() => void act("authorize")}
-              disabled={blocked}
-            >
-              <span className="dash-btn-label">{busy === "authorize" ? "Authorizing…" : "Authorize payment"}</span>
-              {busy === "authorize" ? spinner : <span className="dash-btn-arrow" aria-hidden="true">→</span>}
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <PayPalAuthorizeButton
+                vaultId={vault.id}
+                amountUSD={vault.amountUSD}
+                onSuccess={(data: any) => {
+                  putVault({ ...vault, status: "held", paypalOrderId: data.authorizationId || data.orderId });
+                }}
+                disabled={blocked}
+              />
+              <button
+                type="button"
+                className="dash-btn dash-btn-ghost"
+                style={{ fontSize: "11px", padding: "4px 8px" }}
+                onClick={() => void act("authorize")}
+                disabled={blocked}
+              >
+                <span className="dash-btn-label">{busy === "authorize" ? "Authorizing…" : "Instant Mock Authorize"}</span>
+                {busy === "authorize" ? spinner : <span className="dash-btn-arrow" aria-hidden="true">→</span>}
+              </button>
+            </div>
           )}
 
           {vault.status === "held" && (

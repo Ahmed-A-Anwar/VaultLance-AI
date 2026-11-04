@@ -1,0 +1,131 @@
+$kind: http-request
+url: "{{base_url}}/v2/checkout/orders"
+method: POST
+headers:
+  Content-Type: application/json
+  Prefer: return=representation
+  PayPal-Request-Id: vaultlance-create-001
+body:
+  type: json
+  content: "{\r
+
+    \  \"intent\": \"AUTHORIZE\",\r
+
+    \  \"purchase_units\": [\r
+
+    \    {\r
+
+    \      \"reference_id\": \"vault-demo-001\",\r
+
+    \      \"description\": \"VaultLance AI digital deliverables\",\r
+
+    \      \"custom_id\": \"vault-demo-001\",\r
+
+    \      \"invoice_id\": \"vault-demo-001-order-001\",\r
+
+    \      \"amount\": {\r
+
+    \        \"currency_code\": \"USD\",\r
+
+    \        \"value\": \"10.00\"\r
+
+    \      }\r
+
+    \    }\r
+
+    \  ],\r
+
+    \  \"payment_source\": {\r
+
+    \    \"paypal\": {\r
+
+    \      \"experience_context\": {\r
+
+    \        \"payment_method_preference\": \"IMMEDIATE_PAYMENT_REQUIRED\",\r
+
+    \        \"brand_name\": \"VaultLance AI\",\r
+
+    \        \"locale\": \"en-US\",\r
+
+    \        \"landing_page\": \"LOGIN\",\r
+
+    \        \"shipping_preference\": \"NO_SHIPPING\",\r
+
+    \        \"user_action\": \"CONTINUE\",\r
+
+    \        \"return_url\": \"https://example.com/paypal/success\",\r
+
+    \        \"cancel_url\": \"https://example.com/paypal/cancel\"\r
+
+    \      }\r
+
+    \    }\r
+
+    \  }\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.test(\"Order created successfully\", function () {\r
+
+      \  pm.response.to.have.status(201);\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Order ID exists\", function () {\r
+
+      \  pm.expect(response.id).to.be.a(\"string\");\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Order status is CREATED\", function () {\r
+
+      \  pm.expect(response.status).to.eql(\"CREATED\");\r
+
+      });\r
+
+      \r
+
+      pm.environment.set(\"order_id\", response.id);\r
+
+      \r
+
+      const approvalLink = response.links?.find(function (link) {\r
+
+      \  return link.rel === \"payer-action\" || link.rel === \"approve\";\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Buyer approval URL exists\", function () {\r
+
+      \  pm.expect(approvalLink).to.exist;\r
+
+      \  pm.expect(approvalLink.href).to.be.a(\"string\");\r
+
+      });\r
+
+      \r
+
+      if (approvalLink) {\r
+
+      \  pm.environment.set(\"approve_url\", approvalLink.href);\r
+
+      \  console.log(\"Approval URL:\", approvalLink.href);\r
+
+      }"
+    language: text/javascript
+order: 3000
