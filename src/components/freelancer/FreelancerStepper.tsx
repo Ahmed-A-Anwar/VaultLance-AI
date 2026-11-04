@@ -5,13 +5,15 @@
    a failed PAID node in danger. */
 
 import { Check } from "../dashboard/icons";
-import { STEPS, stepperState, type Phase } from "../../lib/freelancerPhase";
+import { PHASE_LABEL, STEPS, stepperState, type Phase } from "../../lib/freelancerPhase";
 
 export function FreelancerStepper({ phase }: { phase: Phase }) {
   const { nodes, current } = stepperState(phase);
 
   return (
-    <ol className="fd-steps" aria-label={`Progress: ${STEPS[current]?.toLowerCase() ?? phase.replace("_", " ")}`}>
+    /* the label names the phase the vault is in, not the step it is standing
+       on: a funded vault awaiting submission is "funded", not "submitted" */
+    <ol className="fd-steps" aria-label={`Progress: ${PHASE_LABEL[phase].toLowerCase()}`}>
       {STEPS.map((label, i) => {
         const state = nodes[i];
         return (
