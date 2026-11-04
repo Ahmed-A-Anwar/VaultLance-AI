@@ -1,0 +1,67 @@
+{
+ "cls": 0,
+ "reduced": {
+  "running": 0,
+  "longOnes": 0,
+  "captionAnimation": "none",
+  "captionOpacity": "1"
+ },
+ "entrance": [],
+ "tabs": {
+  "role": 1,
+  "selectedAfterArrow": "RECEIPTS",
+  "panelLabelled": {
+   "label": "_r_0_-receipts-tab"
+  },
+  "focused": "HOLDS"
+ },
+ "labels": {
+  "grids": [
+   null
+  ],
+  "buttons": [
+   {
+    "label": "Copy PayPal ID 8XK77120EF901774B",
+    "text": "8XK77120EF901774B"
+   },
+   {
+    "label": "Download receipt for Booking Web App",
+    "text": ""
+   },
+   {
+    "label": "Copy PayPal ID 8XK54017CD884039M",
+    "text": "8XK54017CD884039M"
+   },
+   {
+    "label": "Download receipt for Brand Guide",
+    "text": ""
+   },
+   {
+    "label": "Download receipt for Booking Web App",
+    "text": ""
+   },
+   {
+    "label": "Download receipt for Brand Guide",
+    "text": ""
+   }
+  ]
+ },
+ "gridEnter": {
+  "popover": true,
+  "label": "Icon Set payout",
+  "closedByEscape": true
+ },
+ "retryReachable": true,
+ "route-freelancer": {
+  "caption": "HOW YOU GET PAID",
+  "hasOverviewWords": false,
+  "title": "Payments\n\nNew vault",
+  "railActive": "Payments"
+ },
+ "route-client": {
+  "caption": "HOW YOU PAY AND WHAT’S HELD",
+  "hasOverviewWords": false,
+  "title": "Payments\n\nJoin a vau",
+  "railActive": "Payments"
+ }
+}
