@@ -226,7 +226,7 @@ router.post("/:id/approve", async (req, res, next) => {
 
       const checks = generateChecksForFiles(dbFiles || [], vault.description || "");
       const failedChecks = checks.filter((c) => c.result === "fail");
-      if (failedChecks.length > 0 && !req.body.overrideFailures) {
+      if (failedChecks.length > 0 && !req.body?.overrideFailures) {
         throw new BadRequestError(
           `Cannot approve payment: ${failedChecks.length} verification check(s) failed (${failedChecks
             .map((c) => c.name)
