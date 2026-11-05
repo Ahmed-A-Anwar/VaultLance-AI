@@ -677,6 +677,11 @@ export const remindRemainingMs = (v: Pick<FreelancerVault, "remindedAt">): numbe
 /** POST /api/vaults/{id}/payout/retry */
 export async function retryPayout(id: string): Promise<FreelancerVault> {
   await latency();
+  /* the server has no retry route yet, so a server vault says so instead of
+     pretending a second payout went out */
+  if (isServerVaultId(id)) {
+    throw new Error("Payout retries aren’t available on the server yet, so nothing was sent.");
+  }
   const v = find(id);
   if (v.payoutStatus !== "failed") throw new Error("This payout isn’t failed.");
   v.payoutStatus = "paid";
