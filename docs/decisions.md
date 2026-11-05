@@ -3,6 +3,25 @@
 Short records of changes that alter behaviour the frontend or an operator can
 observe. Newest first.
 
+## 2026-11-05 — A failed read shows the error state, not demo rows
+
+**Decision.** With `FX.real.vaultsRead` on, a read that fails — network error,
+timeout or 5xx — surfaces the dashboard's existing error state and offers the
+retry it already offers. It does not fall back to mock vaults, and no "OFFLINE
+DEMO DATA" chip exists.
+
+**Why.** Every surface above this line prints money figures and a client's
+vault list. A demo row mistaken for a real one is worse than a visible error:
+the user cannot tell which is which once the chip scrolls away, and a silent
+fallback also hides an API outage that someone should be fixing.
+
+**Deviation.** This relaxes the Phase 2 instruction that reads may fall back to
+mock data on NetworkError/5xx with an OFFLINE DEMO DATA chip. Approved by the
+user on 2026-11-05. Writes were never allowed to fall back and still do not.
+
+**Cost.** An offline dashboard shows an error instead of demo data, so the
+deployed app cannot be demonstrated without the API reachable.
+
 ## 2026-11-04 — The PayPal boot check is advisory, not fatal
 
 **Decision.** `assertSandboxPayPal()` logs an error when `PAYPAL_ENV` is not
