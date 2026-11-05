@@ -228,6 +228,22 @@ export class VaultDomainService {
         .select("*")
         .eq("vault_id", vaultId);
 
+      /* the ids a receipt prints: the vault columns can be empty (a row written
+         before the column existed, or a write the database refused), and the
+         ledger metadata records the same ids, so it is the fallback */
+      const [{ data: captureRow }, { data: moneyEvents }] = await Promise.all([
+        supabase.from("vault_captures").select("capture_id").eq("vault_id", vaultId).maybeSingle(),
+        supabase
+          .from("ledger_events")
+          .select("metadata, created_at")
+          .eq("vault_id", vaultId)
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
+      const metas = (moneyEvents || []).map((row: any) => row.metadata || {});
+      const fromLedger = (key: string): string | null =>
+        (metas.find((m: any) => typeof m[key] === "string" && m[key])?.[key] as string) || null;
+
       const files: VaultFileItem[] = (fileRows || []).map((f) => ({
         id: f.id,
         fileName: f.file_name,
@@ -249,6 +265,9 @@ export class VaultDomainService {
         expiresAt: vault.expires_at ? new Date(vault.expires_at) : null,
         createdAt: new Date(vault.created_at),
         updatedAt: new Date(vault.updated_at),
+        paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
+        paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
+        paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
         members,
         files,
       };

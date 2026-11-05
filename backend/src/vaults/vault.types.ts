@@ -36,4 +36,8 @@ export interface VaultDTO {
   updatedAt: Date;
   members?: VaultMemberItem[];
   files?: VaultFileItem[];
+  /* the ids a receipt prints; each can be absent when PayPal has not got there */
+  paypalOrderId?: string | null;
+  paypalAuthorizationId?: string | null;
+  paypalCaptureId?: string | null;
 }
