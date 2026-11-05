@@ -18,7 +18,7 @@ import { StatusChip } from "../shared/StatusChip";
 import { Stepper } from "./Stepper";
 import { PadlockOpen, Wheel } from "./icons";
 import { useDashData } from "./data";
-import { isDemoMode } from "../../lib/apiClient";
+import { mockHoldAllowed } from "../../lib/apiClient";
 import { useToast } from "../shared/Toasts";
 import { useNavigate } from "react-router-dom";
 
@@ -147,7 +147,7 @@ export function VaultCard({
               />
               {/* the mock hold marks a vault held without any money moving, so it
                   exists only where there is no API to hold money in: a demo build */}
-              {isDemoMode() && (
+              {mockHoldAllowed() && (
                 <button
                   type="button"
                   className="dash-btn dash-btn-ghost"

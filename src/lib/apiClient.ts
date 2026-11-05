@@ -21,6 +21,12 @@ export const API_BASE_URL =
 export const hasApiConfigured = (): boolean =>
   Boolean(explicitApiUrl) || !import.meta.env.PROD;
 
+/** May a surface offer the demo hold, which marks a vault held without any money
+    moving? Only in a build that is not production, or one with no API to hold
+    money in. Deliberately not isDemoMode(): `?demo=1` and a localStorage key are
+    visitor-controlled, so they must not be able to turn a fake hold back on. */
+export const mockHoldAllowed = (): boolean => !import.meta.env.PROD || !hasApiConfigured();
+
 export const isDemoMode = (): boolean => {
   if (typeof window === "undefined") return false;
   const urlParam = new URLSearchParams(window.location.search).get("demo");
