@@ -163,10 +163,11 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
     setApprovedPending(true);
   }, [id]);
 
-  /* whoever holds a session completes the authorization the buyer granted; the
-     call is safe to repeat because the server records the id it gets back */
+  /* Whoever holds a session completes the authorization the buyer granted. It is
+     retried a few times because the page can arrive a beat before PayPal has
+     marked the order approved, and that first attempt failing used to leave the
+     vault unclaimed until someone focused the tab. */
   useEffect(() => {
-    if (finishing.current) return;
     if (!getAccessToken()) return;
     const pending = pendingApprovalFor(id);
     if (!pending) return;
@@ -176,31 +177,52 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       setApprovedPending(false);
       return;
     }
+    if (finishing.current) return;
 
-    finishing.current = true;
-    authorizePaypalOrder(id, pending.orderId)
-      .then(() => {
+    let cancelled = false;
+    let timer = 0;
+    let attempt = 0;
+
+    const attemptOnce = async () => {
+      attempt += 1;
+      try {
+        await authorizePaypalOrder(id, pending.orderId);
+        if (cancelled) return;
         forgetApprovedOrder(id);
         setApprovedPending(false);
         reload();
-      })
-      .catch(() => {
-        /* the order may not be approved yet, or this account is the wrong one:
-           keep it pending so the retry and the focus handler try again */
-      })
-      .finally(() => {
-        finishing.current = false;
-      });
+      } catch {
+        /* not approved yet, or the wrong account: try again, then stay pending */
+        if (!cancelled && attempt < 5) timer = window.setTimeout(() => void attemptOnce(), 3000);
+        return;
+      } finally {
+        if (!cancelled && attempt >= 5) finishing.current = false;
+      }
+      finishing.current = false;
+    };
+
+    finishing.current = true;
+    void attemptOnce();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      finishing.current = false;
+    };
   }, [id, vault, reload]);
 
   /* coming back to a tab after approving in another window finishes the hold */
   useEffect(() => {
-    const onFocus = () => {
+    const wake = () => {
       if (!getAccessToken() || !pendingApprovalFor(id)) return;
       reload();
     };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    window.addEventListener("focus", wake);
+    document.addEventListener("visibilitychange", wake);
+    return () => {
+      window.removeEventListener("focus", wake);
+      document.removeEventListener("visibilitychange", wake);
+    };
   }, [id, reload]);
 
   /* ------------------------------------------------------------- streams --- */

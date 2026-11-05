@@ -23,7 +23,12 @@ import { ArrowLeft, Download } from "../../components/vault/icons";
 import { useToast } from "../../components/shared/Toasts";
 import { downloadVaultFile } from "../../lib/api";
 import { getAccessToken } from "../../lib/http";
-import { pendingApprovalFor } from "../../lib/paypalReturn";
+import {
+  approvalFromUrl,
+  cleanPaypalQuery,
+  pendingApprovalFor,
+  rememberApprovedOrder,
+} from "../../lib/paypalReturn";
 import "../../styles/vault.css";
 
 const CODE: Record<string, string> = {
@@ -299,8 +304,24 @@ function RoomSkeleton() {
   );
 }
 
+/* the return is recorded once per page load, before anything can redirect */
+const recordedReturns = new Set<string>();
+
 export default function AuditRoom() {
   const { id = "" } = useParams();
+
+  /* PayPal's return has to be written down BEFORE the guard below can send this
+     window to /signin: a popup with no session used to lose the approved order
+     on the way to the sign-in page, and nothing was left to finish it with. */
+  if (id && !recordedReturns.has(id) && typeof window !== "undefined") {
+    const fromUrl = approvalFromUrl(window.location.href);
+    if (fromUrl && fromUrl.vaultId === id) {
+      rememberApprovedOrder(id, fromUrl.orderId);
+      cleanPaypalQuery(id);
+      recordedReturns.add(id);
+    }
+  }
+
   const session = useMemo(() => readSession(), []);
 
   /* an approved PayPal return keeps its context even in a window with no
