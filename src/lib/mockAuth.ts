@@ -33,7 +33,11 @@ export function readSession(): Session | null {
     if (!parsed || typeof parsed.email !== "string") return null;
     return {
       email: parsed.email,
-      role: parsed.role === "freelancer" ? "freelancer" : roleFor(parsed.email),
+      /* the role the API issued is the truth: the email heuristic is only for
+         sessions that stored no role at all (demo + pre-token logins). Reading
+         it back from the email turned a CLIENT whose address mentions
+         "freelancer" into a freelancer the server then refused. */
+      role: parsed.role === "freelancer" || parsed.role === "client" ? parsed.role : roleFor(parsed.email),
       since: typeof parsed.since === "number" ? parsed.since : Date.now(),
       ...(typeof parsed.name === "string" && parsed.name.trim() ? { name: parsed.name } : {}),
       ...(typeof parsed.token === "string" ? { token: parsed.token } : {}),
