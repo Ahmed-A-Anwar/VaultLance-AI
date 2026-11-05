@@ -466,6 +466,11 @@ export async function updateVault(id: string, patch: Partial<FreelancerVault>): 
 /** DELETE /api/vaults/{id} */
 export async function deleteDraft(id: string): Promise<void> {
   await latency();
+  /* DELETE /api/vaults/:id is not wired, so a server draft refuses rather than
+     reporting a deletion that did not happen */
+  if (isServerVaultId(id)) {
+    throw new Error("Deleting isn’t available on the server yet, so the draft is still there.");
+  }
   const v = find(id);
   if (v.invitedAt || v.uiStatus !== "awaiting_payment") {
     throw new Error("Only a draft can be deleted.");
@@ -659,6 +664,10 @@ export async function submitForReview(id: string): Promise<{ manifestSha256: str
 /** POST /api/vaults/{id}/remind — once per 24h */
 export async function remindClient(id: string): Promise<{ nextAt: number }> {
   await latency();
+  /* no reminder route exists yet */
+  if (isServerVaultId(id)) {
+    throw new Error("Reminders aren’t available on the server yet, so nothing was sent.");
+  }
   const v = find(id);
   const now = Date.now();
   if (v.remindedAt && now - v.remindedAt < REMIND_COOLDOWN_MS) {
@@ -694,6 +703,10 @@ export async function retryPayout(id: string): Promise<FreelancerVault> {
 /** POST /api/vaults/{id}/duplicate */
 export async function duplicateVault(id: string): Promise<FreelancerVault> {
   await latency();
+  /* no duplicate route exists yet */
+  if (isServerVaultId(id)) {
+    throw new Error("Duplicating isn’t available on the server yet, so nothing was created.");
+  }
   const source = find(id);
   const copy: FreelancerVault = {
     ...source,

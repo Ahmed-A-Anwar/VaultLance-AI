@@ -101,6 +101,15 @@ async function fetchLiveLedger(): Promise<LedgerEvent[]> {
   });
 }
 
+async function fetchEvents(): Promise<LedgerEvent[]> {
+  /* GET /api/ledger answers with every user's last fifty rows, so using it would
+     put other people's money in a client's ledger. Until it is scoped, events
+     come from the local store in a demo build and from nowhere in a real one:
+     an empty ledger is honest, a stranger's row is not. */
+  if (realOn("events")) return fetchLiveLedger();
+  return isDemoMode() ? listLocalEvents() : [];
+}
+
 function calculateKpis(vList: Vault[]): Kpis {
   const held = vList.filter((v) => v.status === "held" || v.status === "audited");
   return {
@@ -129,7 +138,7 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
     if (!haveData.current) setLoading(true);
     setError(null);
 
-    Promise.all([readsReal ? fetchRealVaults() : fetchLiveVaults(), fetchLiveLedger()])
+    Promise.all([readsReal ? fetchRealVaults() : fetchLiveVaults(), fetchEvents()])
       .then(([nextVaults, nextEvents]) => {
         if (!live) return;
         vaultsRef.current = nextVaults;
