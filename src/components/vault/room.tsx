@@ -54,7 +54,7 @@ interface RoomValue {
 
   busy: "" | "authorize" | "approve" | "reject";
   authorize: () => Promise<void>;
-  approve: () => Promise<void>;
+  approve: (overrideFailures?: boolean) => Promise<void>;
   reject: () => Promise<void>;
 
   /* one pass of motion when files unlock, then cleared */
@@ -291,11 +291,11 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
     }
   }, [busy, id, pushAi, streamInto]);
 
-  const approve = useCallback(async () => {
+  const approve = useCallback(async (overrideFailures = false) => {
     if (busy) return;
     setBusy("approve");
     try {
-      const next = await approveVault(id);
+      const next = await approveVault(id, overrideFailures);
       setVault(next);
       setCapturedAt(Date.now());
       setUnlocking(true);

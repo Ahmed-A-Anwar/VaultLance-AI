@@ -21,6 +21,7 @@ export function DecisionPanel() {
   const [counting, setCounting] = useState(0);
   const [holding, setHolding] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [waived, setWaived] = useState(false);
   const [anim, setAnim] = useState<"" | "void" | "paid">("");
   const timer = useRef(0);
   const tick = useRef(0);
@@ -77,7 +78,7 @@ export function DecisionPanel() {
 
   async function fireApprove() {
     try {
-      await approve();
+      await approve(waived);
       toast({ message: "Payment captured. Files unlocked.", tone: "success" });
     } catch (e) {
       toast({
@@ -184,17 +185,24 @@ export function DecisionPanel() {
             </dl>
           </div>
 
+          {status === "audited" && hasFailedChecks && (
+            <label className="room-waive" onPointerDown={(e) => e.stopPropagation()}>
+              <input type="checkbox" checked={waived} onChange={(e) => setWaived(e.target.checked)} />
+              <span>Waive the failed checks and pay anyway</span>
+            </label>
+          )}
+
           <HoldButton
             className="room-hold"
             onConfirm={() => void fireApprove()}
             pending={busy === "approve"}
-            disabled={status !== "audited" || busy === "reject" || hasFailedChecks}
+            disabled={status !== "audited" || busy === "reject" || (hasFailedChecks && !waived)}
             label={status === "held" ? "Approve & pay" : "Hold to approve & pay"}
           />
           {status === "held" && <p className="room-hint room-hint-sm">Run the audit first.</p>}
           {status === "audited" && hasFailedChecks && (
             <p className="room-hint room-hint-sm" style={{ color: "#d9534f" }}>
-              ⚠️ Verification failed. Payment locked until issues are resolved.
+              ⚠️ Verification failed. Payment stays locked unless the failed checks are waived.
             </p>
           )}
 

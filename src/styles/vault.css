@@ -318,6 +318,24 @@
   line-height: 1.5;
   color: var(--hero-slate);
 }
+.room-waive {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 2px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--hero-slate);
+  cursor: pointer;
+  text-align: left;
+}
+.room-waive input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--room-danger);
+  cursor: pointer;
+}
 .room-hint-sm {
   text-align: center;
   margin-top: -4px;

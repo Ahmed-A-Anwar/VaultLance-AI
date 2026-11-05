@@ -343,10 +343,11 @@ export async function listLiveEvents(): Promise<LedgerEvent[]> {
   return out.sort((a, b) => b.ts - a.ts);
 }
 
-async function postAction(id: string, action: string): Promise<Vault> {
+async function postAction(id: string, action: string, body?: unknown): Promise<Vault> {
   const res = await fetch(`${API_BASE}/api/vaults/${id}/${action}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: body ? { ...authHeaders(), "Content-Type": "application/json" } : authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -386,8 +387,8 @@ export async function markAudited(id: string): Promise<Vault> {
 }
 
 /* POST /api/vaults/{id}/approve */
-export async function approveVault(id: string): Promise<Vault> {
-  const v = await postAction(id, "approve");
+export async function approveVault(id: string, overrideFailures = false): Promise<Vault> {
+  const v = await postAction(id, "approve", overrideFailures ? { overrideFailures: true } : undefined);
   emit("PAYMENT.CAPTURED", v.id, "Capture completed, funds moved", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   emit("FILES.UNLOCKED", v.id, "Delivery unlocked to the freelancer", { paypalId: v.paypalOrderId });
   return v;
