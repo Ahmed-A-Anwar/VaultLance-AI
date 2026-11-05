@@ -13,6 +13,7 @@ import downloadRoutes from "./vaults/download.routes.js";
 import uploadRoutes from "./uploads/upload.routes.js";
 import manifestRoutes from "./manifests/manifest.routes.js";
 import ledgerRoutes from "./ledger/ledger.routes.js";
+import payoutRoutes from "./money/payout.routes.js";
 import aiRoutes from "./ai/ai.routes.js";
 import { paypalRouter } from "./paypal/paypal.routes.js";
 import { createWebhookRouter } from "./paypal/webhook.routes.js";
@@ -68,6 +69,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/vaults", paypalRouter); // PayPal order/authorize/capture/void
+app.use("/api/vaults", payoutRoutes); // payout retry (additive)
 app.use("/api/vaults", vaultActionRoutes); // action routes first (more specific paths)
 app.use("/api/vaults", inviteRoutes); // invite codes (additive)
 app.use("/api/vaults", submitRoutes); // submit + manifest lock (additive)

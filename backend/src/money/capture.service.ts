@@ -88,6 +88,10 @@ export async function confirmCapture(
 
   const moved = await store.casStatus(vaultId, "CAPTURE_PENDING", "PAID");
 
+  /* the receipt and the room's PAID panel read this off the vault row; without
+     it a genuinely captured vault renders an empty capture id */
+  await store.rememberCapture(vaultId, captureId);
+
   if (created || moved) {
     await store.markFilesUnlocked(vaultId);
     await store.appendLedger(vaultId, "PAYMENT.CAPTURED", null, grossCents, vault.currency, "Capture verified with PayPal", {

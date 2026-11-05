@@ -100,6 +100,10 @@ describe("money loop – confirmCapture", () => {
     expect(result.payoutStatus).toBe("pending");
     expect(paypal.createPayout).toHaveBeenCalledTimes(1);
 
+    /* the receipt reads the id off the vault row; vault_captures alone is not
+       enough, or a paid vault renders an empty capture field */
+    expect((inMemoryStore.vaults.get(VAULT) as any).paypal_capture_id).toBe("cap-1");
+
     const capture = store.memory.captures.get(VAULT)!;
     expect(capture.grossCents).toBe(25000);
     expect(capture.feeCents).toBe(1000);

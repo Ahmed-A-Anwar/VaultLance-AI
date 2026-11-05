@@ -107,6 +107,19 @@ export async function rememberOrder(vaultId: string, orderId: string): Promise<v
   if (row) (row as any).paypal_order_id = orderId;
 }
 
+/* The receipt reads the capture id off the vault row, not off vault_captures:
+   without this a paid vault shows an empty capture field even though PayPal
+   captured the money. Written by the same routine that records the capture, so
+   whoever confirms first fixes the row. */
+export async function rememberCapture(vaultId: string, captureId: string): Promise<void> {
+  if (live()) {
+    await supabase!.from("vaults").update({ paypal_capture_id: captureId }).eq("id", vaultId);
+    return;
+  }
+  const row = database.store.vaults.get(vaultId);
+  if (row) (row as any).paypal_capture_id = captureId;
+}
+
 export async function getAuthorizationId(vaultId: string): Promise<string | null> {
   const vault = await getVaultMoney(vaultId);
   if (vault?.authorizationId) return vault.authorizationId;

@@ -127,6 +127,13 @@ async function getFullVault(vaultId: string) {
 
     if (!vault) throw new NotFoundError("Vault not found.", "VAULT_NOT_FOUND");
 
+    /* the money rows behind this vault: the capture holds the payout figure, the
+       payout row holds the status a surface can print */
+    const [{ data: captureRow }, { data: payoutRow }] = await Promise.all([
+      supabase.from("vault_captures").select("capture_id, payout_cents").eq("vault_id", vaultId).maybeSingle(),
+      supabase.from("vault_payouts").select("status, amount_cents").eq("vault_id", vaultId).maybeSingle(),
+    ]);
+
     // Get members
     const { data: memberRows } = await supabase
       .from("vault_members")
@@ -164,6 +171,13 @@ async function getFullVault(vaultId: string) {
       expiresAt: vault.expires_at,
       createdAt: vault.created_at,
       updatedAt: vault.updated_at,
+      /* the room's PAID receipt reads these off the vault; the row is already
+         selected with * and the ids were being dropped here */
+      paypalOrderId: (vault as any).paypal_order_id || null,
+      paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || null,
+      /* no payout row yet means nothing has been attempted, not "paid" */
+      payoutCents: payoutRow?.amount_cents != null ? Number(payoutRow.amount_cents) : captureRow?.payout_cents ?? null,
+      payoutStatus: payoutRow?.status ?? null,
       members,
     };
   }
