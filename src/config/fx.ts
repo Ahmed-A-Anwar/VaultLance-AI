@@ -66,8 +66,22 @@ export type RealGroup =
 
 /* A group is listed here only once it is wired. An absent group follows the
    master switch, which is what lets VITE_USE_REAL_API turn the wired ones on
-   without also switching on a group nobody has connected yet. */
-export const FX_REAL_DEFAULTS: Readonly<Partial<Record<RealGroup, boolean>>> = {};
+   without also switching on a group nobody has connected yet.
+
+   Phase 2 now ships with the wired groups on. `events` stays off because
+   GET /api/ledger answers with every user's rows, and `payouts` is absent
+   because the server has no payout read or retry route: turning them on would
+   show one client another's money and offer a retry that cannot work. */
+export const FX_REAL_DEFAULTS: Readonly<Partial<Record<RealGroup, boolean>>> = {
+  auth: true,
+  vaultsRead: true,
+  vaultsWrite: true,
+  uploads: true,
+  audit: true,
+  settings: true,
+  payments: true,
+  events: false,
+};
 
 /** The master switch, from VITE_USE_REAL_API. Default false. */
 export const FX_REAL_API = envFlag("VITE_USE_REAL_API");

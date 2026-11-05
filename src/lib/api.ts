@@ -11,6 +11,7 @@ import { FX, realOn } from "../config/fx";
 import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
 import * as authApi from "./authApi";
 import { decideVaultOnServer } from "./vaultWrites";
+import { request } from "./http";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -825,13 +826,20 @@ export async function runChecks(
   onProgress?: (checkId: string, state: CheckResult) => void
 ): Promise<VaultCheck[]> {
   if (!isDemoMode()) {
-    const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
-    if (!res.ok) return failWith(res, "The checks did not finish.");
+    /* FX.real.audit runs the checks through the http client, so a timeout or a
+       refused status reaches the room as the error it already renders */
+    const run = realOn("audit")
+      ? await request<{ checks?: any[] }>(`/vaults/${id}/checks/run`, { method: "POST" })
+      : await (async () => {
+          const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          if (!res.ok) return failWith(res, "The checks did not finish.");
+          return (await res.json()).data;
+        })();
 
-    const serverChecks: VaultCheck[] = ((await res.json()).data?.checks || []).map((c: any) => ({
+    const serverChecks: VaultCheck[] = (run?.checks || []).map((c: any) => ({
       id: c.id,
       name: c.name,
       detail: c.detail,
@@ -886,14 +894,20 @@ export async function askAI(
   onToken: (chunk: string) => void
 ): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
   if (!isDemoMode()) {
-    const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ question }),
-    });
-    if (!res.ok) return failWith(res, "The audit agent did not answer.");
-
-    const d = (await res.json()).data;
+    const d = realOn("audit")
+      ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean }>(`/vaults/${id}/chat`, {
+          method: "POST",
+          body: { question },
+        })
+      : await (async () => {
+          const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({ question }),
+          });
+          if (!res.ok) return failWith(res, "The audit agent did not answer.");
+          return (await res.json()).data;
+        })();
     const text: string = d.text || "";
     /* trickle tokens locally for the streaming effect */
     for (const char of text) {
@@ -1216,18 +1230,26 @@ export async function updateProfile(patch: { fullName: string }): Promise<Accoun
   if (name.length > 60) throw new ApiError("state", "Name can be at most 60 characters.");
 
   if (!isDemoMode()) {
-    const res = await apiClient.me.updateProfile({ fullName: name });
-    if (!res.success || !res.data) {
-      throw new ApiError("state", res.message || "Your name could not be saved.");
-    }
+    const data = realOn("settings")
+      ? await request<{ fullName?: string; email?: string; createdAt?: string }>("/auth/me", {
+          method: "PATCH",
+          body: { fullName: name },
+        })
+      : await (async () => {
+          const res = await apiClient.me.updateProfile({ fullName: name });
+          if (!res.success || !res.data) {
+            throw new ApiError("state", res.message || "Your name could not be saved.");
+          }
+          return res.data;
+        })();
     const s = load();
-    s.fullName = res.data.fullName || name;
+    s.fullName = data.fullName || name;
     persist();
     return {
       fullName: s.fullName,
-      email: res.data.email ?? accountEmail(),
+      email: data.email ?? accountEmail(),
       role: accountRole(),
-      memberSince: memberSinceOf(res.data.createdAt),
+      memberSince: memberSinceOf(data.createdAt),
       paypalEmail: accountRole() === "freelancer" ? s.payoutEmail : null,
     };
   }
