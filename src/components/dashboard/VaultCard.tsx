@@ -18,6 +18,7 @@ import { StatusChip } from "../shared/StatusChip";
 import { Stepper } from "./Stepper";
 import { PadlockOpen, Wheel } from "./icons";
 import { useDashData } from "./data";
+import { isDemoMode } from "../../lib/apiClient";
 import { useToast } from "../shared/Toasts";
 import { useNavigate } from "react-router-dom";
 
@@ -144,16 +145,20 @@ export function VaultCard({
                 }}
                 disabled={blocked}
               />
-              <button
-                type="button"
-                className="dash-btn dash-btn-ghost"
-                style={{ fontSize: "11px", padding: "4px 8px" }}
-                onClick={() => void act("authorize")}
-                disabled={blocked}
-              >
-                <span className="dash-btn-label">{busy === "authorize" ? "Authorizing…" : "Instant Mock Authorize"}</span>
-                {busy === "authorize" ? spinner : <span className="dash-btn-arrow" aria-hidden="true">→</span>}
-              </button>
+              {/* the mock hold marks a vault held without any money moving, so it
+                  exists only where there is no API to hold money in: a demo build */}
+              {isDemoMode() && (
+                <button
+                  type="button"
+                  className="dash-btn dash-btn-ghost"
+                  style={{ fontSize: "11px", padding: "4px 8px" }}
+                  onClick={() => void act("authorize")}
+                  disabled={blocked}
+                >
+                  <span className="dash-btn-label">{busy === "authorize" ? "Authorizing…" : "Instant Mock Authorize"}</span>
+                  {busy === "authorize" ? spinner : <span className="dash-btn-arrow" aria-hidden="true">→</span>}
+                </button>
+              )}
             </div>
           )}
 
