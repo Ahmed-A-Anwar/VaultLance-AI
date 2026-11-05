@@ -53,9 +53,32 @@ class ApiClient {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
+  /* The session object is the only place that knows both who is signed in and
+     which token belongs to them — and it is what the UI reads its role from. A
+     token left in vl_token by an earlier sign-in (another account, another
+     tab) used to be sent instead, so the dashboard showed one user's role while
+     the API ran as the other and answered 403 with "Current role: 'CLIENT'". */
+  private sessionToken(): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw =
+        window.sessionStorage.getItem("vl.dash.session") ||
+        window.localStorage.getItem("vl.dash.session");
+      if (!raw) return null;
+      const token = (JSON.parse(raw) as { token?: unknown }).token;
+      return typeof token === "string" && token ? token : null;
+    } catch {
+      return null;
+    }
+  }
+
   public getToken(): string | null {
     if (typeof window === "undefined") return null;
-    return window.localStorage.getItem("vl_token") || window.sessionStorage.getItem("vl_token");
+    return (
+      this.sessionToken() ||
+      window.localStorage.getItem("vl_token") ||
+      window.sessionStorage.getItem("vl_token")
+    );
   }
 
   public setToken(token: string, persist: boolean = true): void {
