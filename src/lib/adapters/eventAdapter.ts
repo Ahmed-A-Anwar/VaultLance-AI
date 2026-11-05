@@ -1,50 +1,77 @@
-/* eventAdapter.ts — map backend ledger events and verification runs onto the
-   dashboard's LedgerEvent (src/lib/api.ts).
+/* eventAdapter.ts — a backend ledger row onto the dashboard's LedgerEvent.
 
-   DELIBERATELY UNWIRED. No logic, no wiring; every row is behind FX.real flags
-   once approved. See docs/fastapi-backend-map.md §d/§g for the row verdicts. */
+   The API's ledger is still unscoped (gap G1 in docs/phase2-map.md), so this
+   adapter is written and tested but not wired: a row belonging to a vault the
+   caller cannot see must never reach a view. When the API scopes the query this
+   is what the events read will call.
 
-import type { UiStatus } from "./statusMap";
+   A row whose type has no UI equivalent is dropped rather than guessed at. */
 
-export type UiLedgerType = "PAYMENT.AUTHORIZED" | "AUDIT.COMPLETED" | "PAYMENT.CAPTURED" | "FILES.UNLOCKED" | "PAYMENT.VOIDED";
+import { centsOf } from "./moneyAdapter";
+import { msOf } from "./vaultAdapter";
+
+export type UiLedgerType =
+  | "PAYMENT.AUTHORIZED"
+  | "PAYMENT.CAPTURED"
+  | "PAYMENT.VOIDED"
+  | "FILES.UNLOCKED"
+  | "AUDIT.COMPLETED";
 
 export interface UiLedgerEvent {
   id: string;
-  ts: number;
+  ts?: number;
   type: UiLedgerType;
   vaultId: string;
   label: string;
-  amountUSD?: number;
+  amountCents?: number;
   paypalId?: string;
 }
 
-/* Express: a ledger_events row (GET /api/ledger; vault.actions.ts insertLedgerEvent) */
-export interface ExpressLedgerRow {
-  id: string;
-  vault_id: string;
-  actor_id: string;
-  event_type: string; // FUNDS_AUTHORIZED | PAYMENT_CAPTURED | MILESTONE_APPROVED | VAULT_CANCELLED | ...
-  amount: number | null;
-  currency: string;
-  metadata: { note?: string }; // the label lives here
-  created_at: string;
-}
-
-/* FastAPI has no ledger table at all. The closest rows are PayPalOrder status
-   changes and verification runs; neither carries the label/note the UI prints. */
-
-/* TODO(wire): expressRowToUi — event_type → UiLedgerType, metadata.note → label,
-     amount → amountUSD, created_at → ts; there is no PayPal id on the row ---
-     currently stored only in metadata? (doc §d, verdict ADAPT)
-   TODO(wire): auditRunToEvents — a verification run could emit AUDIT.COMPLETED +
-     per-criterion rows; shape exists (CriterionResult) but no event model (§g)
-   TODO(wire): voidEvent — PAYMENT.VOIDED has no producer in Express (reject
-     writes VAULT_CANCELLED, not VOIDED) and none in FastAPI (§g) */
-export type EventAdapter = {
-  expressToUi: (row: ExpressLedgerRow) => UiLedgerEvent;
-  auditRunToEvents: (projectId: string, run: unknown) => UiLedgerEvent[];
+/* every server event name the five client types cover */
+export const EVENT_TYPE_MAP: Readonly<Record<string, UiLedgerType>> = {
+  FUNDS_AUTHORIZED: "PAYMENT.AUTHORIZED",
+  PAYMENT_CAPTURED: "PAYMENT.CAPTURED",
+  VAULT_CANCELLED: "PAYMENT.VOIDED",
+  FILES_UNLOCKED: "FILES.UNLOCKED",
+  AUDIT_COMPLETED: "AUDIT.COMPLETED",
 };
 
-/* statuses the chip layer reads but no event carries: keep the pairing next to
-   the mapper so the wire step cannot orphan one */
-export type StatusBridge = { ui: UiStatus; produces?: ReadonlyArray<UiLedgerType> };
+/** Rows the client money views have no place for: payouts, uploads, creation. */
+export const UNMAPPED_EVENT_TYPES: ReadonlyArray<string> = [
+  "VAULT_CREATED",
+  "MANIFEST.LOCKED",
+  "PAYOUT.CREATED",
+  "PAYOUT.SENT",
+  "PAYOUT.PAID",
+  "PAYOUT.FAILED",
+];
+
+/** One row → one UI event, or null when the type is not the client's business. */
+export function toUiEvent(raw: unknown): UiLedgerEvent | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, any>;
+  const id = typeof row.id === "string" ? row.id : "";
+  if (!id) return null;
+
+  const type = EVENT_TYPE_MAP[String(row.event_type ?? "").trim().toUpperCase()];
+  if (!type) return null;
+
+  const cents = centsOf(row.amount);
+  const ts = msOf(row.created_at);
+  const paypalId = row.metadata?.paypalId;
+
+  return {
+    id,
+    type,
+    vaultId: String(row.vault_id ?? ""),
+    label: String(row.metadata?.note ?? row.event_type ?? "Ledger event"),
+    ...(cents !== undefined && cents > 0 ? { amountCents: cents } : {}),
+    ...(ts !== undefined ? { ts } : {}),
+    ...(paypalId ? { paypalId: String(paypalId) } : {}),
+  };
+}
+
+/** Newest first, and rows with no readable date last rather than at epoch 0. */
+export function sortEvents(events: UiLedgerEvent[]): UiLedgerEvent[] {
+  return [...events].sort((a, b) => (b.ts ?? -1) - (a.ts ?? -1));
+}

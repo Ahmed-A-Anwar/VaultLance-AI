@@ -1,14 +1,17 @@
-/* statusMap.ts — every status the two backends speak, against the five
-   statuses the dashboard uses: awaiting_payment / held / audited / unlocked /
-   voided.
-   
-   DELIBERATELY UNWIRED. This file carries no logic and is imported by nothing.
-   The wire step happens behind FX.real flags, one approved row at a time; see
-   docs/fastapi-backend-map.md for the full mapping and the flagged gaps. */
+/* statusMap.ts — every status the API speaks, against the five the dashboard
+   uses: awaiting_payment / held / audited / unlocked / voided.
+
+   Two states have no equivalent of their own, and the mapping is deliberate:
+   NEEDS_REVISION is still work under review (audited); DISPUTED is frozen and
+   never unlocks (voided). CAPTURE_PENDING is *not* unlocked — files stay sealed
+   until the server says PAID.
+
+   A state the server adds later renders as voided with one console warning per
+   unknown value: never a crash, never a guess into unlocked. */
 
 export type UiStatus = "awaiting_payment" | "held" | "audited" | "unlocked" | "voided";
 
-/* Express vault state machine (backend/src/shared/types.ts, vault.state-machine.ts) */
+/* Express vault state machine (backend/src/shared/types.ts, vault.schemas.ts) */
 export type ExpressVaultStatus =
   | "DRAFT"
   | "AWAITING_CLIENT"
@@ -25,52 +28,63 @@ export type ExpressVaultStatus =
   | "EXPIRED"
   | "DISPUTED";
 
-/* FastAPI project lifecycle (vaultpay_m3_ai_engine/app/models/project.py) */
-export type FastProjectStatus = "draft" | "active" | "in_verification" | "completed" | "disputed";
+/* What the server may put on a payout: money/payout.service.ts */
+export type PayoutStatus = "none" | "creating" | "pending" | "paid" | "failed" | "blocked";
 
-/* FastAPI PayPal order state (app/models/paypal_order.py) */
-export type FastOrderStatus = "CREATED" | "APPROVED" | "COMPLETED" | "VOIDED" | "FAILED";
+export const STATUS_MAP: Readonly<Record<ExpressVaultStatus, UiStatus>> = {
+  DRAFT: "awaiting_payment",
+  AWAITING_CLIENT: "awaiting_payment",
+  AWAITING_AUTHORIZATION: "awaiting_payment",
+  AUTHORIZED: "held",
+  IN_PROGRESS: "held",
+  SUBMITTED: "audited",
+  VERIFYING: "audited",
+  NEEDS_REVISION: "audited",
+  AWAITING_APPROVAL: "audited",
+  CAPTURE_PENDING: "audited",
+  PAID: "unlocked",
+  CANCELLED: "voided",
+  EXPIRED: "voided",
+  DISPUTED: "voided",
+};
 
-/* FastAPI verification run state (app/models/verification_run.py) */
-export type FastRunStatus = "pending" | "extracting" | "verifying" | "done" | "error";
+const warned = new Set<string>();
 
-export type FastVerdict = "PASS" | "PARTIAL" | "FAIL" | "NEEDS_REVIEW";
-
-export interface StatusRow<S> {
-  backend: S;
-  ui: UiStatus | null; // null = has no frontend equivalent, report it
+/** One warning per unknown value per page, however many rows carry it. */
+export function warnUnknownStatus(status: string): void {
+  if (warned.has(status)) return;
+  warned.add(status);
+  console.warn(`[vault] unknown status "${status}" — rendered as voided`);
 }
 
-// TODO(wire): fill the actual tables from docs/fastapi-backend-map.md §c
-// TODO(wire): expressVaultStatusToUi — NOTE there is already a partial mapper in
-// stack src/lib/api.ts (mapBackendStatusToFrontend); reconcile with the doc
-// TODO(wire): projectStatusToUi
-// TODO(wire): orderStatusToUi
-// TODO(wire): runStatusToUi / overallVerdictToUi — called the audit room,
-// called that, on that, what a run means for the vault's chip
-export type StatusMap = ReadonlyArray<StatusRow<string>>;
+/** Tests only: forget which warnings have been printed. */
+export const resetStatusWarnings = (): void => {
+  warned.clear();
+};
 
-export const expressStatusMap: StatusMap = [
-  // TODO(wire): { backend: "DRAFT", ui: "awaiting_payment" },
-];
+/** The UI status for any raw status string, unknown values included. */
+export function uiStatusOf(raw: unknown): UiStatus {
+  const key = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  const hit = STATUS_MAP[key as ExpressVaultStatus];
+  if (hit) return hit;
+  warnUnknownStatus(key || "(empty)");
+  return "voided";
+}
 
-export const projectStatusMap: StatusMap = [
-  // TODO(wire)
-];
+export type UiPayoutStatus = "pending" | "paid" | "failed";
 
-export const orderStatusMap: StatusMap = [
-  // TODO(wire)
-];
+/* `blocked` is a failed payout the server gave a reason for. */
+const PAYOUT_MAP: Readonly<Record<PayoutStatus, UiPayoutStatus>> = {
+  none: "pending",
+  creating: "pending",
+  pending: "pending",
+  paid: "paid",
+  failed: "failed",
+  blocked: "failed",
+};
 
-export const runStatusMap: StatusMap = [
-  // TODO(wire)
-];
-
-export const verdictMap: StatusMap = [
-  // TODO(wire)
-];
-
-/* statuses that landed on the backend with no place in the UI — keep visible */
-export const unmappedBackendStatuses: ReadonlyArray<string> = [
-  // TODO(wire): NEEDS_REVISION, DISPUTED, EXPIRED (see doc §c)
-];
+/** A payout the UI can draw, or undefined when the server sent no status. */
+export function uiPayoutStatusOf(raw: unknown): UiPayoutStatus | undefined {
+  const key = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return PAYOUT_MAP[key as PayoutStatus];
+}
