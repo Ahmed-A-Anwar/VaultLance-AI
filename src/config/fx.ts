@@ -64,17 +64,10 @@ export type RealGroup =
   | "settings"
   | "payouts";
 
-export const FX_REAL_DEFAULTS: Readonly<Record<RealGroup, boolean>> = {
-  auth: false,
-  vaultsRead: false,
-  vaultsWrite: false,
-  events: false,
-  uploads: false,
-  payments: false,
-  audit: false,
-  settings: false,
-  payouts: false,
-};
+/* A group is listed here only once it is wired. An absent group follows the
+   master switch, which is what lets VITE_USE_REAL_API turn the wired ones on
+   without also switching on a group nobody has connected yet. */
+export const FX_REAL_DEFAULTS: Readonly<Partial<Record<RealGroup, boolean>>> = {};
 
 /** The master switch, from VITE_USE_REAL_API. Default false. */
 export const FX_REAL_API = envFlag("VITE_USE_REAL_API");
@@ -82,7 +75,8 @@ export const FX_REAL_API = envFlag("VITE_USE_REAL_API");
 /** Per-function overrides, applied as each row of docs/phase2-map.md is wired. */
 export const realOverride: Partial<Record<RealGroup, boolean>> = {};
 
-/** Is this group talking to the real API? Override first, then the master. */
+/** Is this group talking to the real API? Override, then its own default, then
+    the master switch. Every lookup ends in a boolean. */
 export const realOn = (group: RealGroup): boolean =>
   realOverride[group] ?? FX_REAL_DEFAULTS[group] ?? FX_REAL_API;
 
