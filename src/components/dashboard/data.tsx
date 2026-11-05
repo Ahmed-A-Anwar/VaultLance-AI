@@ -13,6 +13,8 @@ import {
 } from "../../lib/api";
 import { API_BASE_URL, apiClient, isDemoMode } from "../../lib/apiClient";
 import { listEvents as listLocalEvents, listVaults as listLocalVaults } from "../../lib/api";
+import { fetchVaults as fetchRealVaults, kpisOf, pollDelay, shouldPoll } from "../../lib/reads";
+import { realOn } from "../../config/fx";
 
 interface DashDataValue {
   vaults: Vault[];
@@ -118,18 +120,24 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
   const [pass, setPass] = useState(0);
 
   const haveData = useRef(false);
+  /* the rows the poller last saw, so its timer does not restart on every render */
+  const vaultsRef = useRef<Vault[]>([]);
+  const readsReal = realOn("vaultsRead");
 
   useEffect(() => {
     let live = true;
     if (!haveData.current) setLoading(true);
     setError(null);
 
-    Promise.all([fetchLiveVaults(), fetchLiveLedger()])
+    Promise.all([readsReal ? fetchRealVaults() : fetchLiveVaults(), fetchLiveLedger()])
       .then(([nextVaults, nextEvents]) => {
         if (!live) return;
+        vaultsRef.current = nextVaults;
         setVaults(nextVaults);
         setEvents(nextEvents);
-        setKpis(calculateKpis(nextVaults));
+        /* the same cent selectors the Payments page reads, so the three totals
+           cannot drift apart */
+        setKpis(readsReal ? kpisOf(nextVaults) : calculateKpis(nextVaults));
         haveData.current = true;
       })
       .catch((e) => {
@@ -143,7 +151,51 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
     return () => {
       live = false;
     };
-  }, [pass]);
+  }, [pass, readsReal]);
+
+  /* Slice 5: a visible page refreshes every 5s while something is still moving,
+     backing off to 15s after three failures in a row. A hidden tab, or a page
+     whose vaults are all terminal, stops asking. */
+  useEffect(() => {
+    if (!readsReal) return;
+    let timer = 0;
+    let errors = 0;
+    let stopped = false;
+
+    const schedule = () => {
+      if (stopped) return;
+      timer = window.setTimeout(tick, pollDelay(errors));
+    };
+
+    const tick = async () => {
+      if (stopped || document.visibilityState !== "visible") return;
+      if (!shouldPoll(vaultsRef.current)) return;
+      try {
+        const next = await fetchRealVaults();
+        errors = 0;
+        vaultsRef.current = next;
+        setVaults(next);
+        setKpis(kpisOf(next));
+      } catch {
+        errors += 1;
+      }
+      schedule();
+    };
+
+    const onVisible = () => {
+      if (stopped || document.visibilityState !== "visible") return;
+      window.clearTimeout(timer);
+      schedule();
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [readsReal]);
 
   useEffect(
     () =>
@@ -163,12 +215,13 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
   const putVault = useCallback((vault: Vault) => {
     setVaults((prev) => {
       const next = prev.map((v) => (v.id === vault.id ? vault : v));
-      setKpis(calculateKpis(next));
+      vaultsRef.current = next;
+      setKpis(readsReal ? kpisOf(next) : calculateKpis(next));
       return next;
     });
     // Also trigger a reload from the backend so KPIs and ledger sync
     setTimeout(() => setPass((n) => n + 1), 500);
-  }, []);
+  }, [readsReal]);
 
   const clearLatest = useCallback(() => setLatestEvent(null), []);
 
