@@ -23,6 +23,26 @@ export function roleFor(email: string): Role {
   return email.trim().toLowerCase().includes("freelancer") ? "freelancer" : "client";
 }
 
+/* The API signs the role into the JWT it hands the browser, and that is the role
+   every route enforces. A session written by an older build, or by a sign-in
+   that never reached the API, can carry a guessed role with no token at all —
+   so the claim wins whenever the session has one. */
+export function roleFromToken(token?: string): Role | null {
+  if (!token || typeof atob !== "function") return null;
+  const part = token.split(".")[1];
+  if (!part) return null;
+  try {
+    const padded = part
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(part.length / 4) * 4, "=");
+    const claim = String((JSON.parse(atob(padded)) as { role?: unknown }).role ?? "").toLowerCase();
+    return claim === "freelancer" || claim === "client" ? claim : null;
+  } catch {
+    return null;
+  }
+}
+
 const SESSION_KEY = "vl.dash.session";
 
 export function readSession(): Session | null {
@@ -33,11 +53,14 @@ export function readSession(): Session | null {
     if (!parsed || typeof parsed.email !== "string") return null;
     return {
       email: parsed.email,
-      /* the role the API issued is the truth: the email heuristic is only for
-         sessions that stored no role at all (demo + pre-token logins). Reading
-         it back from the email turned a CLIENT whose address mentions
-         "freelancer" into a freelancer the server then refused. */
-      role: parsed.role === "freelancer" || parsed.role === "client" ? parsed.role : roleFor(parsed.email),
+      /* the role the API issued is the truth: the claim inside the session's
+         own token, then any stored role, and the email heuristic only for
+         sessions that have neither (demo). Reading it back from the address,
+         or trusting a role a buggy sign-in invented, is what put a client in
+         the freelancer shell and got it a 403. */
+      role:
+        roleFromToken(parsed.token) ??
+        (parsed.role === "freelancer" || parsed.role === "client" ? parsed.role : roleFor(parsed.email)),
       since: typeof parsed.since === "number" ? parsed.since : Date.now(),
       ...(typeof parsed.name === "string" && parsed.name.trim() ? { name: parsed.name } : {}),
       ...(typeof parsed.token === "string" ? { token: parsed.token } : {}),
@@ -52,6 +75,9 @@ export function writeSession(session: Session): void {
     window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); if (typeof window !== "undefined") window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     if (session.token) {
       apiClient.setToken(session.token);
+    } else {
+      /* a session with no API token must not ride the previous user's one */
+      apiClient.clearToken();
     }
   } catch {
     /* storage defense */
@@ -70,6 +96,7 @@ export function clearSession(): void {
 export const FAIL_PREFIX = "fail@";
 export const MIN_PASSWORD = 8;
 export const BAD_CREDENTIALS = "Wrong email or password.";
+export const REACH_FAILED = "Couldn't reach VaultLance. Check your connection and try again.";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -218,18 +245,11 @@ export async function signIn({ email, password }: SigninCredentials): Promise<Si
       return { ok: true, role };
     }
 
-    if (res.error?.code === "INVALID_CREDENTIALS" || res.message) {
-      return { ok: false, error: res.message || BAD_CREDENTIALS };
-    }
+    return { ok: false, error: res.message || BAD_CREDENTIALS };
   } catch {
-    if (isDemoMode()) {
-      const role = roleFor(email);
-      writeSession({ email: email.trim(), role, since: Date.now() });
-      return { ok: true, role };
-    }
+    /* a request that never completed is a failed sign-in, not a new session:
+       guessing the role here is what minted freelancer sessions whose token
+       still belonged to a client */
+    return { ok: false, error: REACH_FAILED };
   }
-
-  const role = roleFor(email);
-  writeSession({ email: email.trim(), role, since: Date.now() });
-  return { ok: true, role };
 }
