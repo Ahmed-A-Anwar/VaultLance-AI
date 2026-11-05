@@ -68,6 +68,10 @@ export function toClientVault(raw: unknown): ClientVault | null {
     status: uiStatusOf(dto.status),
     createdAt: msOf(dto.createdAt) ?? 0,
     ...(order ? { paypalOrderId: String(order) } : {}),
+    /* kept for the download button: the signed link is minted per file */
+    ...(dto.files && dto.files.length > 0
+      ? { files: dto.files.map((f) => ({ id: f.id, name: String(f.fileName ?? "file") })) }
+      : {}),
   };
 }
 

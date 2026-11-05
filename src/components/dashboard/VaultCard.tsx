@@ -19,6 +19,8 @@ import { Stepper } from "./Stepper";
 import { PadlockOpen, Wheel } from "./icons";
 import { useDashData } from "./data";
 import { mockHoldAllowed } from "../../lib/apiClient";
+import { signedDownloadUrl } from "../../lib/vaultWrites";
+import { realOn } from "../../config/fx";
 import { useToast } from "../shared/Toasts";
 import { useNavigate } from "react-router-dom";
 
@@ -32,7 +34,7 @@ const CHIP: Record<VaultStatus, string> = {
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-type Busy = null | "authorize" | "audit" | "approve" | "reject";
+type Busy = null | "authorize" | "audit" | "approve" | "reject" | "download";
 
 export function VaultCard({
   vault,
@@ -91,6 +93,28 @@ export function VaultCard({
         putVault(next);
         toast({ message: `${next.project}: hold voided. Nothing was charged.`, tone: "info" });
       }
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /* the delivered file sits behind a signed link the API mints only once the
+     vault is PAID, so the card asks for that link rather than a bare URL */
+  async function download() {
+    if (!realOn("vaultsWrite")) {
+      toast({ message: "Download starts in the real build.", tone: "info" });
+      return;
+    }
+    const file = vault.files?.[0];
+    if (!file) {
+      toast({ message: "No delivered file is attached to this vault yet.", tone: "info" });
+      return;
+    }
+    setBusy("download");
+    try {
+      window.open(await signedDownloadUrl(vault.id, file.id), "_blank", "noopener");
     } catch (e) {
       fail(e);
     } finally {
@@ -210,9 +234,10 @@ export function VaultCard({
             <button
               type="button"
               className="dash-btn dash-btn-ghost"
-              onClick={() => { toast({ message: "Download starts in the real build.", tone: "info" }); }}
+              onClick={() => void download()}
+              disabled={blocked}
             >
-              <span className="dash-btn-label">Download</span>
+              <span className="dash-btn-label">{busy === "download" ? "Fetching…" : "Download"}</span>
             </button>
           )}
 

@@ -38,6 +38,9 @@ export interface Vault {
   status: VaultStatus;
   createdAt: number;
   paypalOrderId?: string;
+  /* the delivered files a paid vault may download, when the response carries
+     them; the list used to drop this and left the card with nothing to fetch */
+  files?: Array<{ id: string; name: string }>;
 }
 
 export type LedgerType =
@@ -412,6 +415,15 @@ export async function rejectVault(id: string): Promise<Vault> {
 export async function joinVault(code: string): Promise<Vault> {
   return call(() => {
     const clean = code.trim().toUpperCase();
+    /* codes are minted in this browser and there is no server route to redeem
+       one, so a real account is told the truth instead of being shown a failure
+       that reads like a typo */
+    if (!isDemoMode()) {
+      throw new ApiError(
+        "state",
+        "Joining by code isn’t available yet. Ask your freelancer to invite the email on your account."
+      );
+    }
     /* codes minted by the freelancer surface: the registry stands in for the
        invite table a real backend would query */
     const invited = lookupInvite(clean);

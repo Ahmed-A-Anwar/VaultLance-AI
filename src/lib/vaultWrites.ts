@@ -67,6 +67,30 @@ export async function decideVaultOnServer(
   return vault;
 }
 
+/** GET /api/vaults/:id/files/:fileId/download — a signed link, minted only once
+    the vault is PAID. The token stays out of the URL: this request carries it in
+    a header, and the link that comes back is the server's own. */
+export async function signedDownloadUrl(vaultId: string, fileId: string): Promise<string> {
+  if (!realOn("vaultsWrite")) throw new Error("Real vault writes are switched off.");
+
+  const raw = (await request<unknown>(
+    `/vaults/${encodeURIComponent(vaultId)}/files/${encodeURIComponent(fileId)}/download`,
+    { method: "GET" }
+  )) as Record<string, unknown> | string | null;
+
+  const url =
+    typeof raw === "string"
+      ? raw
+      : typeof raw?.url === "string"
+        ? raw.url
+        : typeof raw?.downloadUrl === "string"
+          ? raw.downloadUrl
+          : "";
+
+  if (!url) throw new Error("The server did not return a download link.");
+  return url;
+}
+
 /** POST /api/vaults/:id/submit — locks the manifest and moves the vault on. */
 export async function submitVaultOnServer(id: string): Promise<{ manifestSha256: string; fileCount: number }> {
   if (!realOn("vaultsWrite")) throw new Error("Real vault writes are switched off.");

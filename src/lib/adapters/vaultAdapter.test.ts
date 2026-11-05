@@ -32,6 +32,11 @@ describe("vaultAdapter", () => {
       amountUSD: 2400,
       status: "held",
       createdAt: Date.parse("2026-11-01T10:00:00.000Z"),
+      /* ids are kept so a paid card can ask for that file's signed link */
+      files: [
+        { id: "f1", name: "logo.zip" },
+        { id: "f2", name: "readme.md" },
+      ],
     });
   });
 
@@ -62,6 +67,7 @@ describe("vaultAdapter", () => {
     const v = toClientVault({ ...full, members: undefined, paypal_order_id: undefined });
     expect(v?.freelancer).toBe("—");
     expect(v?.paypalOrderId).toBeUndefined();
+    expect(toClientVault({ ...full, files: undefined })?.files).toBeUndefined();
 
     const f = toFreelancerVault({ ...full, members: undefined, files: undefined, description: undefined });
     expect(f?.clientName).toBe("—");
