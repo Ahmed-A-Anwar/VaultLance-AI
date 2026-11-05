@@ -24,7 +24,7 @@ import {
   type VaultStatus,
 } from "../../lib/api";
 import { getAccessToken } from "../../lib/http";
-import { authorizePaypalOrder } from "../../lib/paypalWrites";
+import { authorizePaypalOrder, reconcilePaypalOrder } from "../../lib/paypalWrites";
 import {
   approvalFromUrl,
   cleanPaypalQuery,
@@ -212,6 +212,23 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       window.clearTimeout(timer);
       finishing.current = false;
     };
+  }, [id, vault, reload]);
+
+  /* Opening a vault that is still waiting for a hold asks the server whether
+     PayPal already has the approval. This does not depend on the redirect, on a
+     session in the return window, or on the tab ever regaining focus. */
+  const reconciled = useRef(false);
+  useEffect(() => {
+    if (reconciled.current || !getAccessToken()) return;
+    if (vault?.status !== "awaiting_payment") return;
+    reconciled.current = true;
+    reconcilePaypalOrder(id)
+      .then((res) => {
+        if (res.claimed) reload();
+      })
+      .catch(() => {
+        /* nothing has been approved for this vault yet */
+      });
   }, [id, vault, reload]);
 
   /* coming back to a tab after approving in another window finishes the hold */

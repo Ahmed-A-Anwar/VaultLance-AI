@@ -270,6 +270,97 @@ paypalRouter.post("/:vaultId/payment/authorize", requireAuth, async (req, res, n
 });
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * 2b. POST /api/vaults/:vaultId/payment/reconcile
+ *
+ * The buyer's approval lives at PayPal, so a hold must not depend on the
+ * browser coming back from the redirect: two live sandbox approvals were never
+ * claimed because the return window had no session. This uses the order id the
+ * vault already stores and records the authorization PayPal says exists.
+ * ───────────────────────────────────────────────────────────────────────── */
+paypalRouter.post("/:vaultId/payment/reconcile", requireAuth, async (req, res, next) => {
+  try {
+    const vaultId = String(req.params.vaultId);
+    const userId = req.user!.id;
+    const vault = await getVaultAndVerifyAccess(userId, vaultId);
+
+    const eligible: VaultStatus[] = ["AWAITING_AUTHORIZATION", "AWAITING_CLIENT", "DRAFT"];
+    if (!eligible.includes(vault.status as VaultStatus)) {
+      return sendSuccess(
+        res,
+        { vaultId, claimed: false, status: vault.status },
+        "Nothing to reconcile"
+      );
+    }
+
+    const orderId = String((vault as any).paypal_order_id || req.body?.orderId || "");
+    if (!orderId) {
+      throw new ConflictError("No PayPal order is on file for this vault.", "ORDER_MISSING");
+    }
+
+    let authResult: Awaited<ReturnType<typeof paypalService.authorizeOrder>>;
+    try {
+      authResult = await paypalService.authorizeOrder(orderId);
+    } catch (err: any) {
+      /* not approved yet is an answer, not a failure: the caller retries later */
+      logger.info(`[PayPal] reconcile: ${orderId} not approved yet (${err?.message || "no detail"})`);
+      return sendSuccess(res, { vaultId, orderId, claimed: false }, "Order not approved yet");
+    }
+
+    if (Math.abs(authResult.amount - Number(vault.amount)) > 0.01) {
+      throw new BadRequestError(
+        `Authorized amount ($${authResult.amount}) does not match agreed vault amount ($${vault.amount}).`,
+        "AMOUNT_MISMATCH"
+      );
+    }
+
+    await rememberAuthorization(vaultId, authResult.authorizationId);
+
+    if (isSupabaseConfigured() && supabase) {
+      await supabase
+        .from("vaults")
+        .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
+        .eq("id", vaultId);
+      await supabase
+        .from("paypal_transactions")
+        .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
+        .eq("paypal_order_id", orderId);
+    } else {
+      const v = database.store.vaults.get(vaultId);
+      if (v) {
+        v.status = "AUTHORIZED";
+        v.updated_at = new Date();
+      }
+    }
+
+    await recordLedgerEvent(
+      vaultId,
+      userId,
+      "FUNDS_AUTHORIZED",
+      authResult.amount,
+      authResult.currency,
+      "PayPal funds authorized and held in escrow (claimed without a browser return)",
+      { orderId, authorizationId: authResult.authorizationId }
+    );
+
+    return sendSuccess(
+      res,
+      {
+        vaultId,
+        orderId,
+        claimed: true,
+        status: "AUTHORIZED",
+        authorizationId: authResult.authorizationId,
+        amount: authResult.amount,
+        currency: authResult.currency,
+      },
+      "Payment successfully authorized"
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
  * 3. POST /api/vaults/:id/capture
  * Step 6: Server-side capture after approval
  * ───────────────────────────────────────────────────────────────────────── */

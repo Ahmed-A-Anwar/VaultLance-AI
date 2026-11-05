@@ -38,6 +38,23 @@ export async function createPaypalOrder(vaultId: string): Promise<PaypalOrder> {
   return { orderId };
 }
 
+/** POST /api/vaults/:id/payment/reconcile — claim an approval PayPal already
+    holds, using the order id the server stored. This is what makes a hold
+    survive a return window that has no session. */
+export async function reconcilePaypalOrder(vaultId: string): Promise<{ claimed: boolean; status?: string }> {
+  if (!realOn("payments")) return { claimed: false };
+
+  const raw = (await request<unknown>(`/vaults/${encodeURIComponent(vaultId)}/payment/reconcile`, {
+    method: "POST",
+    body: {},
+  })) as Record<string, unknown> | null;
+
+  return {
+    claimed: Boolean(raw?.claimed),
+    status: typeof raw?.status === "string" ? raw.status : undefined,
+  };
+}
+
 /** POST /api/vaults/:id/payment/authorize */
 export async function authorizePaypalOrder(vaultId: string, orderId: string): Promise<PaypalAuthorization> {
   if (!realOn("payments")) throw new Error("Real PayPal calls are switched off.");
