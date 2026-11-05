@@ -2,11 +2,14 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import { uploadConfig } from "./upload.config.js";
+import { isSupabaseConfigured } from "../shared/supabaseClient.js";
+import { SupabasePrivateStorageAdapter } from "./storage.supabase.js";
 
 export interface IStorageAdapter {
   save(key: string, buffer: Buffer): Promise<string>;
   read(key: string): Promise<Buffer>;
-  getReadStream(key: string): fsSync.ReadStream;
+  /* only the local adapter can hand back a stream; bucket reads are async */
+  getReadStream?(key: string): fsSync.ReadStream;
   delete(key: string): Promise<void>;
   exists(key: string): Promise<boolean>;
 }
@@ -63,4 +66,9 @@ export class LocalPrivateStorageAdapter implements IStorageAdapter {
   }
 }
 
-export const storageAdapter = new LocalPrivateStorageAdapter();
+/* Bytes belong in the bucket whenever it is configured, because that is the
+   only place the signed-download route can reach and the only copy that
+   survives a redeploy. Local disk remains for tests and offline development. */
+export const storageAdapter: IStorageAdapter = isSupabaseConfigured()
+  ? new SupabasePrivateStorageAdapter()
+  : new LocalPrivateStorageAdapter();
