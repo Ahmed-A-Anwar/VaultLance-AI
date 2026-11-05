@@ -58,15 +58,23 @@ function Shell() {
   const location = useLocation();
 
   useEffect(() => {
-    setUnauthorizedHandler(() => {
+    const leave = () => {
       clearSession();
       if (location.pathname === "/signin") return;
       navigate("/signin", {
         replace: true,
         state: { from: `${location.pathname}${location.search}` },
       });
-    });
-    return () => setUnauthorizedHandler(null);
+    };
+
+    setUnauthorizedHandler(leave);
+    /* the older api client reports the same 401 as an event, so both paths
+       land on one door */
+    window.addEventListener("vl:unauthorized", leave);
+    return () => {
+      setUnauthorizedHandler(null);
+      window.removeEventListener("vl:unauthorized", leave);
+    };
   }, [navigate, location.pathname, location.search]);
 
   return (

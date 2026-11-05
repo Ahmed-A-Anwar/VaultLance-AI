@@ -106,6 +106,12 @@ class ApiClient {
       }));
 
       if (!response.ok) {
+        /* A 401 on a request that carried a token means the session is gone:
+           the shell clears it and returns to /signin. A 401 with no token is a
+           rejected sign-in, which must stay an inline error instead. */
+        if (response.status === 401 && token) {
+          window.dispatchEvent(new CustomEvent("vl:unauthorized"));
+        }
         return {
           success: false,
           message: json.message || `Request failed with status ${response.status}`,
