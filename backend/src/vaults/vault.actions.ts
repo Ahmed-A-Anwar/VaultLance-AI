@@ -129,10 +129,24 @@ async function getFullVault(vaultId: string) {
 
     /* the money rows behind this vault: the capture holds the payout figure, the
        payout row holds the status a surface can print */
-    const [{ data: captureRow }, { data: payoutRow }] = await Promise.all([
+    const [{ data: captureRow }, { data: payoutRow }, { data: moneyEvents }] = await Promise.all([
       supabase.from("vault_captures").select("capture_id, payout_cents").eq("vault_id", vaultId).maybeSingle(),
       supabase.from("vault_payouts").select("status, amount_cents").eq("vault_id", vaultId).maybeSingle(),
+      supabase
+        .from("ledger_events")
+        .select("metadata, created_at")
+        .eq("vault_id", vaultId)
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
+
+    /* the PayPal ids are also in the ledger metadata, and the vault columns can
+       be empty (a row written before the column existed, or a write the database
+       refused): the ledger is the fallback that keeps a receipt from printing
+       nothing where a real id exists */
+    const metas = (moneyEvents || []).map((row: any) => row.metadata || {});
+    const fromLedger = (key: string): string | null =>
+      (metas.find((m: any) => typeof m[key] === "string" && m[key])?.[key] as string) || null;
 
     // Get members
     const { data: memberRows } = await supabase
@@ -173,8 +187,9 @@ async function getFullVault(vaultId: string) {
       updatedAt: vault.updated_at,
       /* the room's PAID receipt reads these off the vault; the row is already
          selected with * and the ids were being dropped here */
-      paypalOrderId: (vault as any).paypal_order_id || null,
-      paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || null,
+      paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
+      paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
+      paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
       /* no payout row yet means nothing has been attempted, not "paid" */
       payoutCents: payoutRow?.amount_cents != null ? Number(payoutRow.amount_cents) : captureRow?.payout_cents ?? null,
       payoutStatus: payoutRow?.status ?? null,
