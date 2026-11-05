@@ -10,8 +10,9 @@
    Reads carry 300–618ms of latency and, behind FX.mockErrors, fail 5% of the
    time so the error and retry paths stay reachable. */
 
-import { FX } from "../../config/fx";
+import { FX, realOn } from "../../config/fx";
 import { freelancerPayoutEstimate } from "../../lib/fees";
+import { isServerVaultId, submitVaultOnServer } from "../../lib/vaultWrites";
 import { allTimePaidCents, inEscrowCents as escrowTotal } from "../../lib/earnings";
 import { phaseOf, type Phase, type PayoutStatus, type UiStatus } from "../../lib/freelancerPhase";
 import { MOCK_ERROR_RATE, MOCK_LATENCY_MS, MOCK_PAYPAL_CAPTURE_PREFIX, REMIND_COOLDOWN_MS, SCAN_RULES } from "./mockConfig";
@@ -636,6 +637,14 @@ export async function inviteClient(id: string): Promise<{ inviteCode: string }> 
 /** POST /api/vaults/{id}/submit — locks the manifest */
 export async function submitForReview(id: string): Promise<{ manifestSha256: string }> {
   await latency();
+
+  /* a server vault has no local row: the API locks its manifest, and that is
+     the manifest the client's audit reads */
+  if (realOn("vaultsWrite") && isServerVaultId(id)) {
+    const res = await submitVaultOnServer(id);
+    return { manifestSha256: res.manifestSha256 };
+  }
+
   const v = find(id);
   if (v.filesCount === 0) throw new Error("Add a deliverable before submitting.");
   const manifest = v.manifestSha256 ?? manifestFor(v.files);

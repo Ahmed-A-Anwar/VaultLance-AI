@@ -278,7 +278,7 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
         toast({ message: "Reminder sent.", tone: "success" });
       } else if (action === "submit") {
         const { manifestSha256 } = await submitForReview(vault.id);
-        applyVault({ ...vault, submittedAt: Date.now(), manifestSha256 });
+        applyVault({ ...vault, submittedAt: Date.now(), ...(manifestSha256 ? { manifestSha256 } : {}) });
         toast({ message: "Submitted. Your manifest is locked.", tone: "success" });
       } else if (action === "retry") {
         const next = await retryPayout(vault.id);

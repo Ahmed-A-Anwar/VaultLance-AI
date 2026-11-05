@@ -25,6 +25,8 @@ import {
 } from "./mockApi";
 import { SCAN_RULES } from "./mockConfig";
 import { apiClient, isDemoMode } from "../../lib/apiClient";
+import { createVaultOnServer } from "../../lib/vaultWrites";
+import { realOn } from "../../config/fx";
 
 type Step = 1 | 2 | 3;
 type Mode = "zip" | "url";
@@ -185,14 +187,26 @@ export function NewVaultDrawer({
     let vaultId = existing?.id ?? "";
 
     if (!vaultId) {
-      const res = await apiClient.vaults.create({
-        title: project.trim(),
-        ...(description ? { description: description.trim() } : {}),
-        amount: cents / 100,
-        currency: "USD",
-      });
-      if (!res.success || !res.data?.id) throw new Error(res.message || "The vault could not be created.");
-      vaultId = res.data.id;
+      /* FX.real.vaultsWrite sends this through the http client and the vault
+         adapter; with the flag off the shipped apiClient path is untouched */
+      if (realOn("vaultsWrite")) {
+        vaultId = (
+          await createVaultOnServer({
+            title: project.trim(),
+            ...(description ? { description: description.trim() } : {}),
+            amountCents: cents,
+          })
+        ).id;
+      } else {
+        const res = await apiClient.vaults.create({
+          title: project.trim(),
+          ...(description ? { description: description.trim() } : {}),
+          amount: cents / 100,
+          currency: "USD",
+        });
+        if (!res.success || !res.data?.id) throw new Error(res.message || "The vault could not be created.");
+        vaultId = res.data.id;
+      }
     }
 
     let serverManifest: string | undefined;
