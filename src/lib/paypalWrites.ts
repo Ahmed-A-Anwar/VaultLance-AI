@@ -15,6 +15,11 @@ import { realOn } from "../config/fx";
 
 export interface PaypalOrder {
   orderId: string;
+  /** set when PayPal already holds an approval for this vault and the server
+      recorded it instead of minting a second order */
+  claimed?: boolean;
+  status?: string;
+  authorizationId?: string;
 }
 
 export interface PaypalAuthorization {
@@ -35,7 +40,13 @@ export async function createPaypalOrder(vaultId: string): Promise<PaypalOrder> {
 
   const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
   if (!orderId) throw new Error("PayPal did not return an order id.");
-  return { orderId };
+
+  return {
+    orderId,
+    ...(raw?.claimed === true ? { claimed: true } : {}),
+    ...(typeof raw?.status === "string" ? { status: raw.status } : {}),
+    ...(typeof raw?.authorizationId === "string" ? { authorizationId: raw.authorizationId } : {}),
+  };
 }
 
 /** POST /api/vaults/:id/payment/reconcile — claim an approval PayPal already

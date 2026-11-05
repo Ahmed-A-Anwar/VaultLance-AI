@@ -25,7 +25,7 @@ import {
 import { logger } from "../shared/logger.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { approveVault } from "../money/approve.service.js";
-import { rememberAuthorization } from "../money/money.store.js";
+import { rememberAuthorization, rememberOrder } from "../money/money.store.js";
 import { database } from "../shared/db.js";
 import type { VaultStatus } from "../shared/types.js";
 
@@ -81,6 +81,87 @@ async function getVaultAndVerifyAccess(userId: string, vaultId: string) {
   return vault;
 }
 
+/* ── Helper: the last order PayPal was asked for on this vault ─────────── */
+async function findLatestOrderId(vaultId: string): Promise<string | null> {
+  if (isSupabaseConfigured() && supabase) {
+    const { data } = await supabase
+      .from("paypal_transactions")
+      .select("paypal_order_id")
+      .eq("vault_id", vaultId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    return ((data?.[0]?.paypal_order_id as string) || null) || null;
+  }
+  for (const tx of localTxStore.values()) {
+    if (tx.vaultId === vaultId && tx.orderId) return tx.orderId;
+  }
+  return null;
+}
+
+/* PayPal allows one authorization per order, so a buyer who already approved
+   must never be told the payment failed: the order is in the way, not broken. */
+function orderAlreadyApproved(err: any): boolean {
+  const text = `${err?.code || ""} ${err?.message || ""}`.toLowerCase();
+  return (
+    text.includes("order_already_authorized") ||
+    text.includes("order_already_captured") ||
+    text.includes("already authorized") ||
+    text.includes("already been authorized") ||
+    text.includes("order already captured")
+  );
+}
+
+/* Record a hold PayPal already has: one routine, so a browser return, a retry,
+   a webhook and a page open can never double-record or disagree. */
+async function claimApprovedOrder(vaultId: string, vault: any, userId: string, orderId: string) {
+  const authResult = await paypalService.authorizeOrder(orderId);
+
+  if (Math.abs(authResult.amount - Number(vault.amount)) > 0.01) {
+    throw new BadRequestError(
+      `Authorized amount ($${authResult.amount}) does not match agreed vault amount ($${vault.amount}).`,
+      "AMOUNT_MISMATCH"
+    );
+  }
+
+  await rememberAuthorization(vaultId, authResult.authorizationId);
+  await rememberOrder(vaultId, orderId);
+
+  if (isSupabaseConfigured() && supabase) {
+    await supabase
+      .from("vaults")
+      .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
+      .eq("id", vaultId);
+    await supabase
+      .from("paypal_transactions")
+      .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
+      .eq("paypal_order_id", orderId);
+  } else {
+    const v = database.store.vaults.get(vaultId);
+    if (v) {
+      v.status = "AUTHORIZED";
+      v.updated_at = new Date();
+    }
+    const tx = localTxStore.get(orderId);
+    if (tx) {
+      tx.authorizationId = authResult.authorizationId;
+      tx.status = "AUTHORIZED";
+      tx.updatedAt = new Date();
+    }
+  }
+
+  await recordLedgerEvent(
+    vaultId,
+    userId,
+    "FUNDS_AUTHORIZED",
+    authResult.amount,
+    authResult.currency,
+    "PayPal funds authorized and held in escrow",
+    { orderId, authorizationId: authResult.authorizationId }
+  );
+
+  return authResult;
+}
+
 /* ── Helper: insert ledger event ───────────────────────────────────────── */
 async function recordLedgerEvent(
   vaultId: string,
@@ -134,16 +215,47 @@ paypalRouter.post("/:vaultId/payment/order", requireAuth, async (req, res, next)
     const currency = vault.currency || "USD";
 
     // Call PayPal Orders API v2 with intent: AUTHORIZE
-    const orderResult = await paypalService.createAuthorizeOrder({
+    let orderResult: Awaited<ReturnType<typeof paypalService.createAuthorizeOrder>>;
+    try {
+      orderResult = await paypalService.createAuthorizeOrder({
       vaultId,
       amount,
       currency,
       description: `VaultLance Escrow: ${vault.title}`,
       returnUrl: req.body?.returnUrl,
       cancelUrl: req.body?.cancelUrl,
-      /* the origin the payment started from keeps its session after the redirect */
-      origin: req.get("origin"),
-    });
+        /* the origin the payment started from keeps its session after the redirect */
+        origin: req.get("origin"),
+      });
+    } catch (err) {
+      if (!orderAlreadyApproved(err)) throw err;
+
+      /* the buyer approved an earlier order for this vault: record that hold
+         instead of failing on an order PayPal will not mint twice */
+      const existingOrderId = String(
+        (vault as any).paypal_order_id || (await findLatestOrderId(vaultId)) || ""
+      );
+      if (!existingOrderId) throw err;
+
+      const authResult = await claimApprovedOrder(vaultId, vault, userId, existingOrderId);
+      logger.info(`[PayPal] ${existingOrderId} was already approved; hold recorded for ${vaultId}`);
+
+      return sendSuccess(
+        res,
+        {
+          vaultId,
+          orderId: existingOrderId,
+          authorizationId: authResult.authorizationId,
+          claimed: true,
+          status: "AUTHORIZED",
+          amount: authResult.amount,
+          currency: authResult.currency,
+        },
+        "Payment already approved at PayPal; the hold is now recorded"
+      );
+    }
+
+    await rememberOrder(vaultId, orderResult.orderId);
 
     // Record in database / local store
     const txId = crypto.randomUUID();
@@ -292,55 +404,22 @@ paypalRouter.post("/:vaultId/payment/reconcile", requireAuth, async (req, res, n
       );
     }
 
-    const orderId = String((vault as any).paypal_order_id || req.body?.orderId || "");
+    const orderId = String(
+      (vault as any).paypal_order_id || req.body?.orderId || (await findLatestOrderId(vaultId)) || ""
+    );
     if (!orderId) {
       throw new ConflictError("No PayPal order is on file for this vault.", "ORDER_MISSING");
     }
 
     let authResult: Awaited<ReturnType<typeof paypalService.authorizeOrder>>;
     try {
-      authResult = await paypalService.authorizeOrder(orderId);
+      authResult = await claimApprovedOrder(vaultId, vault, userId, orderId);
     } catch (err: any) {
+      if (err?.code === "AMOUNT_MISMATCH") throw err;
       /* not approved yet is an answer, not a failure: the caller retries later */
       logger.info(`[PayPal] reconcile: ${orderId} not approved yet (${err?.message || "no detail"})`);
       return sendSuccess(res, { vaultId, orderId, claimed: false }, "Order not approved yet");
     }
-
-    if (Math.abs(authResult.amount - Number(vault.amount)) > 0.01) {
-      throw new BadRequestError(
-        `Authorized amount ($${authResult.amount}) does not match agreed vault amount ($${vault.amount}).`,
-        "AMOUNT_MISMATCH"
-      );
-    }
-
-    await rememberAuthorization(vaultId, authResult.authorizationId);
-
-    if (isSupabaseConfigured() && supabase) {
-      await supabase
-        .from("vaults")
-        .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
-        .eq("id", vaultId);
-      await supabase
-        .from("paypal_transactions")
-        .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
-        .eq("paypal_order_id", orderId);
-    } else {
-      const v = database.store.vaults.get(vaultId);
-      if (v) {
-        v.status = "AUTHORIZED";
-        v.updated_at = new Date();
-      }
-    }
-
-    await recordLedgerEvent(
-      vaultId,
-      userId,
-      "FUNDS_AUTHORIZED",
-      authResult.amount,
-      authResult.currency,
-      "PayPal funds authorized and held in escrow (claimed without a browser return)",
-      { orderId, authorizationId: authResult.authorizationId }
-    );
 
     return sendSuccess(
       res,
