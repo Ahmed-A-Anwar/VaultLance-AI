@@ -14,6 +14,16 @@ import type { UserRole, AuthenticatedUser } from "../shared/types.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { logger } from "../shared/logger.js";
 
+/* The role a request runs as. The profile row wins over the claim in the token:
+   a session minted before the account was promoted would otherwise keep the old
+   role for its whole seven days, and every freelancer-only route would answer
+   Access denied to an account that is a freelancer in the database. A profile
+   with no role yet keeps whatever the session was issued. */
+export function resolveRole(profileRole: unknown, claim: UserRole): UserRole {
+  const stored = typeof profileRole === "string" ? profileRole.trim().toUpperCase() : "";
+  return stored === "FREELANCER" || stored === "CLIENT" ? stored : claim;
+}
+
 export interface RegisterDTO {
   email: string;
   password: string;
@@ -442,7 +452,7 @@ export class AuthService {
     if (isSupabaseConfigured() && supabase) {
       const { data: profile, error } = await supabase
         .from("users")
-        .select("id, email, full_name, avatar_url, account_status")
+        .select("id, email, full_name, avatar_url, account_status, role")
         .eq("id", payload.userId)
         .single();
 
@@ -460,11 +470,18 @@ export class AuthService {
         );
       }
 
+      const role = resolveRole(profile.role, payload.role);
+      if (role !== payload.role) {
+        logger.info(
+          `[auth] ${profile.email} is ${role} in the profile but ${payload.role} in the session; using the profile`
+        );
+      }
+
       return {
         id: profile.id,
         email: profile.email,
         fullName: profile.full_name,
-        role: payload.role,
+        role,
         avatarUrl: profile.avatar_url,
         sessionId: payload.sessionId,
       };
