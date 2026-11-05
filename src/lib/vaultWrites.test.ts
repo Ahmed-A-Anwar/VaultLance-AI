@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, configureHttp, setAccessToken } from "./http";
-import { createVaultOnServer, isServerVaultId, submitVaultOnServer } from "./vaultWrites";
+import { createVaultOnServer, decideVaultOnServer, isServerVaultId, submitVaultOnServer } from "./vaultWrites";
 import { realOverride } from "../config/fx";
 
 const ID = "b2831415-9f89-430f-8581-b2c8ec757074";
@@ -70,11 +70,35 @@ describe("vaultWrites", () => {
     await expect(submitVaultOnServer(ID)).rejects.toMatchObject({ code: "INVALID_VAULT_STATUS", status: 409 });
   });
 
+  it("approves with the override flag only when it is asked for", async () => {
+    const fetchMock = vi.fn(async () => reply(200, { success: true, data: { id: ID, title: "Site", amount: 18.5, status: "PAID" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const vault = await decideVaultOnServer(ID, "approve", { overrideFailures: true });
+    expect(vault.status).toBe("unlocked");
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`http://api.test/api/vaults/${ID}/approve`);
+    expect(JSON.parse(String(init.body))).toEqual({ overrideFailures: true });
+  });
+
+  it("sends a bare POST to reject, and refuses an unreadable vault", async () => {
+    const fetchMock = vi.fn(async () => reply(200, { success: true, data: { id: ID, title: "Site", amount: 18.5, status: "CANCELLED" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(decideVaultOnServer(ID, "reject")).resolves.toMatchObject({ status: "voided" });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.body).toBeUndefined();
+
+    vi.stubGlobal("fetch", vi.fn(async () => reply(200, { success: true, data: { title: "no id" } })));
+    await expect(decideVaultOnServer(ID, "reject")).rejects.toThrow(/unreadable/);
+  });
+
   it("does nothing at all with the flag off", async () => {
     realOverride.vaultsWrite = false;
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     await expect(createVaultOnServer({ title: "Site", amountCents: 100 })).rejects.toThrow(/switched off/);
+    await expect(decideVaultOnServer(ID, "approve")).rejects.toThrow(/switched off/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

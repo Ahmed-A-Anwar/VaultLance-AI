@@ -10,7 +10,8 @@
 
 import { request } from "./http";
 import { realOn } from "../config/fx";
-import { vaultSchema } from "./adapters/vaultAdapter";
+import { toClientVault, vaultSchema } from "./adapters/vaultAdapter";
+import type { Vault } from "./api";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -44,6 +45,26 @@ export async function createVaultOnServer(input: NewVaultInput): Promise<{ id: s
     throw new Error("The vault was created, but the server's answer could not be read.");
   }
   return { id: parsed.data.id };
+}
+
+/** POST /api/vaults/:id/approve and /reject — the client's decision. Approve is
+    the capture trigger; the API refuses both to anyone but the invited client,
+    and approve only answers from AWAITING_APPROVAL. */
+export async function decideVaultOnServer(
+  id: string,
+  decision: "approve" | "reject",
+  body?: unknown
+): Promise<Vault> {
+  if (!realOn("vaultsWrite")) throw new Error("Real vault writes are switched off.");
+
+  const raw = await request<unknown>(`/vaults/${encodeURIComponent(id)}/${decision}`, {
+    method: "POST",
+    ...(body === undefined ? {} : { body }),
+  });
+
+  const vault = toClientVault(raw);
+  if (!vault) throw new Error("The decision went through, but the vault came back unreadable.");
+  return vault;
 }
 
 /** POST /api/vaults/:id/submit — locks the manifest and moves the vault on. */

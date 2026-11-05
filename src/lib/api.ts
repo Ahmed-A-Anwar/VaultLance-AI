@@ -7,9 +7,10 @@
    behind the same function signatures. Each function names the endpoint it will
    call once this is no longer a mock. */
 
-import { FX } from "../config/fx";
+import { FX, realOn } from "../config/fx";
 import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
 import * as authApi from "./authApi";
+import { decideVaultOnServer } from "./vaultWrites";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -389,7 +390,12 @@ export async function markAudited(id: string): Promise<Vault> {
 
 /* POST /api/vaults/{id}/approve */
 export async function approveVault(id: string, overrideFailures = false): Promise<Vault> {
-  const v = await postAction(id, "approve", overrideFailures ? { overrideFailures: true } : undefined);
+  /* with FX.real.vaultsWrite on the capture goes through the http client, so a
+     timeout, a 401 and a 409 all arrive as the typed error the UI already
+     handles; with it off the shipped call is untouched */
+  const v = realOn("vaultsWrite")
+    ? await decideVaultOnServer(id, "approve", overrideFailures ? { overrideFailures: true } : undefined)
+    : await postAction(id, "approve", overrideFailures ? { overrideFailures: true } : undefined);
   emit("PAYMENT.CAPTURED", v.id, "Capture completed, funds moved", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   emit("FILES.UNLOCKED", v.id, "Delivery unlocked to the freelancer", { paypalId: v.paypalOrderId });
   return v;
@@ -397,7 +403,7 @@ export async function approveVault(id: string, overrideFailures = false): Promis
 
 /* POST /api/vaults/{id}/reject */
 export async function rejectVault(id: string): Promise<Vault> {
-  const v = await postAction(id, "reject");
+  const v = realOn("vaultsWrite") ? await decideVaultOnServer(id, "reject") : await postAction(id, "reject");
   emit("PAYMENT.VOIDED", v.id, "Hold voided, nothing was charged", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   return v;
 }
