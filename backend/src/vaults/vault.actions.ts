@@ -19,6 +19,7 @@ import {
   NotFoundError,
   ForbiddenError,
   BadRequestError,
+  ConflictError,
 } from "../shared/errors.js";
 import { database } from "../shared/db.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
@@ -188,6 +189,23 @@ router.post("/:id/authorize", async (req, res, next) => {
       throw new BadRequestError(
         `Cannot authorize a vault with status '${vault.status}'.`,
         "INVALID_STATE"
+      );
+    }
+
+    /* This route used to set AUTHORIZED with no PayPal call behind it, so any
+       member holding a token could mark funds held for free. It may now only
+       confirm an authorization PayPal actually created for this vault: the
+       PayPal route (/payment/authorize) and the authorization webhook both
+       record the id, and nothing else does. */
+    const declared = typeof req.body?.authorizationId === "string" ? req.body.authorizationId.trim() : "";
+    const record = vault as Record<string, unknown>;
+    const onRecord = String(
+      record.paypal_authorization_id ?? record.paypalAuthorizationId ?? record.authorizationId ?? ""
+    );
+    if (!declared || !onRecord || declared !== onRecord) {
+      throw new ConflictError(
+        "Authorizing needs a PayPal authorization for this vault. Start it with the PayPal button.",
+        "PAYMENT_AUTHORIZATION_REQUIRED"
       );
     }
 

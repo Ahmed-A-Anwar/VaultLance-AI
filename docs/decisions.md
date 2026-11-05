@@ -3,6 +3,22 @@
 Short records of changes that alter behaviour the frontend or an operator can
 observe. Newest first.
 
+## 2026-11-05 — Authorizing needs a PayPal authorization on record
+
+**Decision.** `POST /api/vaults/:id/authorize` no longer sets `AUTHORIZED` on its
+own. It now requires `{ authorizationId }` matching the id recorded for the
+vault by `POST /payment/authorize` (or the `PAYMENT.AUTHORIZATION.CREATED`
+webhook); anything else answers **409 `PAYMENT_AUTHORIZATION_REQUIRED`**.
+
+**Why.** The route marked funds held with no PayPal call behind it, and the
+dashboard's "Instant Mock Authorize" button called exactly that. A client with a
+token could put a vault into "funds held" for free, which is the one claim this
+product cannot make falsely. The frontend button is now demo-only; this closes
+the server side, which is where it actually mattered.
+
+**Consequence.** Any caller that used `/authorize` as a one-step shortcut now
+fails. The supported path is order → PayPal approval → `/payment/authorize`.
+
 ## 2026-11-05 — A failed read shows the error state, not demo rows
 
 **Decision.** With `FX.real.vaultsRead` on, a read that fails — network error,
