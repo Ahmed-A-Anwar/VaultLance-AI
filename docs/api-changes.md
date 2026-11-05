@@ -27,6 +27,7 @@ answers `200 { status: "PROCESSED" }` or `200 { status: "ALREADY_PROCESSED" }`.
 | `GET /api/uploads/download/:fileId` | streamed the file to any member | `403 VAULT_NOT_PAID` until `PAID`, then streams as before |
 | `POST /api/auth/me` (DELETE) | blocked on 5 states | also blocks on `CAPTURE_PENDING` and on payouts in `creating`/`pending`/`failed`; anonymises `ledger_events.actor_id` |
 | `POST /api/webhooks/paypal` | `200` for anything, no raw body | `400` without a valid signature; `200` for duplicates |
+| `POST /api/vaults/:id/checks/run` | refused outside `AUTHORIZED`/`IN_PROGRESS`/`SUBMITTED`/`VERIFYING` | also accepted at `AWAITING_APPROVAL`: it re-reads the files and leaves the status alone, so the audit can be re-run before approving |
 | CORS | every origin allowed | only `FRONTEND_ORIGINS` plus loopback |
 
 ## Amounts

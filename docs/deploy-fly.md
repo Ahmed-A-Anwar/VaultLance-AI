@@ -55,6 +55,15 @@ fly secrets set --app vaultlance-ai-engine \
 `PAYPAL_ENV=sandbox` is a plain var in `fly.toml`; the API refuses to boot if it
 is anything else.
 
+Deliverables live in a **private** Supabase Storage bucket, and uploads go
+there whenever Supabase is configured, because the paid-download route signs an
+object in that bucket and the container's disk does not survive a redeploy.
+This project's `fly.toml` points `SUPABASE_STORAGE_BUCKET` at
+`vault-deliverables`; without a private bucket by that name (or the default
+`vault-files`), uploads fail with `STORAGE_WRITE_FAILED` and paid downloads
+with `SIGNING_FAILED`. The bucket must stay private — downloads are served as
+60-second signed URLs.
+
 ## 3. Deploy
 
 ```bash

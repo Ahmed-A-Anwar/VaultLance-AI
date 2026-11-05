@@ -18,6 +18,9 @@ primary_region = "fra"
   PUBLIC_API_URL = "https://vaultlance-ai.fly.dev"
   FRONTEND_URL = "https://vault-lance-ai.vercel.app"
   FRONTEND_ORIGINS = "https://vault-lance-ai.vercel.app,http://localhost:5173"
+  # Private bucket that holds deliverables. Both the upload adapter and the
+  # signed-download route read this name; the default is "vault-files".
+  SUPABASE_STORAGE_BUCKET = "vault-deliverables"
   AI_SERVICE_URL = "http://vaultlance-ai-engine.internal:8000"
 
 [http_service]
