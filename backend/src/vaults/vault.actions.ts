@@ -535,7 +535,7 @@ router.get("/:id/audit-detail", async (req, res, next) => {
 });
 
 /* ── POST /api/vaults/:id/checks/run ───────────────────────────────── */
-/* Runs the audit checks server-side (marks vault as SUBMITTED)         */
+/* Runs the checks server-side; a re-run at AWAITING_APPROVAL keeps state */
 
 router.post("/:id/checks/run", async (req, res, next) => {
   try {
@@ -544,7 +544,7 @@ router.post("/:id/checks/run", async (req, res, next) => {
     const vault = await getVaultRecord(req.user.id, vaultId);
 
     // Vault must be in an authorized/held state to run audit
-    const allowedFrom: VaultStatus[] = ["AUTHORIZED", "IN_PROGRESS", "SUBMITTED", "VERIFYING"];
+    const allowedFrom: VaultStatus[] = ["AUTHORIZED", "IN_PROGRESS", "SUBMITTED", "VERIFYING", "AWAITING_APPROVAL"];
     if (!allowedFrom.includes(vault.status as VaultStatus)) {
       throw new BadRequestError(
         `Cannot audit a vault with status '${vault.status}'.`,
@@ -571,10 +571,15 @@ router.post("/:id/checks/run", async (req, res, next) => {
     const checks = generateChecksForFiles(files, vault.description || "");
     const results = checks.map((c) => ({ ...c, state: c.result }));
 
-    // Transition to SUBMITTED (audited), then to the client's decision:
-    await updateVaultStatus(vaultId, "SUBMITTED");
-    await updateVaultStatus(vaultId, "VERIFYING");
-    await updateVaultStatus(vaultId, "AWAITING_APPROVAL");
+    // A first audit walks SUBMITTED -> VERIFYING -> AWAITING_APPROVAL. A re-run
+    // from the client's decision only re-reads the files: the state machine has
+    // no AWAITING_APPROVAL -> SUBMITTED edge, and the vault has to stay payable
+    // while its checks are recomputed.
+    if (vault.status !== "AWAITING_APPROVAL") {
+      await updateVaultStatus(vaultId, "SUBMITTED");
+      await updateVaultStatus(vaultId, "VERIFYING");
+      await updateVaultStatus(vaultId, "AWAITING_APPROVAL");
+    }
     await insertLedgerEvent(
       vaultId,
       req.user.id,
