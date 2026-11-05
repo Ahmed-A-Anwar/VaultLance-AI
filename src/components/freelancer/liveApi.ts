@@ -101,22 +101,32 @@ export async function listFreelancerEvents(vaults: FreelancerVault[]): Promise<F
   if (!res.success || !Array.isArray(res.data)) return [];
 
   const projects = new Map(vaults.map((v) => [v.id, v.project]));
-  return res.data
-    .filter((e: any) => projects.has(String(e.vault_id)))
-    .map((e: any): FreelancerEvent => {
-      const amount = Number(e.amount);
-      return {
-        id: String(e.id),
-        at: new Date(ms(e.created_at ?? e.createdAt)).toISOString(),
-        type: EVENT_TYPE[String(e.event_type)] ?? "PAYMENT.AUTHORIZED",
-        vaultId: String(e.vault_id),
-        vaultProject: projects.get(String(e.vault_id)) ?? "Vault",
-        ...(Number.isFinite(amount) && amount > 0 ? { amountCents: Math.round(amount * 100) } : {}),
-        ...(e.metadata?.paypalId ? { paypalId: String(e.metadata.paypalId) } : {}),
-        ...(e.metadata?.note ? { note: String(e.metadata.note) } : {}),
-      };
-    })
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  const events: FreelancerEvent[] = [];
+
+  for (const e of res.data as any[]) {
+    if (!projects.has(String(e.vault_id))) continue;
+    /* a row with no client meaning (a creation, an upload, a payout) is
+       dropped rather than relabelled: defaulting to PAYMENT.AUTHORIZED drew a
+       second authorization of the same amount for every vault, which read as a
+       duplicated ledger */
+    const type = EVENT_TYPE[String(e.event_type)];
+    if (!type) continue;
+
+    const amount = Number(e.amount);
+    const paypalId = e.metadata?.authorizationId || e.metadata?.captureId || e.metadata?.orderId || e.metadata?.paypalId;
+    events.push({
+      id: String(e.id),
+      at: new Date(ms(e.created_at ?? e.createdAt)).toISOString(),
+      type,
+      vaultId: String(e.vault_id),
+      vaultProject: projects.get(String(e.vault_id)) ?? "Vault",
+      ...(Number.isFinite(amount) && amount > 0 ? { amountCents: Math.round(amount * 100) } : {}),
+      ...(paypalId ? { paypalId: String(paypalId) } : {}),
+      ...(e.metadata?.note ? { note: String(e.metadata.note) } : {}),
+    });
+  }
+
+  return events.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 }
 
 /** The strip: the same earnings selectors the earnings page reads, so PAID and
