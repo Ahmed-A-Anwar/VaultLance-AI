@@ -26,7 +26,9 @@ export function PayPalAuthorizeButton({
   const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "BAA4Q0lxKMe-eEttZJdGKUOoM2AqGcE73TwoR1SPtbb_ofvrc1P1hwjp6UTUbO0l8E3jQo5deQixmDqI50";
   const apiBase = API_BASE_URL.replace(/\/api$/, "");
 
-  const getToken = () => apiClient.getToken() ?? "";
+  /* the same token the rest of the app sends, so funding cannot run as a
+     different account than the one the room is showing */
+  const getToken = () => apiClient.getToken() || "";
 
   return (
     <div className="paypal-btn-wrapper" style={{ marginTop: "12px", minHeight: "45px" }}>

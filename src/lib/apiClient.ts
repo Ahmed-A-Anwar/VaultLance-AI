@@ -63,7 +63,14 @@ class ApiClient {
 
   /* The token lives in memory (src/lib/http.ts) and nowhere else. It is never
      written to localStorage, sessionStorage or a URL, so a reload signs in
-     again rather than leaving a bearer token behind on the disk. */
+     again rather than leaving a bearer token behind on the disk.
+
+     main fixed a real bug here (PR #19): the token and the role came from
+     different places, so after a second sign-in the API ran as one account while
+     the dashboard showed another. Reading the token from the stored session is
+     one answer; this branch makes the split impossible instead — the same
+     sign-in sets the role and the token, the stored session carries no token,
+     and there is exactly one place the token lives. */
   public getToken(): string | null {
     return getAccessToken();
   }
