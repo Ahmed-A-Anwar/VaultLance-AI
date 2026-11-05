@@ -265,7 +265,7 @@ const API_BASE = API_BASE_URL.replace(/\/api$/, "");
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem("vl_token") || sessionStorage.getItem("vl_token") || "";
+  return apiClient.getToken() ?? "";
 }
 
 function authHeaders(): Record<string, string> {

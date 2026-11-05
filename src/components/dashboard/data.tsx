@@ -11,7 +11,7 @@ import {
   type VaultStatus,
   type LedgerType,
 } from "../../lib/api";
-import { API_BASE_URL, isDemoMode } from "../../lib/apiClient";
+import { API_BASE_URL, apiClient, isDemoMode } from "../../lib/apiClient";
 import { listEvents as listLocalEvents, listVaults as listLocalVaults } from "../../lib/api";
 
 interface DashDataValue {
@@ -33,7 +33,8 @@ const asApiError = (e: unknown): ApiError =>
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem("vl_token") || sessionStorage.getItem("vl_token") || "";
+  /* the bearer token is memory-only, held by the http client */
+  return apiClient.getToken() ?? "";
 }
 
 async function fetchLiveVaults(): Promise<Vault[]> {

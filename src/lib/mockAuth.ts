@@ -59,11 +59,12 @@ export function readSession(): Session | null {
          or trusting a role a buggy sign-in invented, is what put a client in
          the freelancer shell and got it a 403. */
       role:
-        roleFromToken(parsed.token) ??
+        roleFromToken(apiClient.getToken() ?? undefined) ??
         (parsed.role === "freelancer" || parsed.role === "client" ? parsed.role : roleFor(parsed.email)),
       since: typeof parsed.since === "number" ? parsed.since : Date.now(),
       ...(typeof parsed.name === "string" && parsed.name.trim() ? { name: parsed.name } : {}),
-      ...(typeof parsed.token === "string" ? { token: parsed.token } : {}),
+      /* a token found in storage belongs to an older build and is ignored */
+      ...(apiClient.getToken() ? { token: apiClient.getToken() as string } : {}),
     };
   } catch {
     return null;
@@ -72,9 +73,14 @@ export function readSession(): Session | null {
 
 export function writeSession(session: Session): void {
   try {
-    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); if (typeof window !== "undefined") window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    if (session.token) {
-      apiClient.setToken(session.token);
+    /* the bearer token is not part of the stored session: it stays in memory
+       (src/lib/http.ts), so a reload signs in again instead of leaving it on
+       the disk. */
+    const { token, ...stored } = session;
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(stored));
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(stored));
+    if (token) {
+      apiClient.setToken(token);
     } else {
       /* a session with no API token must not ride the previous user's one */
       apiClient.clearToken();

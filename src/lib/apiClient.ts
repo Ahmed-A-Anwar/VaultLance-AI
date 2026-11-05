@@ -3,6 +3,8 @@
  * Connects frontend to the backend REST API
  */
 
+import { clearAccessToken, configureHttp, getAccessToken, setAccessToken } from "./http";
+
 const explicitApiUrl = (import.meta.env.VITE_API_URL || "").trim();
 
 /*
@@ -53,23 +55,24 @@ class ApiClient {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
+  /* The token lives in memory (src/lib/http.ts) and nowhere else. It is never
+     written to localStorage, sessionStorage or a URL, so a reload signs in
+     again rather than leaving a bearer token behind on the disk. */
   public getToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem("vl_token") || window.sessionStorage.getItem("vl_token");
+    return getAccessToken();
   }
 
-  public setToken(token: string, persist: boolean = true): void {
-    if (typeof window === "undefined") return;
-    if (persist) {
-      window.localStorage.setItem("vl_token", token);
-    }
-    window.sessionStorage.setItem("vl_token", token);
+  public setToken(token: string, _persist: boolean = true): void {
+    setAccessToken(token);
   }
 
   public clearToken(): void {
-    if (typeof window === "undefined") return;
-    window.localStorage.removeItem("vl_token");
-    window.sessionStorage.removeItem("vl_token");
+    /* a token an older build left in storage is removed on the way through */
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("vl_token");
+      window.sessionStorage.removeItem("vl_token");
+    }
+    clearAccessToken();
   }
 
   private async request<T>(
@@ -247,3 +250,6 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
+/* the http client takes its base from the same rules, and from nowhere else */
+configureHttp(API_BASE_URL);
