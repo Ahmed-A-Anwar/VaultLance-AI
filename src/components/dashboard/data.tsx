@@ -73,6 +73,20 @@ async function fetchLiveVaults(): Promise<Vault[]> {
   });
 }
 
+/* Only the five events the client ledger draws are events here. A row whose type
+   has no client meaning (a creation, an upload, a payout) used to fall through
+   to PAYMENT.AUTHORIZED, so every vault appeared twice: once for its real
+   authorization and once for its creation, with the same amount and a
+   fabricated id. Unmapped rows are dropped instead. */
+const LEDGER_TYPE: Readonly<Record<string, LedgerType>> = {
+  FUNDS_AUTHORIZED: "PAYMENT.AUTHORIZED",
+  PAYMENT_CAPTURED: "PAYMENT.CAPTURED",
+  VAULT_CANCELLED: "PAYMENT.VOIDED",
+  FILES_UNLOCKED: "FILES.UNLOCKED",
+  MILESTONE_APPROVED: "FILES.UNLOCKED",
+  AUDIT_COMPLETED: "AUDIT.COMPLETED",
+};
+
 async function fetchLiveLedger(): Promise<LedgerEvent[]> {
   if (isDemoMode()) return listLocalEvents();
   const token = getToken();
@@ -83,22 +97,27 @@ async function fetchLiveLedger(): Promise<LedgerEvent[]> {
   const json = await res.json();
   if (!json.success || !Array.isArray(json.data)) return [];
 
-  return json.data.map((e: any): LedgerEvent => {
-    let type: LedgerType = "PAYMENT.AUTHORIZED";
-    if (e.event_type === "PAYMENT_CAPTURED") type = "PAYMENT.CAPTURED";
-    else if (e.event_type === "MILESTONE_APPROVED") type = "FILES.UNLOCKED";
-    else if (e.event_type === "FUNDS_AUTHORIZED") type = "PAYMENT.AUTHORIZED";
-    else if (e.event_type === "VAULT_CANCELLED") type = "PAYMENT.VOIDED";
-    return {
-      id: e.id,
+  const events: LedgerEvent[] = [];
+  for (const e of json.data as any[]) {
+    const type = LEDGER_TYPE[String(e.event_type ?? "").trim().toUpperCase()];
+    if (!type) continue;
+    const id = String(e.id ?? "");
+    if (!id) continue;
+
+    events.push({
+      id,
       ts: new Date(e.created_at || Date.now()).getTime(),
       type,
-      vaultId: e.vault_id,
+      vaultId: String(e.vault_id ?? ""),
       label: e.metadata?.note || "Ledger event recorded",
       amountUSD: Number(e.amount) || undefined,
-      paypalId: e.metadata?.paypalId || `8XK${e.vault_id?.slice(0, 8).toUpperCase()}`,
-    };
-  });
+      /* the real id the server recorded, never a guess at one */
+      paypalId:
+        e.metadata?.authorizationId || e.metadata?.captureId || e.metadata?.orderId || e.metadata?.paypalId || undefined,
+    });
+  }
+
+  return events;
 }
 
 async function fetchEvents(): Promise<LedgerEvent[]> {
