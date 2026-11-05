@@ -12,6 +12,7 @@
 
 import { logger } from "../shared/logger.js";
 import { paypalBaseUrl } from "../shared/paypal.env.js";
+import { frontendBaseUrl } from "../shared/frontend.url.js";
 import { BadRequestError, AppError } from "../shared/errors.js";
 
 interface PayPalTokenCache {
@@ -131,8 +132,11 @@ export class PayPalService {
     description?: string;
     returnUrl?: string;
     cancelUrl?: string;
+    origin?: string | null;
   }): Promise<{ orderId: string; status: string; links: any[] }> {
-    const { vaultId, amount, currency, description, returnUrl, cancelUrl } = params;
+    const { vaultId, amount, currency, description, returnUrl, cancelUrl, origin } = params;
+    /* the browser that started the flow must get it back, or the session is lost */
+    const base = frontendBaseUrl(origin);
     const formattedAmount = Number(amount).toFixed(2);
 
     const payload = {
@@ -157,8 +161,8 @@ export class PayPalService {
             landing_page: "LOGIN",
             shipping_preference: "NO_SHIPPING",
             user_action: "CONTINUE",
-            return_url: returnUrl || `${process.env.FRONTEND_URL || "http://127.0.0.1:5173"}/vault/${vaultId}?status=authorized`,
-            cancel_url: cancelUrl || `${process.env.FRONTEND_URL || "http://127.0.0.1:5173"}/vault/${vaultId}?status=cancelled`,
+            return_url: returnUrl || `${base}/vault/${vaultId}?status=authorized`,
+            cancel_url: cancelUrl || `${base}/vault/${vaultId}?status=cancelled`,
           },
         },
       },

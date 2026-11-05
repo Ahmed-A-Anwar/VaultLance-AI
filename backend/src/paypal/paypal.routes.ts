@@ -139,8 +139,10 @@ paypalRouter.post("/:vaultId/payment/order", requireAuth, async (req, res, next)
       amount,
       currency,
       description: `VaultLance Escrow: ${vault.title}`,
-      returnUrl: req.body.returnUrl,
-      cancelUrl: req.body.cancelUrl,
+      returnUrl: req.body?.returnUrl,
+      cancelUrl: req.body?.cancelUrl,
+      /* the origin the payment started from keeps its session after the redirect */
+      origin: req.get("origin"),
     });
 
     // Record in database / local store
