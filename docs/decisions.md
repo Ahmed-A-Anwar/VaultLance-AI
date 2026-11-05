@@ -3,6 +3,37 @@
 Short records of changes that alter behaviour the frontend or an operator can
 observe. Newest first.
 
+## 2026-11-05 — The ledger is scoped, the session survives a reload, payouts retry
+
+**Decision.** Three changes that close the gaps recorded after the first live
+money loop:
+
+1. `GET /api/ledger` filters to the vaults the caller owns or belongs to. The
+   frontend gate in `apiClient.ledger.list()` stays, but as a kill switch: the
+   server no longer answers with strangers' rows. `FX.real.events` is now on, so
+   the freelancer's Earnings and both Payments readers show real activity.
+2. The bearer token is kept in `sessionStorage` instead of memory only
+   (`src/lib/http.ts`). A reload keeps the session; closing the tab ends it. The
+   token is still never written to `localStorage`, a URL or a log.
+3. `POST /api/vaults/:id/payout/retry` exists: freelancer-only, refused unless
+   the payout row is `failed`, with a new `sender_batch_id` and a bumped attempt.
+   `FX.real.payouts` is on.
+
+**Why.** The ledger leak could only be contained in the browser before, which
+meant real earnings could never be shown. The in-memory token was the reason
+PayPal's `return_url` dropped a client at `/signin` immediately after approving.
+The Payments page offered a retry the server could not answer.
+
+**Deviation.** Item 2 reverses the earlier "bearer token is memory-only"
+position. The tradeoff is deliberate and narrower than it looks: `sessionStorage`
+is per-tab, cleared on close, unreadable across origins, and never used for
+anything but the bearer header. Anyone with script execution on the page can read
+it either way, which is why it was memory-only; persistence buys a working
+redirect and loses nothing that XSS did not already have.
+
+**Consequence.** A page reload no longer signs the user out — the sign-in page is
+now only reached when the token is genuinely gone (signed out, tab closed, 401).
+
 ## 2026-11-05 — Authorizing needs a PayPal authorization on record
 
 **Decision.** `POST /api/vaults/:id/authorize` no longer sets `AUTHORIZED` on its

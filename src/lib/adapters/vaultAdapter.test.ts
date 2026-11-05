@@ -78,10 +78,12 @@ describe("vaultAdapter", () => {
     expect(amountKnown({ ...full, amount: undefined })).toBe(false);
   });
 
-  it("ignores extra fields", () => {
+  it("ignores extra fields, and keeps a capture separate from its order", () => {
     const v = toClientVault({ ...full, paypal_capture_id: "3NC90646EJ330354Y", supabase_row: { id: 1 } });
     expect(v?.status).toBe("held");
-    expect(v?.paypalOrderId).toBe("3NC90646EJ330354Y");
+    /* the receipt shows the capture, so it must not be folded into the order id */
+    expect(v?.captureId).toBe("3NC90646EJ330354Y");
+    expect(v?.paypalOrderId).toBeUndefined();
   });
 
   it("survives a bad date without producing NaN", () => {

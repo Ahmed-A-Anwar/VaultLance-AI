@@ -23,6 +23,15 @@ import {
   type VaultDetail,
   type VaultStatus,
 } from "../../lib/api";
+import { getAccessToken } from "../../lib/http";
+import { authorizePaypalOrder } from "../../lib/paypalWrites";
+import {
+  approvalFromUrl,
+  cleanPaypalQuery,
+  forgetApprovedOrder,
+  pendingApprovalFor,
+  rememberApprovedOrder,
+} from "../../lib/paypalReturn";
 
 export type Message = ChatMessage & {
   typing?: boolean;
@@ -39,6 +48,10 @@ interface RoomValue {
   loading: boolean;
   error: ApiError | null;
   reload: () => void;
+
+  /* PayPal sent the buyer back with an approved order, and this window has no
+     session to finish it with: the UI says so instead of showing a 401 */
+  approvedPending: boolean;
 
   checks: VaultCheck[];
   running: boolean;
@@ -91,6 +104,8 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
   const [unlocking, setUnlocking] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [capturedAt, setCapturedAt] = useState<number | null>(null);
+  const [approvedPending, setApprovedPending] = useState(false);
+  const finishing = useRef(false);
 
   const timers = useRef<number[]>([]);
   const opened = useRef(false);
@@ -134,6 +149,59 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
   }, []);
 
   const status = vault?.status ?? null;
+
+  /* --------------------------------------------------- paypal's return --- */
+
+  /* PayPal lands on ?status=authorized&token=<orderId>. Remember the order, so
+     whichever window has a session can finish it, and take it out of the
+     address rather than leaving a PayPal id in the URL bar. */
+  useEffect(() => {
+    const fromUrl = approvalFromUrl(window.location.href);
+    if (!fromUrl || fromUrl.vaultId !== id) return;
+    rememberApprovedOrder(id, fromUrl.orderId);
+    cleanPaypalQuery(id);
+    setApprovedPending(true);
+  }, [id]);
+
+  /* whoever holds a session completes the authorization the buyer granted; the
+     call is safe to repeat because the server records the id it gets back */
+  useEffect(() => {
+    if (finishing.current) return;
+    if (!getAccessToken()) return;
+    const pending = pendingApprovalFor(id);
+    if (!pending) return;
+    /* once the vault has a hold, there is nothing left to authorize */
+    if (vault && vault.status !== "awaiting_payment") {
+      forgetApprovedOrder(id);
+      setApprovedPending(false);
+      return;
+    }
+
+    finishing.current = true;
+    authorizePaypalOrder(id, pending.orderId)
+      .then(() => {
+        forgetApprovedOrder(id);
+        setApprovedPending(false);
+        reload();
+      })
+      .catch(() => {
+        /* the order may not be approved yet, or this account is the wrong one:
+           keep it pending so the retry and the focus handler try again */
+      })
+      .finally(() => {
+        finishing.current = false;
+      });
+  }, [id, vault, reload]);
+
+  /* coming back to a tab after approving in another window finishes the hold */
+  useEffect(() => {
+    const onFocus = () => {
+      if (!getAccessToken() || !pendingApprovalFor(id)) return;
+      reload();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [id, reload]);
 
   /* ------------------------------------------------------------- streams --- */
 
@@ -328,6 +396,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       loading,
       error,
       reload,
+      approvedPending,
       checks,
       running,
       runAll,
@@ -353,6 +422,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       loading,
       error,
       reload,
+      approvedPending,
       checks,
       running,
       runAll,

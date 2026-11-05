@@ -13,6 +13,7 @@
 
 import { FX } from "../../config/fx";
 import { isDemoMode } from "../../lib/apiClient";
+import { retryPayoutOnServer } from "../../lib/vaultWrites";
 import {
   hasPayoutEmail,
   listEvents,
@@ -160,7 +161,12 @@ export async function listHolds(): Promise<Hold[]> {
 /** POST /api/vaults/{id}/payout/retry — the same call the details drawer makes. */
 export async function retryPayout(vaultId: string): Promise<Payout> {
   if (!isDemoMode()) {
-    throw new Error("Payout retries aren’t available on the server yet.");
+    await retryPayoutOnServer(vaultId);
+    /* read the row back rather than inventing it: the server decides whether
+       the retry is creating, pending, or failed again */
+    const row = (await listPayouts()).find((payout) => payout.vaultId === vaultId);
+    if (!row) throw new Error("The retry went through, but the payout could not be read back.");
+    return row;
   }
   const vault = await retryFreelancerPayout(vaultId);
   const events = await listFreelancerEvents();

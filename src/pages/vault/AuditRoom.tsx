@@ -22,6 +22,8 @@ import { HoldButton } from "../../components/shared/HoldButton";
 import { ArrowLeft, Download } from "../../components/vault/icons";
 import { useToast } from "../../components/shared/Toasts";
 import { downloadVaultFile } from "../../lib/api";
+import { getAccessToken } from "../../lib/http";
+import { pendingApprovalFor } from "../../lib/paypalReturn";
 import "../../styles/vault.css";
 
 const CODE: Record<string, string> = {
@@ -34,7 +36,7 @@ const CODE: Record<string, string> = {
 const codeFor = (id: string) => CODE[id] ?? id.replace(/[^0-9a-z]/gi, "").slice(-4).toUpperCase();
 
 function Room({ id }: { id: string }) {
-  const { detail, vault, status, loading, error, reload } = useRoom();
+  const { detail, vault, status, loading, error, reload, approvedPending } = useRoom();
   const [tab, setTab] = useState<"files" | "chat" | "checks">("chat");
   const root = useRef<HTMLDivElement>(null);
   const entered = useRef(false);
@@ -67,6 +69,31 @@ function Room({ id }: { id: string }) {
 
     return () => ctx.revert();
   }, [loading, vault]);
+
+  /* PayPal sent the buyer back into a window with no session: the payment is
+     approved, and the tab that started it finishes the hold. A 401 here is
+     expected, not a failure to report as "no answer". */
+  if (approvedPending && !getAccessToken()) {
+    return (
+      <main className="room-state">
+        <p className="room-mono">PAYMENT APPROVED</p>
+        <h1 className="room-state-h">Your approval is with PayPal.</h1>
+        <p className="room-hint">
+          PayPal has authorized this payment. Go back to the tab where you started it — the vault
+          updates as soon as you return to it.
+        </p>
+        <div className="room-state-actions">
+          <button type="button" className="room-primary room-primary-sm" onClick={reload}>
+            Retry
+          </button>
+          <Link to="/dashboard" className="room-back">
+            <ArrowLeft width="16" height="16" />
+            <span>Back to dashboard</span>
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   if (error?.kind === "not_found") {
     return (
@@ -276,8 +303,11 @@ export default function AuditRoom() {
   const { id = "" } = useParams();
   const session = useMemo(() => readSession(), []);
 
-  if (!session) return <Navigate to="/signin" replace />;
-  if (session.role === "freelancer") return <Navigate to="/dashboard" replace />;
+  /* an approved PayPal return keeps its context even in a window with no
+     session: the room explains where the money is instead of bouncing to
+     /signin and losing the vault */
+  if (!session && !pendingApprovalFor(id)) return <Navigate to="/signin" replace />;
+  if (session?.role === "freelancer") return <Navigate to="/dashboard" replace />;
 
   return (
     <ToastProvider>

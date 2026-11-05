@@ -91,6 +91,15 @@ export async function signedDownloadUrl(vaultId: string, fileId: string): Promis
   return url;
 }
 
+/** POST /api/vaults/:id/payout/retry — only the freelancer who owns the vault,
+    and only a payout that actually failed; the server refuses anything else. */
+export async function retryPayoutOnServer(id: string): Promise<{ status: string }> {
+  if (!realOn("payouts")) throw new Error("Real payout writes are switched off.");
+
+  const raw = await request<unknown>(`/vaults/${encodeURIComponent(id)}/payout/retry`, { method: "POST" });
+  return (raw ?? {}) as { status: string };
+}
+
 /** POST /api/vaults/:id/submit — locks the manifest and moves the vault on. */
 export async function submitVaultOnServer(id: string): Promise<{ manifestSha256: string; fileCount: number }> {
   if (!realOn("vaultsWrite")) throw new Error("Real vault writes are switched off.");

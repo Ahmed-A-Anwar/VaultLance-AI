@@ -39,6 +39,9 @@ export interface Vault {
   status: VaultStatus;
   createdAt: number;
   paypalOrderId?: string;
+  /* the PayPal capture behind a paid vault: the receipt shows this, not the
+     order id it was created from */
+  captureId?: string;
   /* the delivered files a paid vault may download, when the response carries
      them; the list used to drop this and left the card with nothing to fetch */
   files?: Array<{ id: string; name: string }>;
@@ -747,7 +750,8 @@ export async function getVaultDetail(id: string): Promise<VaultDetail> {
       amountUSD: Number(v.amount) || 0,
       status: mapBackendStatusToFrontend(v.status),
       createdAt: new Date(v.createdAt || v.created_at || Date.now()).getTime(),
-      paypalOrderId: v.paypalOrderId || v.paypalCaptureId || undefined,
+      paypalOrderId: v.paypalOrderId || undefined,
+      captureId: v.paypalCaptureId || undefined,
     },
     files: (d.files || []).map((f: any) => ({
       id: f.id,

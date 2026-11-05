@@ -62,9 +62,9 @@ class ApiClient {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
-  /* The token lives in memory (src/lib/http.ts) and nowhere else. It is never
-     written to localStorage, sessionStorage or a URL, so a reload signs in
-     again rather than leaving a bearer token behind on the disk.
+  /* The token lives in src/lib/http.ts and nowhere else, which keeps it in
+     sessionStorage for the life of the tab (never localStorage, never a URL), so
+     a reload keeps the session and closing the tab ends it.
 
      main fixed a real bug here (PR #19): the token and the role came from
      different places, so after a second sign-in the API ran as one account while
@@ -241,11 +241,11 @@ class ApiClient {
 
   // --- Ledger APIs ---
   public ledger = {
-    /* The endpoint answers with every user's last fifty rows, so it is not read
-       at all until it is scoped. Three surfaces reach the ledger through here —
-       the client's dashboard, the freelancer's Earnings and both Payments
-       readers — so this one gate covers them together instead of each caller
-       remembering. `events` is off by default; see docs/decisions.md. */
+    /* The server now filters this to the caller's own vaults, so the gate is a
+       kill switch rather than the thing keeping strangers' rows out. Three
+       surfaces reach the ledger through here — the client's dashboard, the
+       freelancer's Earnings and both Payments readers — so switching it off here
+       still silences all of them at once. See docs/decisions.md. */
     list: async (): Promise<ApiResponse<any[]>> => {
       if (!realOn("events")) return { success: true, message: "Ledger reads are switched off.", data: [] };
       return this.request<any[]>("/ledger", { method: "GET" });

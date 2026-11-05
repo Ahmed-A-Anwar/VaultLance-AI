@@ -68,10 +68,10 @@ export type RealGroup =
    master switch, which is what lets VITE_USE_REAL_API turn the wired ones on
    without also switching on a group nobody has connected yet.
 
-   Phase 2 now ships with the wired groups on. `events` stays off because
-   GET /api/ledger answers with every user's rows, and `payouts` is absent
-   because the server has no payout read or retry route: turning them on would
-   show one client another's money and offer a retry that cannot work. */
+   Phase 2 now ships with every wired group on. `events` is on because
+   GET /api/ledger filters to the caller's own vaults (the gate in
+   apiClient.ledger.list stays as a kill switch, not as the safety net), and
+   `payouts` is on now that POST /api/vaults/:id/payout/retry exists. */
 export const FX_REAL_DEFAULTS: Readonly<Partial<Record<RealGroup, boolean>>> = {
   auth: true,
   vaultsRead: true,
@@ -80,7 +80,8 @@ export const FX_REAL_DEFAULTS: Readonly<Partial<Record<RealGroup, boolean>>> = {
   audit: true,
   settings: true,
   payments: true,
-  events: false,
+  events: true,
+  payouts: true,
 };
 
 /** The master switch, from VITE_USE_REAL_API. Default false. */

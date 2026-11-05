@@ -57,7 +57,8 @@ export function toClientVault(raw: unknown): ClientVault | null {
   if (!parsed.success) return null;
   const dto = parsed.data;
   const cents = centsOf(dto.amount);
-  const order = dto.paypalOrderId ?? dto.paypal_order_id ?? dto.paypal_capture_id ?? dto.paypalCaptureId;
+  const order = dto.paypalOrderId ?? dto.paypal_order_id;
+  const capture = dto.paypal_capture_id ?? dto.paypalCaptureId;
   return {
     id: dto.id,
     project: dto.title,
@@ -68,6 +69,7 @@ export function toClientVault(raw: unknown): ClientVault | null {
     status: uiStatusOf(dto.status),
     createdAt: msOf(dto.createdAt) ?? 0,
     ...(order ? { paypalOrderId: String(order) } : {}),
+    ...(capture ? { captureId: String(capture) } : {}),
     /* kept for the download button: the signed link is minted per file */
     ...(dto.files && dto.files.length > 0
       ? { files: dto.files.map((f) => ({ id: f.id, name: String(f.fileName ?? "file") })) }

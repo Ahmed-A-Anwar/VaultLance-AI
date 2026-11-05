@@ -6,9 +6,10 @@
  * response body: the error objects hold a message and a status, never a payload.
  *
  * The access token lives in this module and nowhere else. It is a bearer token
- * (the API sets no cookies), so it is kept in memory only: a reload forgets it
- * and the session has to sign in again. It is never written to localStorage,
- * sessionStorage, the URL or a log.
+ * (the API sets no cookies), and it is kept in sessionStorage for the life of the
+ * tab: a reload keeps the session (a PayPal redirect leaves the page and comes
+ * back, which used to sign the client out), while closing the tab drops it. It is
+ * never written to localStorage, a URL or a log.
  */
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -48,14 +49,45 @@ export const configureHttp = (baseUrl: string): void => {
   httpBase = baseUrl.replace(/\/$/, "");
 };
 
-let accessToken: string | null = null;
+const TOKEN_KEY = "vl_token";
+
+const tokenStorage = (): Storage | null => {
+  try {
+    return typeof window === "undefined" ? null : window.sessionStorage;
+  } catch {
+    /* a browser that refuses storage still gets an in-memory session */
+    return null;
+  }
+};
+
+const readStoredToken = (): string | null => {
+  try {
+    return tokenStorage()?.getItem(TOKEN_KEY) || null;
+  } catch {
+    return null;
+  }
+};
+
+/* hydrated once per page load, so a reload keeps the session the tab already had */
+let accessToken: string | null = readStoredToken();
 
 export const getAccessToken = (): string | null => accessToken;
 export const setAccessToken = (token: string | null): void => {
   accessToken = token && token.trim() ? token : null;
+  try {
+    if (accessToken) tokenStorage()?.setItem(TOKEN_KEY, accessToken);
+    else tokenStorage()?.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage refused: the session simply does not survive a reload */
+  }
 };
 export const clearAccessToken = (): void => {
   accessToken = null;
+  try {
+    tokenStorage()?.removeItem(TOKEN_KEY);
+  } catch {
+    /* nothing to clear */
+  }
 };
 
 /* --------------------------------------------------- the 401 door, once --- */
@@ -97,7 +129,13 @@ function errorFor(status: number, message: string, code?: string, requestId?: st
 /** One request. Resolves with the API's `data`, or throws a typed HttpError. */
 export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  /* the same controller aborts on the timeout and when the page goes away, so
+     the reason is remembered rather than re-read afterwards */
+  let timedOut = false;
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
   const headers: Record<string, string> = { ...(opts.headers ?? {}) };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -120,9 +158,8 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
       credentials: "omit",
     });
   } catch {
-    throw new NetworkError(
-      controller.signal.aborted ? "The server took too long to answer." : undefined
-    );
+    if (!timedOut) throw new NetworkError("The request was cancelled before it finished.");
+    throw new NetworkError("The server took too long to answer.");
   } finally {
     window.clearTimeout(timeout);
   }

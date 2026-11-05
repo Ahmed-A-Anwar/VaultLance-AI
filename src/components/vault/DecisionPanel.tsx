@@ -116,10 +116,13 @@ export function DecisionPanel() {
     }
   };
 
+  /* a paid vault is identified by its capture, not by the order it came from */
+  const receiptId = vault?.captureId ?? vault?.paypalOrderId;
+
   const copyId = async () => {
-    if (!vault?.paypalOrderId) return;
+    if (!receiptId) return;
     try {
-      await navigator.clipboard.writeText(vault.paypalOrderId);
+      await navigator.clipboard.writeText(receiptId);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1000);
     } catch {
@@ -235,7 +238,7 @@ export function DecisionPanel() {
           <p className="room-amount">{usd.format(amount)}</p>
           <p className="room-receipt-line">
             <span>CAPTURE</span>
-            <span className="room-mono">{vault?.paypalOrderId ?? "—"}</span>
+            <span className="room-mono">{receiptId ?? "—"}</span>
             <button type="button" className="room-copy-id" onClick={() => void copyId()} aria-label="Copy the capture id">
               {copied ? <Check width="13" height="13" /> : <Copy width="13" height="13" />}
             </button>
