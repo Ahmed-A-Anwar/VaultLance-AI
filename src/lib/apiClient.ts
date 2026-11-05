@@ -4,6 +4,7 @@
  */
 
 import { clearAccessToken, configureHttp, getAccessToken, setAccessToken } from "./http";
+import { realOn } from "../config/fx";
 
 const explicitApiUrl = (import.meta.env.VITE_API_URL || "").trim();
 
@@ -240,7 +241,15 @@ class ApiClient {
 
   // --- Ledger APIs ---
   public ledger = {
-    list: () => this.request<any[]>("/ledger", { method: "GET" }),
+    /* The endpoint answers with every user's last fifty rows, so it is not read
+       at all until it is scoped. Three surfaces reach the ledger through here —
+       the client's dashboard, the freelancer's Earnings and both Payments
+       readers — so this one gate covers them together instead of each caller
+       remembering. `events` is off by default; see docs/decisions.md. */
+    list: async (): Promise<ApiResponse<any[]>> => {
+      if (!realOn("events")) return { success: true, message: "Ledger reads are switched off.", data: [] };
+      return this.request<any[]>("/ledger", { method: "GET" });
+    },
   };
 
   // --- Upload & File APIs ---
