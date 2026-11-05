@@ -1,67 +1,119 @@
-/* vaultAdapter.ts — map a backend vault/project/order record onto the
-   dashboard's Vault and VaultDetail shapes.
+/* vaultAdapter.ts — a backend vault record onto the two shapes the frontend
+   already draws: the client's Vault and the freelancer's FreelancerVault.
 
-   DELIBERATELY UNWIRED: no logic here. Wire happens behind FX.real flags,
-   reads with an "OFFLINE DEMO DATA" fallback chip, writes failing loudly.
-   See docs/fastapi-backend-map.md §b/§d for every row and its verdict. */
+   Adapters never invent data. A field the response does not carry stays
+   undefined (or unknown), and the UI prints "—". A response that fails the
+   schema returns null so the caller can show an error state instead of
+   rendering a half-vault. Extra fields in the payload are ignored, not fatal. */
 
-import type { UiStatus } from "./statusMap";
+import { z } from "zod";
+import { amountSchema, centsOf } from "./moneyAdapter";
+import { uiStatusOf, type UiStatus } from "./statusMap";
+import type { Vault as ClientVault } from "../api";
+import type { FreelancerVault, VaultFile as FreelancerFile } from "../../components/freelancer/mockApi";
 
-/* the dashboard's own shapes (src/lib/api.ts) */
-export interface UiVault {
-  id: string;
-  project: string;
-  freelancer: string;
-  amountUSD: number;
-  status: UiStatus;
-  createdAt: number;
-  paypalOrderId?: string;
+export const memberSchema = z.object({
+  role: z.string(),
+  fullName: z.string().nullish(),
+  email: z.string().nullish(),
+});
+
+export const vaultSchema = z.object({
+  id: z.string().min(1),
+  title: z.string(),
+  description: z.string().nullish(),
+  /* a non-numeric amount must fail the parse: an unreadable figure is an
+     error state, never a vault worth $0 */
+  amount: amountSchema,
+  currency: z.string().nullish(),
+  status: z.string(),
+  createdAt: z.string().nullish(),
+  updatedAt: z.string().nullish(),
+  members: z.array(memberSchema).nullish(),
+  files: z.array(z.object({ id: z.string(), fileName: z.string().nullish() })).nullish(),
+  paypal_order_id: z.string().nullish(),
+  paypalOrderId: z.string().nullish(),
+  paypal_capture_id: z.string().nullish(),
+  paypalCaptureId: z.string().nullish(),
+});
+
+const SUBMITTED = ["SUBMITTED", "VERIFYING", "AWAITING_APPROVAL", "CAPTURE_PENDING"];
+
+/** ISO or epoch → milliseconds, or undefined when the value is not a date. */
+export function msOf(value: unknown): number | undefined {
+  if (typeof value !== "string" && typeof value !== "number") return undefined;
+  const at = new Date(value).getTime();
+  return Number.isFinite(at) ? at : undefined;
 }
 
-/* Express: a vault row with members (GET /api/vaults, vault.actions.ts) */
-export interface ExpressVault {
-  id: string;
-  freelancerId: string;
-  title: string;
-  description?: string | null;
-  amount: number;
-  currency: string;
-  status: string;
-  expiresAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  members?: Array<{ id: string; userId: string; email?: string; fullName?: string; role: string }>;
+const memberOf = (
+  members: Array<{ role: string; fullName?: string | null; email?: string | null }> | null | undefined,
+  role: string
+) => members?.find((m) => m.role.trim().toUpperCase() === role);
+
+/** The client's Vault — the shape the dashboard's cards and totals read. */
+export function toClientVault(raw: unknown): ClientVault | null {
+  const parsed = vaultSchema.safeParse(raw);
+  if (!parsed.success) return null;
+  const dto = parsed.data;
+  const cents = centsOf(dto.amount);
+  const order = dto.paypalOrderId ?? dto.paypal_order_id ?? dto.paypal_capture_id ?? dto.paypalCaptureId;
+  return {
+    id: dto.id,
+    project: dto.title,
+    freelancer: memberOf(dto.members, "FREELANCER")?.fullName ?? "—",
+    /* 0 is the "unknown" sentinel: amountKnown says which it is, so a missing
+       amount can never read as a free vault */
+    amountUSD: cents === undefined ? 0 : cents / 100,
+    status: uiStatusOf(dto.status),
+    createdAt: msOf(dto.createdAt) ?? 0,
+    ...(order ? { paypalOrderId: String(order) } : {}),
+    /* kept for the download button: the signed link is minted per file */
+    ...(dto.files && dto.files.length > 0
+      ? { files: dto.files.map((f) => ({ id: f.id, name: String(f.fileName ?? "file") })) }
+      : {}),
+  };
 }
 
-/* FastAPI: a project row (schemas/project.py: ProjectOut) */
-export interface FastProject {
-  id: string; // uuid
-  title: string;
-  brief: string;
-  status: string;
-  agreement_version: number;
-  client_approved_criteria: boolean;
-  freelancer_approved_criteria: boolean;
-  created_at: string;
+/** Did the response carry a readable amount? Derived from the same parse. */
+export function amountKnown(raw: unknown): boolean {
+  const parsed = vaultSchema.safeParse(raw);
+  return parsed.success && centsOf(parsed.data.amount) !== undefined;
 }
 
-/* FastAPI: a PayPal order row (app/models/paypal_order.py, via GET /paypal/orders/{id}) */
-export interface FastOrder {
-  internal_status: string;
-  paypal_status: string | null;
-  amount: number;
-  currency: string;
-  human_release_approved: boolean;
-}
+/** The freelancer's view: finer phases, integer cents, client and file count. */
+export function toFreelancerVault(raw: unknown): FreelancerVault | null {
+  const parsed = vaultSchema.safeParse(raw);
+  if (!parsed.success) return null;
+  const dto = parsed.data;
+  const status = dto.status.trim().toUpperCase();
+  const uiStatus: UiStatus = uiStatusOf(status);
+  const client = memberOf(dto.members, "CLIENT");
+  const files: FreelancerFile[] = (dto.files ?? []).map((f) => ({
+    name: String(f.fileName ?? "file"),
+    sizeBytes: 0,
+  }));
+  const createdAt = msOf(dto.createdAt);
+  const updatedAt = msOf(dto.updatedAt);
+  const cents = centsOf(dto.amount);
+  const capture = dto.paypal_capture_id ?? dto.paypalCaptureId;
 
-/* TODO(wire): expressVaultToUi — members → freelancer name, status via statusMap
-   TODO(wire): fastProjectToUi — brief → description?, NO amount field → pair with
-     a FastOrder (order.amount) or a vault-amount endpoint (currently a gap)
-   TODO(wire): fastOrderToUi — internal_status via statusMap, amount is the money
-   TODO(wire): joinByCode — the UI joins by invite code; both backends accept by
-     vault/project id, so the code→id lookup is a backend gap (doc §e) */
-export type VaultAdapter = {
-  expressToUi: (v: ExpressVault) => UiVault;
-  projectToUi: (p: FastProject, order?: FastOrder) => UiVault;
-  orderToUi: (o: FastOrder, project: FastProject) => void; // partial record, not enough alone
-};
+  return {
+    id: dto.id,
+    project: dto.title,
+    clientName: client?.fullName ?? (client?.email ? String(client.email).split("@")[0] : "—"),
+    clientEmail: client?.email ?? "",
+    amountCents: cents ?? 0,
+    uiStatus,
+    kind: "other",
+    ...(dto.description ? { description: dto.description } : {}),
+    ...(status === "DRAFT" ? {} : createdAt === undefined ? {} : { invitedAt: createdAt }),
+    ...(SUBMITTED.includes(status) && updatedAt !== undefined ? { submittedAt: updatedAt } : {}),
+    filesCount: files.length,
+    files,
+    createdAt: createdAt ?? 0,
+    ...(capture ? { captureId: String(capture) } : {}),
+    /* the payout status is not on this DTO: it arrives with the capture
+       response, so the list row leaves it unset rather than guessing */
+  };
+}

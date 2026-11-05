@@ -9,6 +9,7 @@ import { PayPalAuthorizeButton } from "../shared/PayPalAuthorizeButton";
 import { useToast } from "../shared/Toasts";
 import { useRoom } from "./room";
 import { downloadVaultFile } from "../../lib/api";
+import { mockHoldAllowed } from "../../lib/apiClient";
 import { Copy, Check } from "./icons";
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -158,10 +159,14 @@ export function DecisionPanel() {
               }}
             />
           )}
-          <button type="button" className="room-primary" onClick={() => void fireAuthorize()} disabled={busy === "authorize"}>
-            {busy === "authorize" ? <span className="dash-spin" aria-hidden="true" /> : null}
-            {busy === "authorize" ? "Authorizing…" : "Authorize payment"}
-          </button>
+          {/* the mock hold moves no money, so a build with an API reaches it
+              through the PayPal button above and nothing else */}
+          {mockHoldAllowed() && (
+            <button type="button" className="room-primary" onClick={() => void fireAuthorize()} disabled={busy === "authorize"}>
+              {busy === "authorize" ? <span className="dash-spin" aria-hidden="true" /> : null}
+              {busy === "authorize" ? "Authorizing…" : "Authorize payment"}
+            </button>
+          )}
         </>
       )}
 

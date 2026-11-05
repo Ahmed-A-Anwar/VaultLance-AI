@@ -2,6 +2,8 @@ import { useState } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useToast } from "../shared/Toasts";
 import { API_BASE_URL, apiClient } from "../../lib/apiClient";
+import { authorizePaypalOrder, createPaypalOrder } from "../../lib/paypalWrites";
+import { realOn } from "../../config/fx";
 
 interface PayPalAuthorizeButtonProps {
   vaultId: string;
@@ -44,6 +46,12 @@ export function PayPalAuthorizeButton({
           createOrder={async () => {
             setLoading(true);
             try {
+              /* FX.real.payments routes both calls through the http client, so a
+                 timeout or a 401 is a typed error instead of a bare message */
+              if (realOn("payments")) {
+                const { orderId } = await createPaypalOrder(vaultId);
+                return orderId;
+              }
               const res = await fetch(`${apiBase}/api/vaults/${vaultId}/payment/order`, {
                 method: "POST",
                 headers: {
@@ -69,6 +77,12 @@ export function PayPalAuthorizeButton({
           }}
           onApprove={async (data) => {
             try {
+              if (realOn("payments")) {
+                const auth = await authorizePaypalOrder(vaultId, data.orderID);
+                toast({ message: `Payment authorized via PayPal: $${amountUSD} held in escrow!`, tone: "success" });
+                onSuccess(auth);
+                return;
+              }
               const res = await fetch(`${apiBase}/api/vaults/${vaultId}/payment/authorize`, {
                 method: "POST",
                 headers: {

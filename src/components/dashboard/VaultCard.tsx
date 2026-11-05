@@ -18,6 +18,9 @@ import { StatusChip } from "../shared/StatusChip";
 import { Stepper } from "./Stepper";
 import { PadlockOpen, Wheel } from "./icons";
 import { useDashData } from "./data";
+import { mockHoldAllowed } from "../../lib/apiClient";
+import { signedDownloadUrl } from "../../lib/vaultWrites";
+import { realOn } from "../../config/fx";
 import { useToast } from "../shared/Toasts";
 import { useNavigate } from "react-router-dom";
 
@@ -31,7 +34,7 @@ const CHIP: Record<VaultStatus, string> = {
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-type Busy = null | "authorize" | "audit" | "approve" | "reject";
+type Busy = null | "authorize" | "audit" | "approve" | "reject" | "download";
 
 export function VaultCard({
   vault,
@@ -97,6 +100,28 @@ export function VaultCard({
     }
   }
 
+  /* the delivered file sits behind a signed link the API mints only once the
+     vault is PAID, so the card asks for that link rather than a bare URL */
+  async function download() {
+    if (!realOn("vaultsWrite")) {
+      toast({ message: "Download starts in the real build.", tone: "info" });
+      return;
+    }
+    const file = vault.files?.[0];
+    if (!file) {
+      toast({ message: "No delivered file is attached to this vault yet.", tone: "info" });
+      return;
+    }
+    setBusy("download");
+    try {
+      window.open(await signedDownloadUrl(vault.id, file.id), "_blank", "noopener");
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const blocked = busy !== null;
   const spinner = <span className="dash-spin" aria-hidden="true" />;
 
@@ -144,16 +169,20 @@ export function VaultCard({
                 }}
                 disabled={blocked}
               />
-              <button
-                type="button"
-                className="dash-btn dash-btn-ghost"
-                style={{ fontSize: "11px", padding: "4px 8px" }}
-                onClick={() => void act("authorize")}
-                disabled={blocked}
-              >
-                <span className="dash-btn-label">{busy === "authorize" ? "Authorizing…" : "Instant Mock Authorize"}</span>
-                {busy === "authorize" ? spinner : <span className="dash-btn-arrow" aria-hidden="true">→</span>}
-              </button>
+              {/* the mock hold marks a vault held without any money moving, so it
+                  exists only where there is no API to hold money in: a demo build */}
+              {mockHoldAllowed() && (
+                <button
+                  type="button"
+                  className="dash-btn dash-btn-ghost"
+                  style={{ fontSize: "11px", padding: "4px 8px" }}
+                  onClick={() => void act("authorize")}
+                  disabled={blocked}
+                >
+                  <span className="dash-btn-label">{busy === "authorize" ? "Authorizing…" : "Instant Mock Authorize"}</span>
+                  {busy === "authorize" ? spinner : <span className="dash-btn-arrow" aria-hidden="true">→</span>}
+                </button>
+              )}
             </div>
           )}
 
@@ -205,9 +234,10 @@ export function VaultCard({
             <button
               type="button"
               className="dash-btn dash-btn-ghost"
-              onClick={() => { toast({ message: "Download starts in the real build.", tone: "info" }); }}
+              onClick={() => void download()}
+              disabled={blocked}
             >
-              <span className="dash-btn-label">Download</span>
+              <span className="dash-btn-label">{busy === "download" ? "Fetching…" : "Download"}</span>
             </button>
           )}
 

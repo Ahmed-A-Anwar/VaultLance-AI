@@ -3,6 +3,8 @@
  * Connects frontend to the backend REST API
  */
 
+import { clearAccessToken, configureHttp, getAccessToken, setAccessToken } from "./http";
+
 const explicitApiUrl = (import.meta.env.VITE_API_URL || "").trim();
 
 /*
@@ -18,6 +20,12 @@ export const API_BASE_URL =
 /** True when this build has an API to talk to (dev, or VITE_API_URL set). */
 export const hasApiConfigured = (): boolean =>
   Boolean(explicitApiUrl) || !import.meta.env.PROD;
+
+/** May a surface offer the demo hold, which marks a vault held without any money
+    moving? Only in a build that is not production, or one with no API to hold
+    money in. Deliberately not isDemoMode(): `?demo=1` and a localStorage key are
+    visitor-controlled, so they must not be able to turn a fake hold back on. */
+export const mockHoldAllowed = (): boolean => !import.meta.env.PROD || !hasApiConfigured();
 
 export const isDemoMode = (): boolean => {
   if (typeof window === "undefined") return false;
@@ -53,46 +61,31 @@ class ApiClient {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
-  /* The session object is the only place that knows both who is signed in and
-     which token belongs to them — and it is what the UI reads its role from. A
-     token left in vl_token by an earlier sign-in (another account, another
-     tab) used to be sent instead, so the dashboard showed one user's role while
-     the API ran as the other and answered 403 with "Current role: 'CLIENT'". */
-  private sessionToken(): string | null {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw =
-        window.sessionStorage.getItem("vl.dash.session") ||
-        window.localStorage.getItem("vl.dash.session");
-      if (!raw) return null;
-      const token = (JSON.parse(raw) as { token?: unknown }).token;
-      return typeof token === "string" && token ? token : null;
-    } catch {
-      return null;
-    }
-  }
+  /* The token lives in memory (src/lib/http.ts) and nowhere else. It is never
+     written to localStorage, sessionStorage or a URL, so a reload signs in
+     again rather than leaving a bearer token behind on the disk.
 
+     main fixed a real bug here (PR #19): the token and the role came from
+     different places, so after a second sign-in the API ran as one account while
+     the dashboard showed another. Reading the token from the stored session is
+     one answer; this branch makes the split impossible instead — the same
+     sign-in sets the role and the token, the stored session carries no token,
+     and there is exactly one place the token lives. */
   public getToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return (
-      this.sessionToken() ||
-      window.localStorage.getItem("vl_token") ||
-      window.sessionStorage.getItem("vl_token")
-    );
+    return getAccessToken();
   }
 
-  public setToken(token: string, persist: boolean = true): void {
-    if (typeof window === "undefined") return;
-    if (persist) {
-      window.localStorage.setItem("vl_token", token);
-    }
-    window.sessionStorage.setItem("vl_token", token);
+  public setToken(token: string, _persist: boolean = true): void {
+    setAccessToken(token);
   }
 
   public clearToken(): void {
-    if (typeof window === "undefined") return;
-    window.localStorage.removeItem("vl_token");
-    window.sessionStorage.removeItem("vl_token");
+    /* a token an older build left in storage is removed on the way through */
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("vl_token");
+      window.sessionStorage.removeItem("vl_token");
+    }
+    clearAccessToken();
   }
 
   private async request<T>(
@@ -126,6 +119,12 @@ class ApiClient {
       }));
 
       if (!response.ok) {
+        /* A 401 on a request that carried a token means the session is gone:
+           the shell clears it and returns to /signin. A 401 with no token is a
+           rejected sign-in, which must stay an inline error instead. */
+        if (response.status === 401 && token) {
+          window.dispatchEvent(new CustomEvent("vl:unauthorized"));
+        }
         return {
           success: false,
           message: json.message || `Request failed with status ${response.status}`,
@@ -270,3 +269,6 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
+/* the http client takes its base from the same rules, and from nowhere else */
+configureHttp(API_BASE_URL);

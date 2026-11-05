@@ -7,8 +7,11 @@
    behind the same function signatures. Each function names the endpoint it will
    call once this is no longer a mock. */
 
-import { FX } from "../config/fx";
+import { FX, realOn } from "../config/fx";
 import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
+import * as authApi from "./authApi";
+import { decideVaultOnServer } from "./vaultWrites";
+import { request } from "./http";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -36,6 +39,9 @@ export interface Vault {
   status: VaultStatus;
   createdAt: number;
   paypalOrderId?: string;
+  /* the delivered files a paid vault may download, when the response carries
+     them; the list used to drop this and left the card with nothing to fetch */
+  files?: Array<{ id: string; name: string }>;
 }
 
 export type LedgerType =
@@ -265,7 +271,7 @@ const API_BASE = API_BASE_URL.replace(/\/api$/, "");
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem("vl_token") || sessionStorage.getItem("vl_token") || "";
+  return apiClient.getToken() ?? "";
 }
 
 function authHeaders(): Record<string, string> {
@@ -388,7 +394,12 @@ export async function markAudited(id: string): Promise<Vault> {
 
 /* POST /api/vaults/{id}/approve */
 export async function approveVault(id: string, overrideFailures = false): Promise<Vault> {
-  const v = await postAction(id, "approve", overrideFailures ? { overrideFailures: true } : undefined);
+  /* with FX.real.vaultsWrite on the capture goes through the http client, so a
+     timeout, a 401 and a 409 all arrive as the typed error the UI already
+     handles; with it off the shipped call is untouched */
+  const v = realOn("vaultsWrite")
+    ? await decideVaultOnServer(id, "approve", overrideFailures ? { overrideFailures: true } : undefined)
+    : await postAction(id, "approve", overrideFailures ? { overrideFailures: true } : undefined);
   emit("PAYMENT.CAPTURED", v.id, "Capture completed, funds moved", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   emit("FILES.UNLOCKED", v.id, "Delivery unlocked to the freelancer", { paypalId: v.paypalOrderId });
   return v;
@@ -396,7 +407,7 @@ export async function approveVault(id: string, overrideFailures = false): Promis
 
 /* POST /api/vaults/{id}/reject */
 export async function rejectVault(id: string): Promise<Vault> {
-  const v = await postAction(id, "reject");
+  const v = realOn("vaultsWrite") ? await decideVaultOnServer(id, "reject") : await postAction(id, "reject");
   emit("PAYMENT.VOIDED", v.id, "Hold voided, nothing was charged", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   return v;
 }
@@ -405,6 +416,15 @@ export async function rejectVault(id: string): Promise<Vault> {
 export async function joinVault(code: string): Promise<Vault> {
   return call(() => {
     const clean = code.trim().toUpperCase();
+    /* codes are minted in this browser and there is no server route to redeem
+       one, so a real account is told the truth instead of being shown a failure
+       that reads like a typo */
+    if (!isDemoMode()) {
+      throw new ApiError(
+        "state",
+        "Joining by code isn’t available yet. Ask your freelancer to invite the email on your account."
+      );
+    }
     /* codes minted by the freelancer surface: the registry stands in for the
        invite table a real backend would query */
     const invited = lookupInvite(clean);
@@ -806,13 +826,20 @@ export async function runChecks(
   onProgress?: (checkId: string, state: CheckResult) => void
 ): Promise<VaultCheck[]> {
   if (!isDemoMode()) {
-    const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
-      method: "POST",
-      headers: authHeaders(),
-    });
-    if (!res.ok) return failWith(res, "The checks did not finish.");
+    /* FX.real.audit runs the checks through the http client, so a timeout or a
+       refused status reaches the room as the error it already renders */
+    const run = realOn("audit")
+      ? await request<{ checks?: any[] }>(`/vaults/${id}/checks/run`, { method: "POST" })
+      : await (async () => {
+          const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          if (!res.ok) return failWith(res, "The checks did not finish.");
+          return (await res.json()).data;
+        })();
 
-    const serverChecks: VaultCheck[] = ((await res.json()).data?.checks || []).map((c: any) => ({
+    const serverChecks: VaultCheck[] = (run?.checks || []).map((c: any) => ({
       id: c.id,
       name: c.name,
       detail: c.detail,
@@ -867,14 +894,20 @@ export async function askAI(
   onToken: (chunk: string) => void
 ): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
   if (!isDemoMode()) {
-    const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ question }),
-    });
-    if (!res.ok) return failWith(res, "The audit agent did not answer.");
-
-    const d = (await res.json()).data;
+    const d = realOn("audit")
+      ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean }>(`/vaults/${id}/chat`, {
+          method: "POST",
+          body: { question },
+        })
+      : await (async () => {
+          const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({ question }),
+          });
+          if (!res.ok) return failWith(res, "The audit agent did not answer.");
+          return (await res.json()).data;
+        })();
     const text: string = d.text || "";
     /* trickle tokens locally for the streaming effect */
     for (const char of text) {
@@ -1197,18 +1230,26 @@ export async function updateProfile(patch: { fullName: string }): Promise<Accoun
   if (name.length > 60) throw new ApiError("state", "Name can be at most 60 characters.");
 
   if (!isDemoMode()) {
-    const res = await apiClient.me.updateProfile({ fullName: name });
-    if (!res.success || !res.data) {
-      throw new ApiError("state", res.message || "Your name could not be saved.");
-    }
+    const data = realOn("settings")
+      ? await request<{ fullName?: string; email?: string; createdAt?: string }>("/auth/me", {
+          method: "PATCH",
+          body: { fullName: name },
+        })
+      : await (async () => {
+          const res = await apiClient.me.updateProfile({ fullName: name });
+          if (!res.success || !res.data) {
+            throw new ApiError("state", res.message || "Your name could not be saved.");
+          }
+          return res.data;
+        })();
     const s = load();
-    s.fullName = res.data.fullName || name;
+    s.fullName = data.fullName || name;
     persist();
     return {
       fullName: s.fullName,
-      email: res.data.email ?? accountEmail(),
+      email: data.email ?? accountEmail(),
       role: accountRole(),
-      memberSince: memberSinceOf(res.data.createdAt),
+      memberSince: memberSinceOf(data.createdAt),
       paypalEmail: accountRole() === "freelancer" ? s.payoutEmail : null,
     };
   }
@@ -1253,10 +1294,12 @@ export async function changePassword(
   if (next.length < MIN_PASSWORD) throw new ApiError("state", `Use at least ${MIN_PASSWORD} characters.`);
 
   if (!isDemoMode()) {
-    const res = await apiClient.me.changePassword({ currentPassword: current, newPassword: next });
-    if (!res.success) {
-      const wrong = /current password/i.test(res.message || "");
-      throw new ApiError(wrong ? "state" : "network", res.message || "The password could not be changed.");
+    try {
+      await authApi.changePassword(current, next);
+    } catch (e) {
+      const message = e instanceof Error && e.message ? e.message : "The password could not be changed.";
+      const wrong = /current password/i.test(message);
+      throw new ApiError(wrong ? "state" : "network", message);
     }
     return { sessions: await listSessions() };
   }
@@ -1358,9 +1401,11 @@ export async function exportData(): Promise<Blob> {
 /* DELETE /v1/me — refused while any vault is held or audited */
 export async function deleteAccount(emailConfirm: string): Promise<void> {
   if (!isDemoMode()) {
-    const res = await apiClient.me.remove({ email: emailConfirm.trim() });
-    if (!res.success) {
-      throw new ApiError("state", res.message || "The account could not be deleted.");
+    try {
+      await authApi.deleteAccount(emailConfirm.trim());
+    } catch (e) {
+      /* 409 carries the server's blocking reason; it is shown as it arrives */
+      throw new ApiError("state", e instanceof Error && e.message ? e.message : "The account could not be deleted.");
     }
     clearSession();
     return;

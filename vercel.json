@@ -15,12 +15,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/signup", "destination": "/index.html" },
-    { "source": "/signin", "destination": "/index.html" },
-    { "source": "/console", "destination": "/index.html" },
-    { "source": "/demo", "destination": "/index.html" },
-    { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/vault/:path*", "destination": "/index.html" },
-    { "source": "/v/:path*", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

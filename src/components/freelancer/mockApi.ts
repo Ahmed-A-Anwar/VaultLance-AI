@@ -10,8 +10,9 @@
    Reads carry 300–618ms of latency and, behind FX.mockErrors, fail 5% of the
    time so the error and retry paths stay reachable. */
 
-import { FX } from "../../config/fx";
+import { FX, realOn } from "../../config/fx";
 import { freelancerPayoutEstimate } from "../../lib/fees";
+import { isServerVaultId, submitVaultOnServer } from "../../lib/vaultWrites";
 import { allTimePaidCents, inEscrowCents as escrowTotal } from "../../lib/earnings";
 import { phaseOf, type Phase, type PayoutStatus, type UiStatus } from "../../lib/freelancerPhase";
 import { MOCK_ERROR_RATE, MOCK_LATENCY_MS, MOCK_PAYPAL_CAPTURE_PREFIX, REMIND_COOLDOWN_MS, SCAN_RULES } from "./mockConfig";
@@ -465,6 +466,11 @@ export async function updateVault(id: string, patch: Partial<FreelancerVault>): 
 /** DELETE /api/vaults/{id} */
 export async function deleteDraft(id: string): Promise<void> {
   await latency();
+  /* DELETE /api/vaults/:id is not wired, so a server draft refuses rather than
+     reporting a deletion that did not happen */
+  if (isServerVaultId(id)) {
+    throw new Error("Deleting isn’t available on the server yet, so the draft is still there.");
+  }
   const v = find(id);
   if (v.invitedAt || v.uiStatus !== "awaiting_payment") {
     throw new Error("Only a draft can be deleted.");
@@ -636,6 +642,14 @@ export async function inviteClient(id: string): Promise<{ inviteCode: string }> 
 /** POST /api/vaults/{id}/submit — locks the manifest */
 export async function submitForReview(id: string): Promise<{ manifestSha256: string }> {
   await latency();
+
+  /* a server vault has no local row: the API locks its manifest, and that is
+     the manifest the client's audit reads */
+  if (realOn("vaultsWrite") && isServerVaultId(id)) {
+    const res = await submitVaultOnServer(id);
+    return { manifestSha256: res.manifestSha256 };
+  }
+
   const v = find(id);
   if (v.filesCount === 0) throw new Error("Add a deliverable before submitting.");
   const manifest = v.manifestSha256 ?? manifestFor(v.files);
@@ -650,6 +664,10 @@ export async function submitForReview(id: string): Promise<{ manifestSha256: str
 /** POST /api/vaults/{id}/remind — once per 24h */
 export async function remindClient(id: string): Promise<{ nextAt: number }> {
   await latency();
+  /* no reminder route exists yet */
+  if (isServerVaultId(id)) {
+    throw new Error("Reminders aren’t available on the server yet, so nothing was sent.");
+  }
   const v = find(id);
   const now = Date.now();
   if (v.remindedAt && now - v.remindedAt < REMIND_COOLDOWN_MS) {
@@ -668,6 +686,11 @@ export const remindRemainingMs = (v: Pick<FreelancerVault, "remindedAt">): numbe
 /** POST /api/vaults/{id}/payout/retry */
 export async function retryPayout(id: string): Promise<FreelancerVault> {
   await latency();
+  /* the server has no retry route yet, so a server vault says so instead of
+     pretending a second payout went out */
+  if (isServerVaultId(id)) {
+    throw new Error("Payout retries aren’t available on the server yet, so nothing was sent.");
+  }
   const v = find(id);
   if (v.payoutStatus !== "failed") throw new Error("This payout isn’t failed.");
   v.payoutStatus = "paid";
@@ -680,6 +703,10 @@ export async function retryPayout(id: string): Promise<FreelancerVault> {
 /** POST /api/vaults/{id}/duplicate */
 export async function duplicateVault(id: string): Promise<FreelancerVault> {
   await latency();
+  /* no duplicate route exists yet */
+  if (isServerVaultId(id)) {
+    throw new Error("Duplicating isn’t available on the server yet, so nothing was created.");
+  }
   const source = find(id);
   const copy: FreelancerVault = {
     ...source,

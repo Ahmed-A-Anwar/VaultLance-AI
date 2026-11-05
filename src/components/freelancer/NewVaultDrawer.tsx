@@ -25,6 +25,9 @@ import {
 } from "./mockApi";
 import { SCAN_RULES } from "./mockConfig";
 import { apiClient, isDemoMode } from "../../lib/apiClient";
+import { createVaultOnServer } from "../../lib/vaultWrites";
+import { buildManifest, uploadArchive, verifyManifest } from "../../lib/uploadWrites";
+import { realOn } from "../../config/fx";
 
 type Step = 1 | 2 | 3;
 type Mode = "zip" | "url";
@@ -185,35 +188,63 @@ export function NewVaultDrawer({
     let vaultId = existing?.id ?? "";
 
     if (!vaultId) {
-      const res = await apiClient.vaults.create({
-        title: project.trim(),
-        ...(description ? { description: description.trim() } : {}),
-        amount: cents / 100,
-        currency: "USD",
-      });
-      if (!res.success || !res.data?.id) throw new Error(res.message || "The vault could not be created.");
-      vaultId = res.data.id;
+      /* FX.real.vaultsWrite sends this through the http client and the vault
+         adapter; with the flag off the shipped apiClient path is untouched */
+      if (realOn("vaultsWrite")) {
+        vaultId = (
+          await createVaultOnServer({
+            title: project.trim(),
+            ...(description ? { description: description.trim() } : {}),
+            amountCents: cents,
+          })
+        ).id;
+      } else {
+        const res = await apiClient.vaults.create({
+          title: project.trim(),
+          ...(description ? { description: description.trim() } : {}),
+          amount: cents / 100,
+          currency: "USD",
+        });
+        if (!res.success || !res.data?.id) throw new Error(res.message || "The vault could not be created.");
+        vaultId = res.data.id;
+      }
     }
 
     let serverManifest: string | undefined;
 
     if (mode === "zip" && file) {
-      const upload = await apiClient.uploads.uploadFile(vaultId, file);
-      if (!upload.success) throw new Error(upload.message || "The archive could not be uploaded.");
+      if (realOn("uploads")) {
+        /* upload, build, re-verify — each step's own failure stops the run */
+        await uploadArchive(vaultId, file);
+        const built = await buildManifest(vaultId);
+        if (!built.hash) throw new Error("The manifest could not be built.");
+        if (built.totalFiles < 1) {
+          throw new Error("The manifest came back empty, so the upload was not recorded.");
+        }
+        const check = await verifyManifest(vaultId);
+        if (!check.reproducible) {
+          throw new Error("The manifest did not reproduce, so the delivery was refused.");
+        }
+        serverManifest = built.hash;
+        setManifest(serverManifest);
+      } else {
+        const upload = await apiClient.uploads.uploadFile(vaultId, file);
+        if (!upload.success) throw new Error(upload.message || "The archive could not be uploaded.");
 
-      const built = await apiClient.manifests.get(vaultId);
-      if (!built.success || !built.data?.manifestHash) {
-        throw new Error(built.message || "The manifest could not be built.");
-      }
-      if (Number(built.data.totalFiles) < 1) {
-        throw new Error("The manifest came back empty, so the upload was not recorded.");
-      }
-      serverManifest = built.data.manifestHash;
-      setManifest(serverManifest);
+        const built = await apiClient.manifests.get(vaultId);
+        if (!built.success || !built.data?.manifestHash) {
+          throw new Error(built.message || "The manifest could not be built.");
+        }
+        if (Number(built.data.totalFiles) < 1) {
+          throw new Error("The manifest came back empty, so the upload was not recorded.");
+        }
+        serverManifest = built.data.manifestHash;
+        setManifest(serverManifest);
 
-      const check = await apiClient.manifests.verify(vaultId);
-      if (check.success && check.data && check.data.reproducible === false) {
-        throw new Error("The manifest did not reproduce, so the delivery was refused.");
+        const check = await apiClient.manifests.verify(vaultId);
+        if (check.success && check.data && check.data.reproducible === false) {
+          throw new Error("The manifest did not reproduce, so the delivery was refused.");
+        }
       }
     }
 

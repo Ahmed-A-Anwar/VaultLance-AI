@@ -1,8 +1,19 @@
-import { lazy, Suspense } from "react";
-import { RouterProvider, createBrowserRouter, Navigate, Outlet, RouteObject, useSearchParams } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import {
+  RouterProvider,
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouteObject,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import VaultLayout from "./layouts/VaultLayout";
 import { DashArea } from "./pages/dashboard/RoleGate";
 import { NotFoundPage } from "./pages/dashboard/RoleGate";
+import { clearSession } from "./lib/mockAuth";
+import { setUnauthorizedHandler } from "./lib/http";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -39,6 +50,33 @@ function Playground() {
 }
 
 function Shell() {
+  /* One door for a lost session. A 401 has already been cleared by the http
+     client; here the reader goes to /signin carrying the page they were on, so
+     signing in can send them straight back. Navigating only when they are not
+     already on /signin is what keeps this from looping. */
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const leave = () => {
+      clearSession();
+      if (location.pathname === "/signin") return;
+      navigate("/signin", {
+        replace: true,
+        state: { from: `${location.pathname}${location.search}` },
+      });
+    };
+
+    setUnauthorizedHandler(leave);
+    /* the older api client reports the same 401 as an event, so both paths
+       land on one door */
+    window.addEventListener("vl:unauthorized", leave);
+    return () => {
+      setUnauthorizedHandler(null);
+      window.removeEventListener("vl:unauthorized", leave);
+    };
+  }, [navigate, location.pathname, location.search]);
+
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>

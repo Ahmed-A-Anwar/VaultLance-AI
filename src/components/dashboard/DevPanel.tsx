@@ -22,6 +22,8 @@ export function DevPanel() {
   const vaults = devVaultIds();
 
   useEffect(() => {
+    /* nothing in a production build listens for Shift+D at all */
+    if (!isDev()) return;
     const onKey = (e: KeyboardEvent) => {
       if (!e.shiftKey || e.key.toLowerCase() !== "d") return;
       const t = e.target as HTMLElement | null;

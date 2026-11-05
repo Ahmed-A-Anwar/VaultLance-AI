@@ -6,6 +6,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { clearSession, readSession, writeSession, type Role, type Session } from "../../lib/mockAuth";
+import * as authApi from "../../lib/authApi";
 
 interface SessionValue {
   session: Session | null;
@@ -24,6 +25,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => readSession());
 
   const signOut = useCallback(() => {
+    /* the server revokes the session row; the local clear never waits on it, so
+       signing out works offline too */
+    void authApi.logout();
     clearSession();
     setSession(null);
   }, []);

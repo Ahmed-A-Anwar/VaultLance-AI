@@ -21,7 +21,8 @@ import {
   type SignupPayload,
   type SignupValues,
 } from "../lib/validations/auth";
-import { apiClient, isDemoMode } from "../lib/apiClient";
+import { isDemoMode } from "../lib/apiClient";
+import * as authApi from "../lib/authApi";
 import { writeSession } from "../lib/mockAuth";
 
 type Step = 1 | 2 | 3;
@@ -207,29 +208,24 @@ export default function Signup() {
     }
 
     try {
-      const res = await apiClient.auth.register({
+      const session = await authApi.register({
         email: values.email,
         password: values.password,
         fullName: values.fullName,
         role: backendRole,
       });
 
-      if (!res.success || !res.data) {
-        setIsSubmitting(false);
-        setServerError(res.message || "Failed to create account. Please check your details.");
-        return;
-      }
-
-      // Successful registration: write authenticated session
+      /* the role written to the session is the one the server stored, not the
+         one the stepper offered: the API decides which shell this account has */
       writeSession({
-        email: res.data.user.email,
-        role: values.role,
-        name: res.data.user.fullName,
+        email: session.user.email,
+        role: session.user.role === "FREELANCER" ? "freelancer" : "client",
+        name: session.user.fullName,
         since: Date.now(),
-        token: res.data.token,
+        token: session.token,
       });
 
-      setCreatedEmail(res.data.user.email);
+      setCreatedEmail(session.user.email);
     } catch (err: any) {
       setIsSubmitting(false);
       setServerError(err.message || "Server connection error. Please make sure the backend is running.");
