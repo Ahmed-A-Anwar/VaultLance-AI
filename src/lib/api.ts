@@ -9,6 +9,7 @@
 
 import { FX } from "../config/fx";
 import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
+import * as authApi from "./authApi";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -1253,10 +1254,12 @@ export async function changePassword(
   if (next.length < MIN_PASSWORD) throw new ApiError("state", `Use at least ${MIN_PASSWORD} characters.`);
 
   if (!isDemoMode()) {
-    const res = await apiClient.me.changePassword({ currentPassword: current, newPassword: next });
-    if (!res.success) {
-      const wrong = /current password/i.test(res.message || "");
-      throw new ApiError(wrong ? "state" : "network", res.message || "The password could not be changed.");
+    try {
+      await authApi.changePassword(current, next);
+    } catch (e) {
+      const message = e instanceof Error && e.message ? e.message : "The password could not be changed.";
+      const wrong = /current password/i.test(message);
+      throw new ApiError(wrong ? "state" : "network", message);
     }
     return { sessions: await listSessions() };
   }
@@ -1358,9 +1361,11 @@ export async function exportData(): Promise<Blob> {
 /* DELETE /v1/me — refused while any vault is held or audited */
 export async function deleteAccount(emailConfirm: string): Promise<void> {
   if (!isDemoMode()) {
-    const res = await apiClient.me.remove({ email: emailConfirm.trim() });
-    if (!res.success) {
-      throw new ApiError("state", res.message || "The account could not be deleted.");
+    try {
+      await authApi.deleteAccount(emailConfirm.trim());
+    } catch (e) {
+      /* 409 carries the server's blocking reason; it is shown as it arrives */
+      throw new ApiError("state", e instanceof Error && e.message ? e.message : "The account could not be deleted.");
     }
     clearSession();
     return;
