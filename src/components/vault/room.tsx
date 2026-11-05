@@ -104,7 +104,10 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
   const [unlocking, setUnlocking] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [capturedAt, setCapturedAt] = useState<number | null>(null);
-  const [approvedPending, setApprovedPending] = useState(false);
+  /* seeded from the saved order, not from the address: the room page records a
+     PayPal return and strips the query before this provider ever mounts, so
+     reading window.location here would always miss it */
+  const [approvedPending, setApprovedPending] = useState(() => Boolean(pendingApprovalFor(id)));
   const finishing = useRef(false);
 
   const timers = useRef<number[]>([]);
