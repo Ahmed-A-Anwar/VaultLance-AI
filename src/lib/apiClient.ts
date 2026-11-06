@@ -214,6 +214,20 @@ class ApiClient {
       this.request<any>(`/vaults/${id}/accept`, {
         method: "POST",
       }),
+
+    /* POST /vaults/:id/invite-code — mints VL-XXXX-XXXX, single use, 7 days */
+    inviteCode: (id: string) =>
+      this.request<{ vaultId: string; code: string; expiresAt: string }>(
+        `/vaults/${id}/invite-code`,
+        { method: "POST" }
+      ),
+
+    /* POST /vaults/join { code } — the client holds the code, never the vault id */
+    joinByCode: (code: string) =>
+      this.request<{ vaultId: string; joined: boolean; status?: string }>("/vaults/join", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      }),
   };
 
   // --- Account APIs ---

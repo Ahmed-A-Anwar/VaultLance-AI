@@ -234,18 +234,21 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
       return;
     }
     if (action === "invite") {
-      /* the server invites an existing account by email; there is no link */
+      /* the code is minted server-side (single use, 7 days) and the link opens
+         the client's join row with it already filled in */
       if (!isDemoMode()) {
         try {
-          const res = await apiClient.vaults.invite(vault.id, vault.clientEmail);
-          if (!res.success) {
-            toast({ message: res.message || "The invite did not go out.", tone: "error" });
+          const res = await apiClient.vaults.inviteCode(vault.id);
+          const code = res.success ? String(res.data?.code ?? "") : "";
+          if (!code) {
+            toast({ message: res.message || "The invite code was not created.", tone: "error" });
             return;
           }
-          toast({ message: `Invite sent to ${vault.clientEmail}.`, tone: "success" });
-          await refresh();
+          const link = `${window.location.origin}/dashboard?join=${code}`;
+          await navigator.clipboard?.writeText(link);
+          toast({ message: `Invite link copied — code ${code}, valid for 7 days.`, tone: "success" });
         } catch (e) {
-          toast({ message: e instanceof Error ? e.message : "The invite did not go out.", tone: "error" });
+          toast({ message: e instanceof Error ? e.message : "Couldn't copy the link.", tone: "error" });
         }
         return;
       }
