@@ -223,6 +223,7 @@ router.post("/:id/authorize", async (req, res, next) => {
       "AWAITING_AUTHORIZATION",
       "AWAITING_CLIENT",
       "DRAFT",
+      "SUBMITTED",
     ];
     if (!allowedFrom.includes(vault.status as VaultStatus)) {
       throw new BadRequestError(

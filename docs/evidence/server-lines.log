@@ -1,0 +1,6 @@
+2026-11-06T16:56:52Z app[894921f643ee78] cdg [info][ERROR] 2026-11-06T16:56:52.327Z - [PayPal] API Error /v1/notifications/verify-webhook-signature: 400 {
+2026-11-06T16:56:52Z app[894921f643ee78] cdg [info][ERROR] 2026-11-06T16:56:52.328Z - [PayPal] Webhook signature verification failed: BadRequestError: Request is not well-formed, syntactically incorrect, or violates schema.
+2026-11-06T16:56:52Z app[894921f643ee78] cdg [info][WARN] 2026-11-06T16:56:52.328Z - [webhook] rejected PAYMENT.CAPTURE.COMPLETED with an invalid signature
+2026-11-06T16:56:55Z app[894921f643ee78] cdg [info]GET /api/vaults/…e6bc/payout 200 262.252 ms - 348
+2026-11-06T16:56:58Z app[894921f643ee78] cdg [info][WARN] 2026-11-06T16:56:58.184Z - [webhook] authorization …0020 for vault …ab95 ignored: Vault is CANCELLED; a hold cannot move it forward.
+2026-11-06T16:57:05Z app[894921f643ee78] cdg [info]GET /api/vaults/…e6bc/payout 200 278.254 ms - 348

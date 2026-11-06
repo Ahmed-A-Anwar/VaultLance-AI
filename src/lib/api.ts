@@ -75,10 +75,13 @@ export type ApiErrorKind = "network" | "conflict" | "not_found" | "state" | "rat
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
-  constructor(kind: ApiErrorKind, message: string) {
+  /** the server's 409 details, kept so the delete modal can list blockers */
+  details?: unknown;
+  constructor(kind: ApiErrorKind, message: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
     this.kind = kind;
+    this.details = details;
   }
 }
 
@@ -932,16 +935,40 @@ export async function runChecks(
   return done;
 }
 
+/* GET /api/vaults/{id}/report — the grounded explanation stored by the audit */
+export async function getAuditReport(
+  id: string
+): Promise<{ text: string; sources: SourceChip[]; cached: boolean } | null> {
+  if (isDemoMode()) return null;
+  try {
+    const d = realOn("audit")
+      ? await request<{ report?: string; sources?: SourceChip[]; cached?: boolean }>(`/vaults/${id}/report`)
+      : await (async () => {
+          const res = await fetch(`${API_BASE}/api/vaults/${id}/report`, { headers: authHeaders() });
+          if (!res.ok) return null;
+          return (await res.json()).data;
+        })();
+    if (!d?.report) return null;
+    return {
+      text: d.report,
+      sources: (d.sources || []) as SourceChip[],
+      cached: d.cached ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* POST /api/vaults/{id}/chat — calls the real backend AI endpoint.
    Falls back to in-memory answerFor() if backend is unreachable. */
 export async function askAI(
   id: string,
   question: string,
   onToken: (chunk: string) => void
-): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
+): Promise<{ text: string; sources: SourceChip[]; cached: boolean; questionsUsed?: number }> {
   if (!isDemoMode()) {
     const d = realOn("audit")
-      ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean }>(`/vaults/${id}/chat`, {
+      ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean; questionsUsed?: number }>(`/vaults/${id}/chat`, {
           method: "POST",
           body: { question },
         })
@@ -960,11 +987,13 @@ export async function askAI(
       onToken(char);
       await wait(18);
     }
-    questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
+    const used = d.questionsUsed ?? (questionsUsed.get(id) ?? 0) + 1;
+    questionsUsed.set(id, used);
     return {
       text,
       sources: (d.sources || []) as SourceChip[],
       cached: d.cached ?? false,
+      questionsUsed: used,
     };
   }
 
@@ -977,8 +1006,9 @@ export async function askAI(
     onToken(char);
     await wait(25);
   }
-  questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
-  return { text: answer.text, sources: answer.sources, cached: true };
+  const used = (questionsUsed.get(id) ?? 0) + 1;
+  questionsUsed.set(id, used);
+  return { text: answer.text, sources: answer.sources, cached: true, questionsUsed: used };
 }
 
 function answerFor(v: Vault, question: string): { text: string; sources: SourceChip[] } {
@@ -1202,13 +1232,24 @@ export async function getSettings(): Promise<AccountSettings> {
     }
     const me = res.data;
     const role: Role = String(me.role).toUpperCase() === "FREELANCER" ? "freelancer" : "client";
+    /* the payout address is the server's, not this browser's: Settings, the
+       Overview banner and the Payments card must read the same one value */
+    let paypalEmail: string | null = null;
+    if (role === "freelancer") {
+      try {
+        const payout = await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile");
+        paypalEmail = payout.paypalEmail ?? null;
+      } catch {
+        paypalEmail = null;
+      }
+    }
     return {
       profile: {
         fullName: me.fullName || s.fullName,
         email: me.email,
         role,
         memberSince: memberSinceOf(me.createdAt),
-        paypalEmail: role === "freelancer" ? s.payoutEmail : null,
+        paypalEmail,
       },
       notifications: copyNotifs(s.notifications),
       motion: s.motion,
@@ -1247,6 +1288,17 @@ export function setPayoutEmail(email: string | null): void {
 /* PUT /v1/me/payout-profile — the payout address, validated here so Settings
    cannot save an unusable one. */
 export async function updatePayoutProfile(patch: { paypalEmail: string }): Promise<AccountProfile> {
+  if (!isDemoMode()) {
+    const data = await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile", {
+      method: "PUT",
+      body: { paypalEmail: patch.paypalEmail.trim() },
+    });
+    const s = load();
+    s.payoutEmail = data.paypalEmail ?? null;
+    persist();
+    return { ...profileOf(s), paypalEmail: s.payoutEmail };
+  }
+
   return settingsCall(() => {
     const email = patch.paypalEmail.trim();
     if (!email) throw new ApiError("state", "Add a PayPal email.");
@@ -1450,8 +1502,13 @@ export async function deleteAccount(emailConfirm: string): Promise<void> {
     try {
       await authApi.deleteAccount(emailConfirm.trim());
     } catch (e) {
-      /* 409 carries the server's blocking reason; it is shown as it arrives */
-      throw new ApiError("state", e instanceof Error && e.message ? e.message : "The account could not be deleted.");
+      /* 409 carries the server's blocking reason and the vaults behind it */
+      const details = (e as { details?: unknown })?.details;
+      throw new ApiError(
+        "state",
+        e instanceof Error && e.message ? e.message : "The account could not be deleted.",
+        details
+      );
     }
     clearSession();
     return;

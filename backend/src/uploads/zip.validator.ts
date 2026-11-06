@@ -66,6 +66,46 @@ export class ZipSecurityValidator {
         );
       }
 
+      // Symlink entries can point outside the extraction directory. Reject
+      // them before any size/hash inspection; the archive is never executed.
+      const unixMode = (Number(entry.header.attr) >>> 16) & 0o170000;
+      if (unixMode === 0o120000) {
+        throw new SecurityError(
+          `ZIP archive contains a symlink entry: '${entryName}'`,
+          "ZIP_SYMLINK_REJECTED"
+        );
+      }
+
+      // A zip inside the delivery is one level deep and allowed. Anything
+      // inside that nested zip is rejected, and the nested zip is inspected
+      // as data (never extracted to disk or executed).
+      if (!entry.isDirectory && /\.zip$/i.test(entryName)) {
+        try {
+          const nested = new AdmZip(entry.getData());
+          for (const inner of nested.getEntries()) {
+            const innerMode = (Number(inner.header.attr) >>> 16) & 0o170000;
+            if (innerMode === 0o120000) {
+              throw new SecurityError(
+                `Nested ZIP contains a symlink entry: '${inner.entryName}'`,
+                "ZIP_SYMLINK_REJECTED"
+              );
+            }
+            if (/\.zip$/i.test(inner.entryName)) {
+              throw new SecurityError(
+                `Nested ZIP '${entryName}' exceeds the allowed archive depth of 1.`,
+                "ZIP_NESTING_DEPTH_EXCEEDED"
+              );
+            }
+          }
+        } catch (err) {
+          if (err instanceof SecurityError) throw err;
+          throw new SecurityError(
+            `Nested ZIP '${entryName}' could not be inspected safely.`,
+            "INVALID_NESTED_ZIP"
+          );
+        }
+      }
+
       const uncompressedSize = entry.header.size;
       const compressedSize = entry.header.compressedSize;
 

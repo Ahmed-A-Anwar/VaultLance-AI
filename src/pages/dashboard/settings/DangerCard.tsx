@@ -133,6 +133,24 @@ export function DangerCard({ email, role = "client", onDeleted }: { email: strin
         onDeleted();
       }, 1000);
     } catch (e) {
+      /* the server's 409 names the vaults still in motion; list them as the
+         same links the pre-check draws, and keep the old text as fallback */
+      const details = (e as { details?: unknown })?.details as
+        | { blockers?: Array<{ id?: unknown; title?: unknown; status?: unknown }> }
+        | undefined;
+      const rows = Array.isArray(details?.blockers) ? details!.blockers! : [];
+      if (rows.length) {
+        setBlockers(
+          rows.map((b) => ({
+            id: String(b.id ?? ""),
+            project: String(b.title ?? "Vault").slice(0, 60),
+            href: isFreelancer ? "/dashboard/vaults" : `/vault/${String(b.id ?? "")}`,
+            meta: String(b.status ?? "IN PROGRESS"),
+          }))
+        );
+        setDeleting(false);
+        return;
+      }
       push({ message: e instanceof Error ? e.message : "Couldn't delete the account.", tone: "error" });
       setDeleting(false);
     }

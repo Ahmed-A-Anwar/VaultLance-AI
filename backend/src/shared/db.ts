@@ -8,6 +8,8 @@ export interface DbUserRecord {
   full_name: string;
   role: "FREELANCER" | "CLIENT";
   avatar_url?: string | null;
+  /** where payouts are sent; empty falls back to the login email */
+  paypal_payout_email?: string | null;
   account_status: "ACTIVE" | "PENDING" | "SUSPENDED";
   created_at: Date;
   updated_at: Date;

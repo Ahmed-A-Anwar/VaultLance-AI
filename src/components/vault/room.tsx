@@ -12,6 +12,7 @@ import {
   ApiError,
   approveVault,
   askAI,
+  getAuditReport,
   authorizeVault,
   getVaultDetail,
   rejectVault,
@@ -309,10 +310,12 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       const passed = results.filter((r) => r.result === "pass").length;
       const warned = results.filter((r) => r.result === "warn").length;
       const failed = results.filter((r) => r.result === "fail").length;
-      const line = `The audit is done. ${passed} of ${results.length} passed${
+      const fallbackLine = `The audit is done. ${passed} of ${results.length} passed${
         warned ? `, ${warned} warning${warned === 1 ? "" : "s"}` : ""
       }${failed ? `, ${failed} failed` : ""}. ${results.map((r) => `${r.name}: ${r.detail}.`).join(" ")}`;
-      const messageId = pushAi(line, [], false);
+      const report = await getAuditReport(id);
+      const line = report?.text || fallbackLine;
+      const messageId = pushAi(line, report?.sources || [], report?.cached || false);
       streamInto(messageId, line);
     } catch (e) {
       setChecks((prev) => prev.map((c) => (c.state === "running" ? { ...c, state: "queued" } : c)));
@@ -359,7 +362,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
             m.id === answerId ? { ...m, streaming: false, sources: res.sources, cached: res.cached } : m
           )
         );
-        setQuestionsUsed((n) => n + 1);
+        setQuestionsUsed((n) => res.questionsUsed ?? n + 1);
       } catch (e) {
         const message = e instanceof ApiError ? e.message : "The agent did not answer.";
         setMessages((prev) =>

@@ -194,6 +194,9 @@ paypalRouter.post("/:vaultId/payment/order", requireAuth, async (req, res, next)
       "AWAITING_AUTHORIZATION",
       "AWAITING_CLIENT",
       "DRAFT",
+      /* a delivery can be submitted before the client is invited; the locked
+         manifest must not make the vault impossible to fund */
+      "SUBMITTED",
     ];
     if (!eligibleStatuses.includes(vault.status as VaultStatus)) {
       throw new BadRequestError(

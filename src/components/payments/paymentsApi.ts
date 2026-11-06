@@ -14,6 +14,7 @@
 import { FX } from "../../config/fx";
 import { isDemoMode } from "../../lib/apiClient";
 import { retryPayoutOnServer } from "../../lib/vaultWrites";
+import { request } from "../../lib/http";
 import { payoutStatusOf, readPayout } from "../../lib/payout";
 import {
   hasPayoutEmail,
@@ -22,7 +23,6 @@ import {
   listLiveVaults,
   listVaults,
   readPayoutEmail,
-  PAYOUT_EMAIL_DEFAULT,
 } from "../../lib/api";
 import {
   listFreelancerEvents,
@@ -80,11 +80,9 @@ const maybeFail = () => {
     store owns, so the Overview banner, Settings and this card cannot drift. */
 export async function getPayoutProfile(): Promise<PayoutProfile> {
   if (!isDemoMode()) {
-    /* the address is still this browser's: the server keeps no payout profile
-       yet, so a seeded demo address is reported as missing, never as verified */
-    const stored = readPayoutEmail();
-    const email = stored && stored !== PAYOUT_EMAIL_DEFAULT ? stored : null;
-    return { paypalEmail: email, verified: false, currency: "USD" };
+    const profile = await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile");
+    const email = profile.paypalEmail ?? null;
+    return { paypalEmail: email, verified: !!email, currency: "USD" };
   }
 
   await wait(latency());

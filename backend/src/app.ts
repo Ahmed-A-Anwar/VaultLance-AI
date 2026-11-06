@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import authRoutes from "./auth/auth.routes.js";
 import vaultRoutes from "./vaults/vault.routes.js";
 import vaultActionRoutes from "./vaults/vault.actions.js";
+import auditRoutes from "./audit/routes.js";
 import inviteRoutes from "./vaults/invite.routes.js";
 import submitRoutes from "./vaults/submit.routes.js";
 import downloadRoutes from "./vaults/download.routes.js";
@@ -70,6 +71,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/vaults", paypalRouter); // PayPal order/authorize/capture/void
 app.use("/api/vaults", payoutRoutes); // payout retry (additive)
+app.use("/api/vaults", auditRoutes); // deterministic checks + grounded AI audit
 app.use("/api/vaults", vaultActionRoutes); // action routes first (more specific paths)
 app.use("/api/vaults", inviteRoutes); // invite codes (additive)
 app.use("/api/vaults", submitRoutes); // submit + manifest lock (additive)

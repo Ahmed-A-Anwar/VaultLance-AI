@@ -300,6 +300,56 @@ export async function appendLedger(
   memoryLedger.push({ vault_id: vaultId, event_type: eventType, actor_id: actorId, metadata: { note, amountCents, ...extra } });
 }
 
+/** Payout rows for the vaults this freelancer owns, statuses only. */
+export async function listPayoutsForFreelancer(
+  userId: string
+): Promise<Array<{ vaultId: string; status: string }>> {
+  if (live()) {
+    const { data: vaults } = await supabase!.from("vaults").select("id").eq("freelancer_id", userId);
+    const ids = (vaults || []).map((row: any) => String(row.id));
+    if (!ids.length) return [];
+    const { data } = await supabase!.from("vault_payouts").select("vault_id, status").in("vault_id", ids);
+    return (data || []).map((row: any) => ({ vaultId: String(row.vault_id), status: String(row.status) }));
+  }
+  const rows: Array<{ vaultId: string; status: string }> = [];
+  for (const vault of database.store.vaults.values()) {
+    if (vault.freelancer_id !== userId) continue;
+    const payout = memoryPayouts.get(vault.id);
+    if (payout) rows.push({ vaultId: vault.id, status: payout.status });
+  }
+  return rows;
+}
+
+/** An account-level ledger line. No vault owns it, so vault_id is null. */
+export async function appendAccountLedger(
+  userId: string,
+  eventType: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  if (live()) {
+    const { error } = await supabase!.from("ledger_events").insert([
+      {
+        id: crypto.randomUUID(),
+        vault_id: null,
+        actor_id: userId,
+        event_type: eventType,
+        amount: null,
+        currency: "USD",
+        metadata,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    if (error) logger.warn(`[money] account ledger write failed: ${error.message}`);
+    return;
+  }
+  memoryLedger.push({
+    vault_id: null as unknown as string,
+    event_type: eventType,
+    actor_id: userId,
+    metadata,
+  });
+}
+
 /** Vaults stuck in CAPTURE_PENDING past the grace period, oldest first. */
 export async function listCapturePending(olderThanSeconds: number): Promise<string[]> {
   const cutoff = new Date(Date.now() - olderThanSeconds * 1000).toISOString();

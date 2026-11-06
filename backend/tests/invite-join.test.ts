@@ -184,4 +184,27 @@ describe("invite codes — mint and join", () => {
     expect(res.status).toBe(200);
     expect(res.body.data.joined).toBe(true);
   });
+
+  it("locks a DRAFT delivery before invitation and keeps it payable", async () => {
+    const vaultId = await createVault();
+    await request(app)
+      .post(`/api/uploads/${vaultId}`)
+      .set("Authorization", `Bearer ${freelancerToken}`)
+      .attach("file", Buffer.from("a real deliverable"), "delivery.txt")
+      .expect(201);
+
+    const submitted = await request(app)
+      .post(`/api/vaults/${vaultId}/submit`)
+      .set("Authorization", `Bearer ${freelancerToken}`);
+    expect(submitted.status).toBe(200);
+    expect(submitted.body.data.manifestSha256).toMatch(/^[a-f0-9]{64}$/);
+
+    const code = await mint(vaultId);
+    expect((await join(clientToken, code)).status).toBe(200);
+
+    const read = await request(app)
+      .get(`/api/vaults/${vaultId}`)
+      .set("Authorization", `Bearer ${clientToken}`);
+    expect(read.body.data.status).toBe("SUBMITTED");
+  });
 });

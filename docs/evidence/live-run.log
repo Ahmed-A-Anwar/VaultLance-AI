@@ -1,0 +1,17 @@
+2026-11-06T16:53:55.117Z health healthy version phase1-money-loop
+2026-11-06T16:54:30.402Z STEP 1 PASS — Freelancer signs in, saves payout, creates/submits/invites; client joins: zip 324B; manifest …203d
+2026-11-06T16:54:39.539Z PayPal: opened payer-action entry for vault …e6bc
+2026-11-06T16:54:55.123Z STEP 2 PASS — Client starts payment and sandbox buyer approves at PayPal: order …014E; hold …893X
+2026-11-06T16:54:58.564Z STEP 3 PASS — Vault shows AUTHORIZED: status AUTHORIZED
+2026-11-06T16:55:12.599Z restart drill: temporary 20s delay installed on CAPTURE_PENDING -> PAID
+2026-11-06T16:55:14.950Z restart drill: CAPTURE_PENDING observed; restarting the Fly app
+2026-11-06T16:55:30.705Z restart drill: temporary delay trigger removed
+2026-11-06T16:55:35.899Z restart drill: vault reached PAID after the API restart
+2026-11-06T16:55:40.820Z STEP 4 PASS — Audit, approve, PAID, download works; pre-PAID download 403: gross $25; pre-PAID 403; signed 200; body amount 0.01 ignored; restart PAID_AFTER_RESTART
+2026-11-06T16:56:24.047Z STEP 5 PASS — Payout reaches paid and shows for the freelancer: status paid; payout …77K4
+2026-11-06T16:56:33.092Z PayPal: opened payer-action entry for vault …ab95
+2026-11-06T16:56:51.568Z STEP 6 PASS — Second vault authorizes, rejects, void confirmed, files locked: PayPal VOIDED; wrong-state 409; download 403
+2026-11-06T16:57:07.168Z STEP 7 PASS — Replay, invalid signature, wrong user/state, amount ignored, restart during CAPTURE_PENDING: signature 400; wrong user 403; wrong state 409; replay no second payout; restart PAID_AFTER_RESTART
+2026-11-06T16:57:13.877Z restart drill: temporary delay trigger removed
+2026-11-06T16:57:14.326Z SUMMARY 7/7 steps passed
+2026-11-06T16:57:14.326Z EVIDENCE docs\evidence\results.json

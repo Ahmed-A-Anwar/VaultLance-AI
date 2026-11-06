@@ -47,6 +47,20 @@ export const updateProfileSchema = z.object({
   }),
 });
 
+/* One accepted field. Unknown keys are stripped by zod, so an old client that
+   sends the whole profile cannot rename the account through this route. */
+export const payoutProfileSchema = z.object({
+  body: z.object({
+    paypalEmail: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(1, "Enter a PayPal email.")
+      .max(254, "Email must be at most 254 characters")
+      .email("Enter a valid PayPal email."),
+  }),
+});
+
 export const deleteAccountSchema = z.object({
   body: z.object({
     email: z.string().trim().toLowerCase().email("Invalid email format"),
