@@ -6,8 +6,8 @@
    The client path is unchanged: Rail and TopStrip render without their role
    props, so they fall back to the defaults they shipped with. */
 
-import { useMemo, useRef } from "react";
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef } from "react";
+import { Navigate, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Rail } from "../../components/dashboard/Rail";
 import { TopStrip } from "../../components/dashboard/TopStrip";
 import { DashUiProvider, useDashUi } from "../../components/dashboard/ui";
@@ -43,6 +43,7 @@ function Surface() {
   const { setJoinOpen } = useDashUi();
   const location = useLocation();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   const root = useRef<HTMLDivElement>(null);
   /* signing out navigates to the landing page; without this the empty-session
@@ -58,6 +59,18 @@ function Surface() {
   );
 
   const showSearch = !NO_SEARCH.has(location.pathname);
+
+  /* /dashboard?join=CODE is the link a freelancer copies. The row that
+     redeems it is mounted only while a list is on screen, so the shell opens
+     it here before JoinRow reads and clears the code. */
+  useEffect(() => {
+    if (!session || isFreelancer) return;
+    if (!(params.get("join") ?? "").trim()) return;
+    setJoinOpen(true);
+    if (location.pathname !== "/dashboard" && !location.pathname.startsWith("/dashboard/vaults")) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [session, isFreelancer, params, location.pathname, navigate, setJoinOpen]);
 
   if (!session) return leaving.current ? null : <Navigate to="/signin" replace />;
 
