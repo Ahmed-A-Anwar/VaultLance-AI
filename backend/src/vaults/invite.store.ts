@@ -73,6 +73,41 @@ export async function redeemInvite(code: string, vaultId: string, userId: string
   return true;
 }
 
+/**
+ * Redeem a code when the caller holds only the code, not the vault id.
+ *
+ * Same rules as redeemInvite: single use, seven days, and a null answer for
+ * wrong, spent and expired codes alike, so the route cannot be used to probe
+ * which code exists. Returns the vault the invite belonged to.
+ */
+export async function redeemInviteByCode(code: string, userId: string): Promise<{ vaultId: string } | null> {
+  if (isSupabaseConfigured() && supabase) {
+    const { data } = await supabase
+      .from("vault_invites")
+      .select("id, vault_id, expires_at, used_by")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (!data || data.used_by || new Date(data.expires_at).getTime() < Date.now()) return null;
+
+    const { data: claimed } = await supabase
+      .from("vault_invites")
+      .update({ used_by: userId, used_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .is("used_by", null)
+      .select("vault_id");
+
+    if (!claimed || claimed.length !== 1) return null;
+    return { vaultId: String(data.vault_id) };
+  }
+
+  const invite = memoryInvites.get(code);
+  if (!invite || invite.usedBy) return null;
+  if (invite.expiresAt.getTime() < Date.now()) return null;
+  invite.usedBy = userId;
+  return { vaultId: invite.vaultId };
+}
+
 export async function addClientMember(vaultId: string, userId: string): Promise<void> {
   if (isSupabaseConfigured() && supabase) {
     const { data: existing } = await supabase

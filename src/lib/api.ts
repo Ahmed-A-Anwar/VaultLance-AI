@@ -414,10 +414,43 @@ export async function rejectVault(id: string): Promise<Vault> {
   return v;
 }
 
-/* POST /v1/vaults/join { code } */
+/* The server join: the code resolves the vault, and the read after it is what
+   the toast names. A wrong, spent or expired code is one 404 by design. */
+async function joinVaultOnServer(clean: string): Promise<Vault> {
+  const res = await apiClient.vaults.joinByCode(clean);
+  if (!res.success || !res.data?.vaultId) {
+    const code = String((res.error as { code?: string } | undefined)?.code ?? "");
+    if (code === "INVITE_INVALID" || code === "HTTP_404") throw new ApiError("not_found", "Code not found.");
+    if (code === "HTTP_403" || code === "FORBIDDEN") {
+      throw new ApiError("state", "Only a client account can join a vault.");
+    }
+    throw new ApiError("network", res.message || "The join did not go through.");
+  }
+
+  /* the code has been spent at this point: a failed read is still a join */
+  const read = await apiClient.vaults.getById(res.data.vaultId);
+  const raw = read.success ? (read.data as any) : null;
+  const members: any[] = Array.isArray(raw?.members) ? raw.members : [];
+  const freelancer = members.find((m) => String(m.role).toUpperCase() === "FREELANCER");
+
+  return {
+    id: String(res.data.vaultId),
+    project: String(raw?.title ?? "Vault"),
+    freelancer: String(freelancer?.fullName ?? "Freelancer"),
+    amountUSD: Number(raw?.amount ?? 0),
+    status: "awaiting_payment",
+    createdAt: Date.now(),
+  };
+}
+
+/* POST /api/vaults/join { code } — the signed-in client redeems the code on the
+   server. Demo builds keep the registry below; a real one never pretends. */
 export async function joinVault(code: string): Promise<Vault> {
+  const normalized = code.trim().toUpperCase();
+  if (realOn("vaultsWrite") && !isDemoMode()) return joinVaultOnServer(normalized);
+
   return call(() => {
-    const clean = code.trim().toUpperCase();
+    const clean = normalized;
     /* codes are minted in this browser and there is no server route to redeem
        one, so a real account is told the truth instead of being shown a failure
        that reads like a typo */

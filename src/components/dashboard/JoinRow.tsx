@@ -2,6 +2,7 @@
    join, and a demo shortcut for anyone who does not have a code to hand. */
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ApiError, joinVault } from "../../lib/api";
 import { useDashData } from "./data";
 import { useToast } from "../shared/Toasts";
@@ -10,6 +11,8 @@ export function JoinRow({ onDone }: { onDone?: () => void }) {
   const { reload } = useDashData();
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
+  const [params, setParams] = useSearchParams();
+  const autoJoined = useRef(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,6 +36,19 @@ export function JoinRow({ onDone }: { onDone?: () => void }) {
       setBusy(false);
     }
   };
+
+  /* /dashboard?join=VL-… is the link the freelancer copies: fill the row and
+     redeem it once, then drop the query so a reload cannot replay a spent code */
+  useEffect(() => {
+    const fromLink = (params.get("join") ?? "").trim().toUpperCase();
+    if (!fromLink || autoJoined.current) return;
+    autoJoined.current = true;
+    setCode(fromLink);
+    const next = new URLSearchParams(params);
+    next.delete("join");
+    setParams(next, { replace: true });
+    void submit(fromLink);
+  }, [params, setParams]);
 
   return (
     <form
