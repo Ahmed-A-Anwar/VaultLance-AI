@@ -23,7 +23,7 @@ PAYPAL_WEBHOOK_ID
 
 Observations:
 
-- **`JWT_SECRET` is absent.** The API therefore signs tokens with the literal fallback committed at `backend/src/shared/config.ts:10`. This is blocking finding **B1**.
+- **`JWT_SECRET` was absent** at the time of this snapshot. The API therefore signed tokens with the literal fallback committed at `backend/src/shared/config.ts:10`. This is blocking finding **B1**. It was set on 6 November before the batch-1 deploy — see §12.
 - `ELASTICSEARCH_API_KEY` / `ELASTICSEARCH_URL` are set on the Express app, which never imports Elasticsearch; the engine that does need them is not deployed.
 - `PAYPAL_WEBHOOK_ID` is set, so the webhook can verify signatures. Whether that id is registered for the sandbox app in the PayPal dashboard is a **manual check** (see `06-plan.md`).
 - `DIRECT_URL`, `POSTMAN_API_KEY` are leftovers unrelated to the running code paths.
@@ -297,3 +297,34 @@ vault_captures (76c4f095-…)
 - **Settled:** webhook registration, delivery (dashboard `Success`), signature acceptance, dedupe, vault matching, and event persistence all work.
 - **Settled:** the webhook did not claim the authorization; the return did, 12 minutes later. B7 is confirmed on live data, and its fix targets the right path.
 - **Not settled:** whether the fix works. Every row above predates `142ac27`; proving the new claim needs a deploy and a resent `AUTHORIZATION.CREATED` (see MANUAL CHECKS). Reject/void (B4) likewise still needs the sandbox run.
+
+## 12. Batch 1 deployed and verified live (6 November)
+
+Deployed `1be36f4` to `vaultlance-ai` (machine `801e97f61edd48`, version 46). `JWT_SECRET` was generated locally with `openssl rand -hex 32`, written to a git-ignored file and passed to `fly secrets set` through a command substitution, so the value never appeared in a command line, a log or this report.
+
+```
+fly secrets list  ->  JWT_SECRET  Deployed
+fly status        ->  version 46, started, 1 check passing
+GET /health       ->  200, databaseHealthy true, 0.31 s (warm)
+```
+
+### Live probes
+
+| Probe | Result | What it proves |
+|---|---|---|
+| HS256 token signed with the old fallback literal | `401 INVALID_TOKEN` | B1: the public secret is gone; a forged signature is rejected before any lookup |
+| HS256 token signed with the new secret, random user and `sessionId` | `401 SESSION_REVOKED` | B1: a valid signature is not enough — no live session row means no access, and none is recreated |
+| `GET /api/vaults` without a token | `401` | anonymous reads still blocked |
+| PayPal resend of `WH-8UX87945H9837253U-…` (`AUTHORIZATION.CREATED`, $23) | PayPal `202`; app log `POST /api/webhooks/paypal 200 1985.867 ms` | the deployed route verifies a real PayPal signature and processes the event without erroring |
+| PayPal authorization `8WL58666GM8569742` after all of the above | still `CREATED`, $23.00 | nothing was captured or voided by the deploy |
+
+The resend hit a vault already in `AUTHORIZED`, so the claim was idempotent by design and changed no state; it proves transport, signature and routing, not the claim transition.
+
+### Secret-handling note
+
+The first secret was base64. It verified correctly in Node but every token minted from it was rejected by the deployed app, which is consistent with the value being altered between the Windows shell and `flyctl` (base64 contains `+`, `/` and the file carried a trailing CR). It was replaced with a hex value, after which the probes behaved exactly as the code intends. The practical consequence of either change is the same and intended: **every existing session was signed out**.
+
+### Still not verified live
+
+- **B4 (reject → void)** and **B7's claim on an `AWAITING_CAPTURE` vault** need a signed-in client and a fresh PayPal hold. No test credentials are available to this audit, so both remain in MANUAL CHECKS.
+- **B9 (frontend demo gate)** is not live: only the API was deployed. The Vercel CLI is not installed here and no frontend deploy was made, so the production bundle still runs the previous build.
