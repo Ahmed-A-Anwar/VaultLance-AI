@@ -48,8 +48,11 @@ router.post("/:id/submit", async (req, res, next) => {
 
     const vault = await store.getVaultMoney(vaultId);
     if (!vault) throw new ConflictError("Vault not found.", "VAULT_NOT_FOUND");
-    if (!["IN_PROGRESS", "AUTHORIZED"].includes(vault.status)) {
-      throw new ConflictError(`Submitting needs status IN_PROGRESS or AUTHORIZED (vault is ${vault.status}).`, "INVALID_VAULT_STATUS");
+    /* A delivery can be locked before the client is invited or funds the hold:
+       the requested flow is upload -> submit -> invite. Submitting from DRAFT is
+       the same manifest lock; payment stays possible from SUBMITTED. */
+    if (!["DRAFT", "IN_PROGRESS", "AUTHORIZED"].includes(vault.status)) {
+      throw new ConflictError(`Submitting needs status DRAFT, IN_PROGRESS or AUTHORIZED (vault is ${vault.status}).`, "INVALID_VAULT_STATUS");
     }
 
     const manifest = await manifestService.generateVaultManifest(req.user!.id, vaultId);
