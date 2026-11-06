@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { authService } from "./auth.service.js";
+/* loaded lazily by the payout-profile handlers; the service touches the money
+   store, which must not be pulled into every auth request */
 import { passwordResetService } from "./passwordReset.service.js";
 import { sendSuccess, sendCreated } from "../shared/response.js";
 import { BadRequestError, UnauthorizedError } from "../shared/errors.js";
@@ -124,6 +126,36 @@ export class AuthController {
       if (!req.user) throw new UnauthorizedError("Not authenticated");
       const payload = await authService.exportAccount(req.user.id);
       return sendSuccess(res, payload, "Account exported");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async getPayoutProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) throw new UnauthorizedError("Not authenticated");
+      const { readPayoutEmail } = await import("./payoutProfile.service.js");
+      const paypalEmail = await readPayoutEmail(req.user.id);
+      return sendSuccess(
+        res,
+        { paypalEmail, verified: !!paypalEmail, currency: "USD" },
+        "Payout profile retrieved successfully"
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async savePayoutProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) throw new UnauthorizedError("Not authenticated");
+      const { savePayoutEmail } = await import("./payoutProfile.service.js");
+      const paypalEmail = await savePayoutEmail(req.user.id, req.body?.paypalEmail);
+      return sendSuccess(
+        res,
+        { paypalEmail, verified: true, currency: "USD" },
+        "Payout profile saved successfully"
+      );
     } catch (err) {
       next(err);
     }

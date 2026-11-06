@@ -5,6 +5,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { hasPayoutEmail } from "../../lib/api";
+import { getPayoutProfile } from "../payments/paymentsApi";
 import { isDemoMode } from "../../lib/apiClient";
 import {
   getFreelancerKpis as demoKpis,
@@ -66,7 +67,18 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
       }
       if (!alive.current) return;
       setError(null);
-      setPaypalMissing(!hasPayoutEmail());
+      if (isDemoMode()) {
+        setPaypalMissing(!hasPayoutEmail());
+      } else {
+        /* the banner reads the account's stored payout address, the same value
+           Settings and the Payments card read; a failed read leaves it alone */
+        try {
+          const profile = await getPayoutProfile();
+          if (alive.current) setPaypalMissing(!profile.paypalEmail);
+        } catch {
+          /* the vault list still loads; the banner keeps its last answer */
+        }
+      }
     } catch (err) {
       if (!alive.current) return;
       setError(err instanceof Error ? err.message : "The vault service didn’t answer.");

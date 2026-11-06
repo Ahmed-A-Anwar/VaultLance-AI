@@ -45,7 +45,25 @@ export async function assertFreelancerOwner(userId: string, vaultId: string): Pr
   }
 }
 
+/* The payout address: the profile's own value when set, otherwise the login
+   email. Read at payout time so a change lands on the next payout, not the
+   one already moving. */
 export async function freelancerEmail(userId: string): Promise<string | null> {
+  if (isSupabaseConfigured() && supabase) {
+    const { data } = await supabase
+      .from("users")
+      .select("email, paypal_payout_email")
+      .eq("id", userId)
+      .maybeSingle();
+    const stored = typeof data?.paypal_payout_email === "string" ? data.paypal_payout_email.trim() : "";
+    return stored || data?.email || null;
+  }
+  const user = database.store.users.get(userId);
+  const stored = user?.paypal_payout_email?.trim();
+  return stored || user?.email || null;
+}
+
+export async function freelancerLoginEmail(userId: string): Promise<string | null> {
   if (isSupabaseConfigured() && supabase) {
     const { data } = await supabase.from("users").select("email").eq("id", userId).maybeSingle();
     return data?.email || null;
