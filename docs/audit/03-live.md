@@ -453,12 +453,14 @@ On the deployed API, `POST /api/vaults/join` without a token answers `401`
 scratch script was deleted. The test vault `Join-by-code live proof` remains
 `AWAITING_AUTHORIZATION` under the throwaway freelancer; it holds no money.
 
-### The frontend half is built, not published
+### The frontend half is live too
 
-The merge did **not** produce a Vercel deployment: production still serves
-`assets/index-aO4acXar.js` (the pre-merge bundle), and the new chunk name falls
-back to `index.html` (`content-type: text/html`). The Vercel CLI is not
-installed on this machine and no token exists here, so the server-minted
-"Copy invite link" and the `/dashboard?join=CODE` prefill are verified by build
-and unit tests only, not live. They go live with `npm run build` +
-`vercel --prod`, or by reconnecting the repository's Git deployment.
+Fly and Vercel both deploy on a push to `main`. The first probe after the
+merge was too early and read the previous bundle, which made this look like a
+manual-deploy gap; it was not. Production now serves
+`assets/index-B8z3ahW3.js`, whose lazy `FreelancerDashboard-CtOBaAnQ.js` chunk
+is `application/javascript` and contains `/dashboard?join=`. The
+server-minted "Copy invite link" and the link prefill are therefore deployed.
+Clicking through still needs a signed-in freelancer and client; the supplied
+accounts' passwords are not available here, so that last UI step stays a
+manual check even though both halves are live.
