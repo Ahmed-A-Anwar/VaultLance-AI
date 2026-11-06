@@ -387,3 +387,28 @@ correct HS256 token, unknown sessionId -> 401 SESSION_REVOKED
 ### B4 remains the only unverified item
 
 Rejecting a vault still needs a signed-in client. No credentials for the client account were available, so the void-on-reject path has not been exercised. The $23 authorization `8WL58666GM8569742` is live until 4 December and is the natural subject for that test.
+
+## 15. Live auth lifecycle with throwaway accounts (6 November)
+
+Two accounts were registered against the production API, exercised, and deleted again:
+
+```
+qa.freelancer.<ts>@example.com   FREELANCER
+qa.client.<ts>@example.com       CLIENT
+```
+
+```
+register freelancer 201 | register client 201
+login freelancer    200 | login client    200
+GET /me (client)    200
+logout              200
+GET /me with the logged-out token     401 SESSION_REVOKED
+GET /me with the other account's session 200
+DELETE /auth/me     200 | DELETE /auth/me 200
+```
+
+This is the end-to-end version of B1's session rule: a real login works, a revoked session stops at once, and a separate session keeps working. Both accounts and their sessions were removed; no vaults were created.
+
+### Why this does not unblock B4
+
+Rejecting a vault needs a client membership **and** a vault in a rejectable state carrying a live PayPal authorization. Producing that authorization needs the sandbox buyer to approve a payment. The buyer login page (`freebuffclient@personal.example.com`) loads, but its password is not available here, so approval cannot be completed. Creating app accounts does not substitute for the buyer's PayPal login; B4 stays in MANUAL CHECKS until that password exists or the owner performs the click path.
