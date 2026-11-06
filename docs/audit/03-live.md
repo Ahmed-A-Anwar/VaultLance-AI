@@ -412,3 +412,21 @@ This is the end-to-end version of B1's session rule: a real login works, a revok
 ### Why this does not unblock B4
 
 Rejecting a vault needs a client membership **and** a vault in a rejectable state carrying a live PayPal authorization. Producing that authorization needs the sandbox buyer to approve a payment. The buyer login page (`freebuffclient@personal.example.com`) loads, but its password is not available here, so approval cannot be completed. Creating app accounts does not substitute for the buyer's PayPal login; B4 stays in MANUAL CHECKS until that password exists or the owner performs the click path.
+
+## 16. B4 verified live: reject voids the hold (6 November)
+
+Signed in as the client against production and rejected the $23 vault.
+
+```
+before   200  AUTHORIZED  auth 8WL58666GM8569742  capture null
+POST /api/vaults/966d3c39…/reject -> 200 "Vault hold voided"  status CANCELLED
+after    200  CANCELLED   auth retained           capture null
+repeat   200  CANCELLED   (idempotent; no second void)
+PayPal GET /v2/payments/authorizations/8WL58666GM8569742 -> VOIDED | 23.00 USD | related capture: none
+```
+
+The client's money is released — PayPal says `VOIDED`, not `CREATED` — the vault is `CANCELLED`, no capture exists, and retrying the same request changes nothing. That is B4's requirement on the deployed build, not a fake.
+
+The credentials were used only for this run; the scratch scripts holding them and the local copies of the JWT secret and sandbox access token were deleted afterwards.
+
+Still unobserved live: the B7 claim transition. Proving it needs a fresh approval whose browser return never happens; the resend in §12 hit an already-authorized vault and was idempotent by design.
