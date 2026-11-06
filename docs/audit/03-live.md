@@ -350,3 +350,40 @@ When it is deployed, `VITE_API_URL` must be set to `https://vaultlance-ai.fly.de
 ### B4 still needs a session
 
 Rejecting a vault is a client-only, authenticated action. No test credentials are available to this audit, so the void-on-reject path has not been exercised against the deployed API. It needs a client login on an `AUTHORIZED` vault (the $23 hold is live until 4 December) and then a check of the authorization in PayPal.
+
+## 14. Frontend shipped and B9 verified in production (6 November)
+
+PR #20 merged as `c5d8755`; Vercel built `main` and now serves `assets/index-Okkns-JY.js` (450 436 bytes). The bundle contains `vl_demo_mode` once and **no** `VITE_ENABLE_DEMO` string, so the gate is compiled shut. The Fly GitHub integration deployed the same commit as release v48.
+
+### Attack against production
+
+1. open `https://vault-lance-ai.vercel.app/?demo=1`
+2. set `localStorage.vl_demo_mode = "true"`
+3. sign in as `demo@example.com` / `password123`
+
+Observed traffic and result:
+
+```
+OPTIONS https://vaultlance-ai.fly.dev/api/auth/login -> 204 (preflight)
+POST    https://vaultlance-ai.fly.dev/api/auth/login -> 401
+page text: "Wrong email or password."
+sessionStorage vl.dash.session: null
+api token: null
+path: /signin?demo=1
+```
+
+So the shipped bundle ignores both visitor-controlled switches, calls the **real** API at the configured origin, and fails closed. A demo-enabled build would have fabricated a session from the address and walked into the dashboard. **B9 is verified live.** This supersedes the deployment blocker recorded in §13.
+
+### API re-check after the automatic deploy
+
+A push to `main` also triggers the Fly deployment, so the two B1 probes were repeated against release v48:
+
+```
+GET /health                                  -> 200
+old fallback token  -> 401 INVALID_TOKEN
+correct HS256 token, unknown sessionId -> 401 SESSION_REVOKED
+```
+
+### B4 remains the only unverified item
+
+Rejecting a vault still needs a signed-in client. No credentials for the client account were available, so the void-on-reject path has not been exercised. The $23 authorization `8WL58666GM8569742` is live until 4 December and is the natural subject for that test.
