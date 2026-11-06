@@ -433,10 +433,10 @@ Still unobserved live: the B7 claim transition. Proving it needs a fresh approva
 
 ## 17. Join by code, live (6 November)
 
-Commit `d663ff1` deployed to Fly as **v56** (v55 was the rolling replacement). Two
-throwaway app accounts were registered for the run — the supplied sandbox
-accounts' passwords were not available in this session, so no existing account
-was touched:
+Commit `d663ff1` deployed to Fly as **v56** (v55 was the rolling replacement).
+The first pass used two disposable accounts; the `E2E_*` accounts in
+`backend/.env.E2E` then ran the same flow, and the UI click-through below uses
+them:
 
 ```
 register freelancer / client          201 / 201
@@ -461,6 +461,31 @@ manual-deploy gap; it was not. Production now serves
 `assets/index-B8z3ahW3.js`, whose lazy `FreelancerDashboard-CtOBaAnQ.js` chunk
 is `application/javascript` and contains `/dashboard?join=`. The
 server-minted "Copy invite link" and the link prefill are therefore deployed.
-Clicking through still needs a signed-in freelancer and client; the supplied
-accounts' passwords are not available here, so that last UI step stays a
-manual check even though both halves are live.
+
+### Real accounts, and the click-through that found a bug
+
+`backend/.env.E2E` holds `E2E_FREELANCER_*`, `E2E_CLIENT_*`, `E2E_API_URL` and the
+sandbox buyer pair. `E2E_API_URL` is the host only
+(`https://vaultlance-ai.fly.dev`), so a script must append `/api`; calling
+`/auth/login` at the host answers 404.
+
+```
+login freelancer / client     200 / 200
+create vault                  201   e0b0d515-868e-4600-85d9-df20c735696c
+mint invite code              201
+join by code (real client)    200   AWAITING_AUTHORIZATION
+reuse / wrong code            404 / 404   INVITE_INVALID
+client vault list             200   contains the vault
+```
+
+Then the copied link was driven in Chromium as that client: sign-in landed on
+`/dashboard`, `/dashboard?join=CODE` opened the join row, `POST
+/api/vaults/join` answered 200, the query was stripped, the vault appeared, and
+replaying the code answered 404 — the code was spent by the UI, not by the
+script.
+
+The click-through exposed a real bug: the row was mounted only when the strip
+opened it, so the link showed the dashboard and did nothing. `8b0f223` opens
+the row from the parameter, keeps the Overview as the target, and was verified
+on the deployed bundle (`assets/index-DeQw_z8L.js`). The test vault
+`e0b0d515…` is left `AWAITING_AUTHORIZATION` with no money attached.
