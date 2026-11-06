@@ -222,7 +222,6 @@ const find = (id: string) => {
       amountUSD: 2400,
       status: "held",
       createdAt: Date.now() - 3600000,
-      paypalOrderId: "8XK" + (id.length >= 8 ? id.slice(0, 8).toUpperCase() : "12345678"),
     };
     vaults = [v, ...vaults];
   }

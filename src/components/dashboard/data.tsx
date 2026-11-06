@@ -68,7 +68,9 @@ async function fetchLiveVaults(): Promise<Vault[]> {
       amountUSD: Number(bv.amount) || 0,
       status,
       createdAt: new Date(bv.createdAt || bv.created_at || Date.now()).getTime(),
-      paypalOrderId: bv.id ? `8XK${bv.id.slice(0, 8).toUpperCase()}` : undefined,
+      /* the real id the server recorded, or nothing: a receipt must never print
+         a string this browser invented */
+      paypalOrderId: bv.paypalOrderId ?? bv.paypal_order_id ?? undefined,
     };
   });
 }
