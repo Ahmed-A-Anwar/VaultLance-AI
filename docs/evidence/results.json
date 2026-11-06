@@ -1,0 +1,288 @@
+{
+  "runId": "2026-11-06T16-53-54-333Z",
+  "startedAt": "2026-11-06T16:53:54.334Z",
+  "app": "https://vault-lance-ai.vercel.app",
+  "api": "https://vaultlance-ai.fly.dev/api",
+  "environment": "PayPal sandbox",
+  "steps": [
+    {
+      "step": "1",
+      "title": "Freelancer signs in, saves payout, creates/submits/invites; client joins",
+      "result": "PASS",
+      "detail": "zip 324B; manifest …203d",
+      "evidence": [
+        "screenshots/01-freelancer-signed-in.png",
+        "screenshots/01-settings-payout-saved.png",
+        "screenshots/01-client-joined.png"
+      ],
+      "at": "2026-11-06T16:54:30.402Z"
+    },
+    {
+      "step": "2",
+      "title": "Client starts payment and sandbox buyer approves at PayPal",
+      "result": "PASS",
+      "detail": "order …014E; hold …893X",
+      "evidence": [
+        "screenshots/02-paypal-01-entry.png",
+        "screenshots/02-paypal-03-approved.png"
+      ],
+      "at": "2026-11-06T16:54:55.123Z"
+    },
+    {
+      "step": "3",
+      "title": "Vault shows AUTHORIZED",
+      "result": "PASS",
+      "detail": "status AUTHORIZED",
+      "evidence": [
+        "screenshots/03-vault-authorized.png"
+      ],
+      "at": "2026-11-06T16:54:58.564Z"
+    },
+    {
+      "step": "4",
+      "title": "Audit, approve, PAID, download works; pre-PAID download 403",
+      "result": "PASS",
+      "detail": "gross $25; pre-PAID 403; signed 200; body amount 0.01 ignored; restart PAID_AFTER_RESTART",
+      "evidence": [
+        "screenshots/04-audit-complete.png",
+        "screenshots/04-vault-paid.png"
+      ],
+      "at": "2026-11-06T16:55:40.820Z"
+    },
+    {
+      "step": "5",
+      "title": "Payout reaches paid and shows for the freelancer",
+      "result": "PASS",
+      "detail": "status paid; payout …77K4",
+      "evidence": [
+        "screenshots/05-freelancer-payments.png"
+      ],
+      "at": "2026-11-06T16:56:24.047Z"
+    },
+    {
+      "step": "6",
+      "title": "Second vault authorizes, rejects, void confirmed, files locked",
+      "result": "PASS",
+      "detail": "PayPal VOIDED; wrong-state 409; download 403",
+      "evidence": [
+        "screenshots/06-vault-voided.png"
+      ],
+      "at": "2026-11-06T16:56:51.568Z"
+    },
+    {
+      "step": "7",
+      "title": "Replay, invalid signature, wrong user/state, amount ignored, restart during CAPTURE_PENDING",
+      "result": "PASS",
+      "detail": "signature 400; wrong user 403; wrong state 409; replay no second payout; restart PAID_AFTER_RESTART",
+      "evidence": [
+        "server-lines.log"
+      ],
+      "at": "2026-11-06T16:57:07.168Z"
+    }
+  ],
+  "ids": {
+    "freelancer": "…75c7",
+    "client": "…c1a0",
+    "Live proof 2026-11-06T16-53-54-333Z.vault": "…e6bc",
+    "firstVault": "…e6bc",
+    "manifest": "…203d",
+    "invite": "…BCHC",
+    "order": "…014E",
+    "authorization": "…893X",
+    "Live proof reject 2026-11-06T16-53-54-333Z.vault": "…ab95",
+    "secondVault": "…ab95",
+    "secondOrder": "…771V",
+    "secondAuthorization": "…0020"
+  },
+  "evidence": [
+    {
+      "file": "docs/evidence/screenshots/01-freelancer-signed-in.png",
+      "note": "01-freelancer signed in through the deployed UI"
+    },
+    {
+      "file": "docs/evidence/screenshots/01-settings-payout-saved.png",
+      "note": "Freelancer settings shows the payout address as VERIFIED"
+    },
+    {
+      "file": "docs/evidence/screenshots/01-client-signed-in.png",
+      "note": "01-client signed in through the deployed UI"
+    },
+    {
+      "file": "docs/evidence/screenshots/01-client-joined.png",
+      "note": "Client joined the vault with the code through the dashboard"
+    },
+    {
+      "file": "docs/evidence/screenshots/01-freelancer-vaults.png",
+      "note": "Freelancer vault list after submit and invite"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-client-vault-before-payment.png",
+      "note": "Client vault before payment"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-paypal-01-entry.png",
+      "note": "PayPal sandbox entry point for the client's authorization"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-paypal-02-review.png",
+      "note": "PayPal sandbox review after buyer sign-in"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-paypal-03-approved.png",
+      "note": "PayPal sandbox approved the order"
+    },
+    {
+      "file": "docs/evidence/screenshots/03-vault-authorized.png",
+      "note": "The vault shows the funds held"
+    },
+    {
+      "file": "docs/evidence/screenshots/04-audit-complete.png",
+      "note": "Audit checks complete in the client's vault room"
+    },
+    {
+      "file": "docs/evidence/screenshots/04-vault-paid.png",
+      "note": "Vault is PAID after capture and the restart drill"
+    },
+    {
+      "file": "docs/evidence/screenshots/05-freelancer-payments.png",
+      "note": "Freelancer Payments page after the payout"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-paypal-01-entry.png",
+      "note": "PayPal sandbox entry point for the client's authorization"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-paypal-02-review.png",
+      "note": "PayPal sandbox review after buyer sign-in"
+    },
+    {
+      "file": "docs/evidence/screenshots/02-paypal-03-approved.png",
+      "note": "PayPal sandbox approved the order"
+    },
+    {
+      "file": "docs/evidence/screenshots/06-vault-voided.png",
+      "note": "Second vault is voided after the client rejects"
+    },
+    {
+      "file": "docs/evidence/server-lines.log",
+      "note": "Relevant Fly log lines, no credentials"
+    }
+  ],
+  "limitations": [
+    "The configured E2E freelancer password was rejected (stored value is 3 characters); a disposable freelancer was registered for this run."
+  ],
+  "health": {
+    "status": "healthy",
+    "version": "phase1-money-loop"
+  },
+  "paypal": {
+    "attempted": true,
+    "approved": true,
+    "blocked": false,
+    "step": "confirmation",
+    "handoff": null
+  },
+  "prePaidDownload": {
+    "status": 403,
+    "code": "VAULT_NOT_PAID"
+  },
+  "wrongUserApprove": {
+    "status": 403,
+    "code": "CLIENT_ROLE_REQUIRED"
+  },
+  "checks": [
+    {
+      "name": "File integrity",
+      "result": "pass"
+    },
+    {
+      "name": "Deliverable package",
+      "result": "pass"
+    },
+    {
+      "name": "Documentation",
+      "result": "pass"
+    },
+    {
+      "name": "Package size",
+      "result": "pass"
+    }
+  ],
+  "approve": {
+    "status": 502,
+    "bodyAmount": 0.01,
+    "vaultAmount": 25,
+    "wrongUserStatus": 403,
+    "prePaidDownloadStatus": 403
+  },
+  "download": {
+    "status": 200,
+    "signedStatus": 200,
+    "bytes": 57
+  },
+  "payout": {
+    "status": "paid",
+    "cents": {
+      "gross": 2500,
+      "vaultlanceFee": 125,
+      "paypalFee": 136,
+      "net": 2364,
+      "payout": 2239
+    },
+    "attempt": 1
+  },
+  "wrongStateApprove": {
+    "status": 409,
+    "code": "INVALID_VAULT_STATUS"
+  },
+  "drills": {
+    "invalidSignature": {
+      "status": 400
+    },
+    "wrongUserApprove": {
+      "status": 403,
+      "code": "CLIENT_ROLE_REQUIRED"
+    },
+    "wrongStateApprove": {
+      "status": 409,
+      "code": "INVALID_VAULT_STATUS"
+    },
+    "bodyAmountIgnored": {
+      "bodyAmount": 0.01,
+      "vaultAmount": 25,
+      "paid": true
+    },
+    "restartDuringCapturePending": {
+      "result": "PAID_AFTER_RESTART"
+    },
+    "prePaidDownload": {
+      "status": 403,
+      "code": "VAULT_NOT_PAID"
+    },
+    "replayedWebhook": {
+      "webhookId": "…3137",
+      "eventId": "…670R",
+      "resendStatus": 202,
+      "delivered": true,
+      "before": "paid",
+      "after": "paid",
+      "attemptBefore": 1,
+      "attemptAfter": 1,
+      "noSecondPayout": true
+    }
+  },
+  "finishedAt": "2026-11-06T16:57:14.325Z",
+  "summary": {
+    "passed": 7,
+    "total": 7,
+    "results": [
+      "1:PASS",
+      "2:PASS",
+      "3:PASS",
+      "4:PASS",
+      "5:PASS",
+      "6:PASS",
+      "7:PASS"
+    ]
+  }
+}
