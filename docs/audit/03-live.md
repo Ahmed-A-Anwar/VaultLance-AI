@@ -430,3 +430,35 @@ The client's money is released — PayPal says `VOIDED`, not `CREATED` — the v
 The credentials were used only for this run; the scratch scripts holding them and the local copies of the JWT secret and sandbox access token were deleted afterwards.
 
 Still unobserved live: the B7 claim transition. Proving it needs a fresh approval whose browser return never happens; the resend in §12 hit an already-authorized vault and was idempotent by design.
+
+## 17. Join by code, live (6 November)
+
+Commit `d663ff1` deployed to Fly as **v56** (v55 was the rolling replacement). Two
+throwaway app accounts were registered for the run — the supplied sandbox
+accounts' passwords were not available in this session, so no existing account
+was touched:
+
+```
+register freelancer / client          201 / 201
+POST /vaults                          201   vault d621539b-7bb3-41c0-8659-8e0241b8884e
+POST /vaults/:id/invite-code          201   VL-XXXX-XXXX shape true
+POST /vaults/join { code }            200   status AWAITING_AUTHORIZATION
+same code again                       404   INVITE_INVALID
+VL-0000-0000                          404   INVITE_INVALID
+GET /vaults/:id as the client         200   AWAITING_AUTHORIZATION
+```
+
+On the deployed API, `POST /api/vaults/join` without a token answers `401`
+(route mounted) rather than `404`. No token was printed or stored, and the
+scratch script was deleted. The test vault `Join-by-code live proof` remains
+`AWAITING_AUTHORIZATION` under the throwaway freelancer; it holds no money.
+
+### The frontend half is built, not published
+
+The merge did **not** produce a Vercel deployment: production still serves
+`assets/index-aO4acXar.js` (the pre-merge bundle), and the new chunk name falls
+back to `index.html` (`content-type: text/html`). The Vercel CLI is not
+installed on this machine and no token exists here, so the server-minted
+"Copy invite link" and the `/dashboard?join=CODE` prefill are verified by build
+and unit tests only, not live. They go live with `npm run build` +
+`vercel --prod`, or by reconnecting the repository's Git deployment.
