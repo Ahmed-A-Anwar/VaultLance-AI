@@ -12,6 +12,7 @@ import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
 import * as authApi from "./authApi";
 import { decideVaultOnServer } from "./vaultWrites";
 import { request } from "./http";
+import { normalizeInviteCode } from "./inviteCode";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
 import { lookupInvite } from "../components/freelancer/inviteRegistry";
@@ -70,7 +71,7 @@ export interface Kpis {
   unlocked: number;
 }
 
-export type ApiErrorKind = "network" | "conflict" | "not_found" | "state";
+export type ApiErrorKind = "network" | "conflict" | "not_found" | "state" | "rate_limited";
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
@@ -420,7 +421,12 @@ async function joinVaultOnServer(clean: string): Promise<Vault> {
   const res = await apiClient.vaults.joinByCode(clean);
   if (!res.success || !res.data?.vaultId) {
     const code = String((res.error as { code?: string } | undefined)?.code ?? "");
-    if (code === "INVITE_INVALID" || code === "HTTP_404") throw new ApiError("not_found", "Code not found.");
+    if (code === "RATE_LIMITED" || code === "HTTP_429") {
+      throw new ApiError("rate_limited", res.message || "Too many attempts. Try again in 15 minutes.");
+    }
+    if (code === "INVITE_INVALID" || code === "HTTP_404") {
+      throw new ApiError("not_found", "That invite code is not valid.");
+    }
     if (code === "HTTP_403" || code === "FORBIDDEN") {
       throw new ApiError("state", "Only a client account can join a vault.");
     }
@@ -446,8 +452,12 @@ async function joinVaultOnServer(clean: string): Promise<Vault> {
 /* POST /api/vaults/join { code } — the signed-in client redeems the code on the
    server. Demo builds keep the registry below; a real one never pretends. */
 export async function joinVault(code: string): Promise<Vault> {
+  if (realOn("vaultsWrite") && !isDemoMode()) {
+    const clean = normalizeInviteCode(code);
+    if (!clean) throw new ApiError("not_found", "That invite code is not valid.");
+    return joinVaultOnServer(clean);
+  }
   const normalized = code.trim().toUpperCase();
-  if (realOn("vaultsWrite") && !isDemoMode()) return joinVaultOnServer(normalized);
 
   return call(() => {
     const clean = normalized;
