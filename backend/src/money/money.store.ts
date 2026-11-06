@@ -10,6 +10,8 @@ import crypto from "crypto";
 import { database } from "../shared/db.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { toCents } from "./money.types.js";
+import { AppError } from "../shared/errors.js";
+import { logger } from "../shared/logger.js";
 import type { CaptureRecord, PayoutRecord, VaultMoney } from "./money.types.js";
 
 const memoryCaptures = new Map<string, CaptureRecord>();
@@ -19,6 +21,21 @@ const memoryAcceptedEvents = new Set<string>();
 const memoryLedger: Array<{ vault_id: string; event_type: string; actor_id: string | null; metadata: any }> = [];
 
 const live = () => isSupabaseConfigured() && supabase !== null;
+
+/**
+ * Write one PayPal id to the vault row and fail loudly if the row did not take
+ * it. These writes used to ignore Supabase's error, so the caller carried on as
+ * though the id were stored and the receipt read it from the ledger fallback —
+ * or printed nothing at all.
+ */
+async function writeVaultColumn(vaultId: string, patch: Record<string, string>): Promise<void> {
+  const { error } = await supabase!.from("vaults").update(patch).eq("id", vaultId);
+  if (error) {
+    const column = Object.keys(patch).join(",");
+    logger.error(`[money] could not write ${column} for vault ${vaultId}: ${error.message}`);
+    throw new AppError(`Could not save the PayPal id (${column}); try again.`, 500, "MONEY_WRITE_FAILED");
+  }
+}
 
 export const memory = {
   captures: memoryCaptures,
@@ -87,20 +104,19 @@ export async function setStatus(vaultId: string, to: string): Promise<void> {
 
 export async function rememberAuthorization(vaultId: string, authorizationId: string): Promise<void> {
   if (live()) {
-    await supabase!
-      .from("vaults")
-      .update({ paypal_authorization_id: authorizationId })
-      .eq("id", vaultId);
+    await writeVaultColumn(vaultId, { paypal_authorization_id: authorizationId });
     return;
   }
-  const vault = await getVaultMoney(vaultId);
-  if (vault) vault.authorizationId = authorizationId;
+  /* the in-memory row is the equivalent of the column: tests and the demo path
+     must see the id where the receipt reads it, not only in the lookup map */
+  const row = database.store.vaults.get(vaultId);
+  if (row) (row as any).paypal_authorization_id = authorizationId;
   memoryAuthorizations.set(vaultId, authorizationId);
 }
 
 export async function rememberOrder(vaultId: string, orderId: string): Promise<void> {
   if (live()) {
-    await supabase!.from("vaults").update({ paypal_order_id: orderId }).eq("id", vaultId);
+    await writeVaultColumn(vaultId, { paypal_order_id: orderId });
     return;
   }
   const row = database.store.vaults.get(vaultId);
@@ -113,7 +129,7 @@ export async function rememberOrder(vaultId: string, orderId: string): Promise<v
    whoever confirms first fixes the row. */
 export async function rememberCapture(vaultId: string, captureId: string): Promise<void> {
   if (live()) {
-    await supabase!.from("vaults").update({ paypal_capture_id: captureId }).eq("id", vaultId);
+    await writeVaultColumn(vaultId, { paypal_capture_id: captureId });
     return;
   }
   const row = database.store.vaults.get(vaultId);
