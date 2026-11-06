@@ -19,12 +19,15 @@ export class HttpError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly requestId?: string;
-  constructor(message: string, status: number, code?: string, requestId?: string) {
+  /** the 409 body's details, such as the vaults blocking a delete */
+  readonly details?: unknown;
+  constructor(message: string, status: number, code?: string, requestId?: string, details?: unknown) {
     super(message);
     this.name = new.target.name;
     this.status = status;
     this.code = code;
     this.requestId = requestId;
+    this.details = details;
   }
 }
 
@@ -117,13 +120,19 @@ function urlOf(path: string): string {
   return `${httpBase}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function errorFor(status: number, message: string, code?: string, requestId?: string): HttpError {
-  if (status === 401) return new AuthError(message, status, code, requestId);
-  if (status === 403) return new ForbiddenError(message, status, code, requestId);
-  if (status === 409) return new ConflictError(message, status, code, requestId);
-  if (status === 400 || status === 422) return new ValidationError(message, status, code, requestId);
-  if (status >= 500) return new ServerError(message, status, code, requestId);
-  return new HttpError(message, status, code, requestId);
+function errorFor(
+  status: number,
+  message: string,
+  code?: string,
+  requestId?: string,
+  details?: unknown
+): HttpError {
+  if (status === 401) return new AuthError(message, status, code, requestId, details);
+  if (status === 403) return new ForbiddenError(message, status, code, requestId, details);
+  if (status === 409) return new ConflictError(message, status, code, requestId, details);
+  if (status === 400 || status === 422) return new ValidationError(message, status, code, requestId, details);
+  if (status >= 500) return new ServerError(message, status, code, requestId, details);
+  return new HttpError(message, status, code, requestId, details);
 }
 
 /** One request. Resolves with the API's `data`, or throws a typed HttpError. */
@@ -181,7 +190,8 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
       (json?.error?.requestId && String(json.error.requestId)) ||
       res.headers.get("x-request-id") ||
       undefined;
-    const error = errorFor(res.status, message, code, requestId);
+    const details = json?.details ?? json?.error?.details;
+    const error = errorFor(res.status, message, code, requestId, details);
 
     if (error instanceof AuthError && !opts.skipUnauthorized) {
       clearAccessToken();

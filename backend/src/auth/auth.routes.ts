@@ -7,10 +7,12 @@ import {
   changePasswordSchema,
   updateProfileSchema,
   deleteAccountSchema,
+  payoutProfileSchema,
   passwordResetRequestSchema,
   passwordResetConfirmSchema,
 } from "./auth.schemas.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireRole } from "../authorization/role.middleware.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
@@ -44,6 +46,19 @@ router.get("/me", requireAuth, authController.me);
 router.patch("/me", requireAuth, validate(updateProfileSchema), authController.updateProfile);
 router.post("/me/password", requireAuth, validate(changePasswordSchema), authController.changePassword);
 router.get("/me/export", requireAuth, authController.exportAccount);
+router.get(
+  "/me/payout-profile",
+  requireAuth,
+  requireRole("FREELANCER"),
+  authController.getPayoutProfile
+);
+router.put(
+  "/me/payout-profile",
+  requireAuth,
+  requireRole("FREELANCER"),
+  validate(payoutProfileSchema),
+  authController.savePayoutProfile
+);
 router.delete("/me", requireAuth, validate(deleteAccountSchema), authController.deleteAccount);
 
 export default router;

@@ -75,10 +75,13 @@ export type ApiErrorKind = "network" | "conflict" | "not_found" | "state" | "rat
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
-  constructor(kind: ApiErrorKind, message: string) {
+  /** the server's 409 details, kept so the delete modal can list blockers */
+  details?: unknown;
+  constructor(kind: ApiErrorKind, message: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
     this.kind = kind;
+    this.details = details;
   }
 }
 
@@ -1202,13 +1205,24 @@ export async function getSettings(): Promise<AccountSettings> {
     }
     const me = res.data;
     const role: Role = String(me.role).toUpperCase() === "FREELANCER" ? "freelancer" : "client";
+    /* the payout address is the server's, not this browser's: Settings, the
+       Overview banner and the Payments card must read the same one value */
+    let paypalEmail: string | null = null;
+    if (role === "freelancer") {
+      try {
+        const payout = await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile");
+        paypalEmail = payout.paypalEmail ?? null;
+      } catch {
+        paypalEmail = null;
+      }
+    }
     return {
       profile: {
         fullName: me.fullName || s.fullName,
         email: me.email,
         role,
         memberSince: memberSinceOf(me.createdAt),
-        paypalEmail: role === "freelancer" ? s.payoutEmail : null,
+        paypalEmail,
       },
       notifications: copyNotifs(s.notifications),
       motion: s.motion,
@@ -1247,6 +1261,17 @@ export function setPayoutEmail(email: string | null): void {
 /* PUT /v1/me/payout-profile — the payout address, validated here so Settings
    cannot save an unusable one. */
 export async function updatePayoutProfile(patch: { paypalEmail: string }): Promise<AccountProfile> {
+  if (!isDemoMode()) {
+    const data = await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile", {
+      method: "PUT",
+      body: { paypalEmail: patch.paypalEmail.trim() },
+    });
+    const s = load();
+    s.payoutEmail = data.paypalEmail ?? null;
+    persist();
+    return { ...profileOf(s), paypalEmail: s.payoutEmail };
+  }
+
   return settingsCall(() => {
     const email = patch.paypalEmail.trim();
     if (!email) throw new ApiError("state", "Add a PayPal email.");
@@ -1450,8 +1475,13 @@ export async function deleteAccount(emailConfirm: string): Promise<void> {
     try {
       await authApi.deleteAccount(emailConfirm.trim());
     } catch (e) {
-      /* 409 carries the server's blocking reason; it is shown as it arrives */
-      throw new ApiError("state", e instanceof Error && e.message ? e.message : "The account could not be deleted.");
+      /* 409 carries the server's blocking reason and the vaults behind it */
+      const details = (e as { details?: unknown })?.details;
+      throw new ApiError(
+        "state",
+        e instanceof Error && e.message ? e.message : "The account could not be deleted.",
+        details
+      );
     }
     clearSession();
     return;

@@ -724,6 +724,14 @@ export class AuthService {
     ];
     const inMotion = (status: string) => blocking.includes(String(status).toUpperCase());
 
+    /* one row shape for the modal: id, a title it can link, and the status */
+    const blockersOf = (rows: any[]) =>
+      rows.map((v: any) => ({
+        id: String(v.id),
+        title: String(v.title || "Vault").slice(0, 60),
+        status: String(v.status),
+      }));
+
     if (isSupabaseConfigured() && supabase) {
       const { data: owned } = await supabase
         .from("vaults")
@@ -736,7 +744,8 @@ export class AuthService {
           `These vaults still have money in motion: ${blockedRows
             .map((v: any) => v.title)
             .join(", ")}. Resolve them first.`,
-          "DELETE_BLOCKED"
+          "DELETE_BLOCKED",
+          { blockers: blockersOf(blockedRows) }
         );
       }
 
@@ -751,11 +760,24 @@ export class AuthService {
           ["creating", "pending", "failed"].includes(String(p.status))
         );
         if (unsettled.length) {
+          const byId = new Map((owned || []).map((v: any) => [v.id, v]));
           throw new ConflictError(
             `Settlement is still open for vault(s) ${unsettled
               .map((p: any) => p.vault_id)
               .join(", ")}. Resolve the payout first.`,
-            "DELETE_BLOCKED"
+            "DELETE_BLOCKED",
+            {
+              blockers: blockersOf(
+                unsettled.map((p: any) => {
+                  const vault: any = byId.get(p.vault_id);
+                  return {
+                    id: String(p.vault_id),
+                    title: vault?.title || "Vault",
+                    status: vault?.status || String(p.status).toUpperCase(),
+                  };
+                })
+              ),
+            }
           );
         }
       }
@@ -784,10 +806,15 @@ export class AuthService {
     }
 
     database.store.checkFailure();
-    for (const vault of database.store.vaults.values()) {
-      if (vault.freelancer_id === userId && inMotion(vault.status)) {
-        throw new ConflictError("Resolve your open vaults before deleting the account.", "DELETE_BLOCKED");
-      }
+    const blockers = Array.from(database.store.vaults.values())
+      .filter((vault) => vault.freelancer_id === userId && inMotion(vault.status))
+      .map((vault) => blockersOf([vault])[0]);
+    if (blockers.length) {
+      throw new ConflictError(
+        "Resolve your open vaults before deleting the account.",
+        "DELETE_BLOCKED",
+        { blockers }
+      );
     }
 
     for (const [id, member] of database.store.members.entries()) {
