@@ -10,7 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.security import require_internal_key
 
 from app.core.config import get_settings
-from app.api.routes import projects, files, verification, paypal
+# Paypal calls are owned by the Express service. The router below is kept for
+# reference but never registered; see docs/architecture.md.
+from app.api.routes import projects, files, verification
 from app.services.evidence_indexer import ensure_index_exists
 from app.db.base import init_db
 
@@ -72,7 +74,9 @@ async def on_startup():
 app.include_router(projects.router)
 app.include_router(files.router)
 app.include_router(verification.router)
-app.include_router(paypal.router)
+# app.include_router(paypal.router)  # disabled: PayPal calls are owned by the Express service.
+# This service is internal, stateless about money, and may never create an order,
+# capture, void or pay out.
 
 
 # ─────────────────────────────────────────────────────────────────────────────
