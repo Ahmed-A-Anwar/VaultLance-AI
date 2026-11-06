@@ -5,6 +5,9 @@ All configuration is loaded from environment variables (or a .env file).
 Pydantic-settings handles validation and type casting automatically.
 """
 
+import secrets
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
@@ -17,7 +20,24 @@ class Settings(BaseSettings):
 
     # ── App ──────────────────────────────────────────────────────────────────
     app_env: str = "development"
-    secret_key: str = "changeme"
+    # No default literal: a shipped secret is one every reader of this repo has.
+    secret_key: str = ""
+
+    @model_validator(mode="after")
+    def _resolve_secret_key(self) -> "Settings":
+        if len(self.secret_key) >= 32:
+            return self
+        if self.app_env.lower() == "production":
+            raise ValueError(
+                "SECRET_KEY must be set to at least 32 characters in production. "
+                "Refusing to start. See docs/deploy-secrets.md."
+            )
+        object.__setattr__(self, "secret_key", secrets.token_urlsafe(48))
+        print(
+            "[config] SECRET_KEY missing or short; generated a per-process "
+            "development value. Sessions end on restart."
+        )
+        return self
     allowed_origins: str = "http://localhost:3000"
 
     # ── Database (SQLite by default, override with PostgreSQL in .env) ───────

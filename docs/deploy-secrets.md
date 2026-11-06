@@ -48,7 +48,8 @@ fly secrets list -a vaultlance-ai
 | `PAYPAL_ENV` | must stay `sandbox` in this build |
 | `DATABASE_URL` / `DIRECT_URL` | schema bootstrap and the money tables |
 | `ELASTICSEARCH_URL` / `ELASTICSEARCH_API_KEY` | the optional AI engine |
-| `INTERNAL_API_KEY` | Express → AI engine calls |
+| `INTERNAL_API_KEY` | Express → AI engine calls (engine answers 503 without it) |
+| `SECRET_KEY` | AI engine signing key — **required in production** |
 
 Optional: `JWT_ISSUER` and `JWT_AUDIENCE`. When set, tokens are verified against
 them; when unset, those checks are skipped rather than defaulted.
