@@ -11,6 +11,7 @@
    - only ledger rows for this freelancer's vaults are kept. */
 
 import { apiClient } from "../../lib/apiClient";
+import { request } from "../../lib/http";
 import { allTimePaidCents, inEscrowCents } from "../../lib/earnings";
 import { phaseOf, type UiStatus } from "../../lib/freelancerPhase";
 import type {
@@ -66,6 +67,22 @@ async function toVault(raw: any): Promise<FreelancerVault> {
   const createdAt = ms(raw.createdAt ?? raw.created_at);
   const files = await filesFor(String(raw.id));
 
+  /* the vault read carries real fees only after capture; the payout read adds
+     the one sentence a failed payout is allowed to show. Both are optional: a
+     refused read must not hide the vault. */
+  const captured = raw.fees && raw.fees.source === "captured" ? raw.fees : null;
+  const payout = status.toUpperCase() === "PAID"
+    ? await request<any>(`/vaults/${encodeURIComponent(String(raw.id))}/payout`).catch(() => null)
+    : null;
+  const payoutStatus =
+    payout?.status === "paid"
+      ? ("paid" as const)
+      : payout?.status === "failed" || payout?.status === "blocked"
+        ? ("failed" as const)
+        : payout?.status === "pending" || payout?.status === "creating"
+          ? ("pending" as const)
+          : undefined;
+
   return {
     id: String(raw.id),
     project: String(raw.title ?? "Vault"),
@@ -83,6 +100,20 @@ async function toVault(raw: any): Promise<FreelancerVault> {
     files,
     createdAt,
     ...(raw.paypal_capture_id ? { captureId: String(raw.paypal_capture_id) } : {}),
+    ...(captured
+      ? {
+          capturedFees: {
+            grossCents: Number(captured.grossCents),
+            vaultlanceFeeCents: Number(captured.vaultlanceFeeCents),
+            paypalFeeCents: Number(captured.paypalFeeCents),
+            netCents: Number(captured.netCents),
+            payoutCents: Number(captured.payoutCents),
+            source: "captured" as const,
+          },
+        }
+      : {}),
+    ...(payoutStatus ? { payoutStatus } : {}),
+    ...(payout?.failure?.message ? { payoutReason: String(payout.failure.message) } : {}),
   };
 }
 

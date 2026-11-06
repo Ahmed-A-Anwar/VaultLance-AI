@@ -23,6 +23,18 @@ export interface VaultMemberItem {
   createdAt: Date;
 }
 
+/* Real fees, read from vault_captures after PayPal captured the money. Integer
+   cents; absent until a capture exists, so an estimate cannot be mistaken for a
+   receipt. */
+export interface VaultCapturedFees {
+  grossCents: number;
+  vaultlanceFeeCents: number;
+  paypalFeeCents: number;
+  netCents: number;
+  payoutCents: number;
+  source: "captured";
+}
+
 export interface VaultDTO {
   id: string;
   freelancerId: string;
@@ -40,4 +52,5 @@ export interface VaultDTO {
   paypalOrderId?: string | null;
   paypalAuthorizationId?: string | null;
   paypalCaptureId?: string | null;
+  fees?: VaultCapturedFees;
 }

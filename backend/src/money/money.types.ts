@@ -27,6 +27,7 @@ export interface CaptureRecord {
   netCents: number;
   payoutCents: number;
   confirmedVia: "webhook" | "fallback" | "approve" | "sweeper";
+  createdAt?: string;
 }
 
 export interface PayoutRecord {
@@ -38,6 +39,8 @@ export interface PayoutRecord {
   payoutItemId: string | null;
   reason: string | null;
   attempt: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const PLATFORM_FEE_RATE = 0.05;

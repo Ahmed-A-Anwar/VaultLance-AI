@@ -44,6 +44,17 @@ export interface FreelancerVault {
   inviteCode?: string;
   payoutStatus?: PayoutStatus;
   payoutPaypalId?: string;
+  /** the sanitized sentence the server allows for a failed payout */
+  payoutReason?: string;
+  /** real fees, present only after PayPal captured the money */
+  capturedFees?: {
+    grossCents: number;
+    vaultlanceFeeCents: number;
+    paypalFeeCents: number;
+    netCents: number;
+    payoutCents: number;
+    source: "captured";
+  };
   captureId?: string;
   createdAt: number;
   remindedAt?: number;
