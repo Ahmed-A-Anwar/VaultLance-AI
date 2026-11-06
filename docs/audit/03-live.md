@@ -1,0 +1,207 @@
+# 03 — Live read-only checks
+
+All commands are GET/OPTIONS only, no accounts created, no payment, upload or delete executed.
+Times are from 2026-11-06 ~07:24–07:40 UTC, run from this machine (Europe/Paris).
+
+## 1. Fly (read-only)
+
+`flyctl apps list`:
+
+```
+NAME          │ OWNER    │ STATUS   │ LATEST DEPLOY
+vaultlance-ai │ personal │ deployed │ 13h32m ago
+```
+
+Only one app exists. `flyctl secrets list -a vaultlance-ai` (names only):
+
+```
+ELASTICSEARCH_API_KEY, ELASTICSEARCH_URL, PAYPAL_BASE_URL, PAYPAL_CLIENT_ID,
+PAYPAL_CLIENT_SECRET, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL,
+SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL, DIRECT_URL, POSTMAN_API_KEY,
+PAYPAL_WEBHOOK_ID
+```
+
+Observations:
+
+- **`JWT_SECRET` is absent.** The API therefore signs tokens with the literal fallback committed at `backend/src/shared/config.ts:10`. This is blocking finding **B1**.
+- `ELASTICSEARCH_API_KEY` / `ELASTICSEARCH_URL` are set on the Express app, which never imports Elasticsearch; the engine that does need them is not deployed.
+- `PAYPAL_WEBHOOK_ID` is set, so the webhook can verify signatures. Whether that id is registered for the sandbox app in the PayPal dashboard is a **manual check** (see `06-plan.md`).
+- `DIRECT_URL`, `POSTMAN_API_KEY` are leftovers unrelated to the running code paths.
+
+`flyctl status -a vaultlance-ai`:
+
+```
+Machine 801e97f61edd48  version 43  region cdg  state started
+Checks: 1 total, 1 passing
+Image: vaultlance-ai:deployment-307a0489b355cdc3544f58d7909a6453
+```
+
+`fly.toml` says `primary_region = "fra"`; the machine actually runs in `cdg` (Paris). `min_machines_running = 1` but the machine had `LAST UPDATED 2026-11-06T07:24:16Z`, i.e. it started as the health request arrived — see the 7.6 s first byte in §3.
+
+## 2. AI engine
+
+```
+flyctl status -a vaultlance-ai-engine
+→ Error: Could not find App "vaultlance-ai-engine"
+
+nslookup vaultlance-ai-engine.fly.dev
+→ *** dns.google can't find vaultlance-ai-engine.fly.dev: Non-existent domain
+
+curl -s https://vaultlance-ai-engine.fly.dev/health
+→ Could not resolve host
+```
+
+**Verdict: the AI service is MISSING from production.** `AI_SERVICE_URL` in `backend/fly.toml` points at `http://vaultlance-ai-engine.internal:8000`, which cannot resolve. Consequently:
+
+- `GET /api/ai/health` (authenticated) would return an upstream failure. Not called here (needs a token).
+- The product's audit checks and chat never reach this service anyway: the only `callAiService` caller is that diagnostic route (`backend/src/ai/ai.routes.ts:18`). The live audit is generated in Express from file metadata (`vault.actions.ts:587-643`) and chat answers are templates (`:648-812`).
+
+## 3. API health and edges
+
+| Check | Result |
+|---|---|
+| `GET https://vaultlance-ai.fly.dev/health` | `200`, body `{"status":"healthy","version":"phase1-money-loop","service":"VaultPay / VaultLance API","databaseHealthy":true,...}` |
+| TTFB / total for that request | **7.593 s / 7.594 s** (machine cold-started at that second) |
+| `GET /api/ledger` without a token | `401` `{"code":"MISSING_TOKEN"}` — scoped read is not reachable anonymously |
+| `GET /api/vaults` without a token | `401` |
+| `OPTIONS /api/vaults`, `Origin: https://vault-lance-ai.vercel.app` | `204`, `access-control-allow-origin: https://vault-lance-ai.vercel.app` |
+| `OPTIONS /api/vaults`, `Origin: https://evil.example` | `401`, **no** `access-control-allow-origin` header (blocked) |
+| `GET /api/webhooks/paypal` | `404` (POST-only route; correct) |
+| Helmet headers on `/health` | CSP (`default-src 'self'; …`), HSTS 31536000 includeSubDomains, `x-content-type-options: nosniff`, `x-frame-options: SAMEORIGIN`, `referrer-policy: no-referrer`, COOP/CORP same-origin |
+
+`/health` reports `databaseHealthy: true`, so Supabase is reachable from the machine.
+
+## 4. Frontend
+
+| Check | Result |
+|---|---|
+| `GET https://vault-lance-ai.vercel.app/` | `200`, SPA HTML |
+| Headers | `Strict-Transport-Security` (Vercel), `X-Vercel-Cache`, `X-Vercel-Id` — **no CSP, no nosniff, no frame options, no referrer policy** |
+| SPA fallback | `vercel.json` rewrite `/(.*) → /index.html` is present; not exercised here (a deep link check needs a browser) |
+| Clip caching | `vercel.json` sets `immutable` 1-year cache for `/wheel-turn/(.*)` and `/keypad-frames/(.*)`; `vault-frames` has no cache rule |
+
+The deployed bundle was not re-downloaded in this audit. Earlier verification in this project matched the deployed chunk to the local build after `e7897cd`; treat "deployed bundle == HEAD" as UNVERIFIED for this report.
+
+## 5. CORS and origin behaviour (summary)
+
+- Browser calls from `https://vault-lance-ai.vercel.app` are allowed and `credentials: true` is set in `cors()`, although the API uses bearer tokens and no cookies — harmless but wider than needed.
+- Foreign origins receive no CORS headers, so the browser blocks; a preflight also gets `401` from the route-level `requireAuth`, which is fine.
+- `FRONTEND_ORIGINS` in `backend/fly.toml` includes `http://localhost:5173`; that only matters for local dev.
+
+## 6. Test runs
+
+| Suite | Command | Result |
+|---|---|---|
+| Frontend unit | `npx vitest run` | 11 files, **65 passed**, 2.43 s |
+| Backend unit | `cd backend && npx vitest run` | 12 files, **50 passed**, 45.35 s |
+| Frontend typecheck | `npx tsc --noEmit` | exit 0 |
+| Backend typecheck | `cd backend && npx tsc --noEmit` | exit 0 |
+| E2E | `npx playwright test --reporter=line` | See §6.1 |
+
+### 6.1 Playwright — the suite is red
+
+The foreground attempt hit the 295-second tool cap at 74/142; a background rerun (`.tmp/audit-playwright.log`) reached **139/142** before the runner was restarted, and the log's last line is an assertion failure, not a summary. At that point the log recorded **43 failing tests across 8 spec files**:
+
+| Spec | Failures |
+|---|---|
+| `tests/settings.spec.ts` | 13 |
+| `tests/auth-reset.spec.ts` | 8 |
+| `tests/freelancer-settings.spec.ts` | 8 |
+| `tests/cta-overlay.spec.ts` | 4 |
+| `tests/auth-shots.spec.ts` | 3 |
+| `tests/reduced-motion.spec.ts` | 3 |
+| `tests/settings-shots.spec.ts` | 3 |
+| `tests/responsive.spec.ts` | 1 |
+
+Representative errors: `#reset-password` not fillable (`auth-reset.spec.ts:36`); `.fd-banner` not visible (`freelancer-settings.spec.ts:55`); `getByTestId('account-summary')` never appears (`settings.spec.ts:27`).
+
+The likely cause is structural, not cosmetic: the suite was written against the mock-data build, and `FX_REAL_DEFAULTS` now switches every group to the real API (`src/config/fx.ts:73-84`). With no Express server behind the Playwright dev server (`playwright.config.ts` starts only Vite), pages that now wait on `GET /api/...` render an error state instead of the mock fixtures the assertions expect. That explanation fits every failing spec (settings, reset, freelancer banner, CTA) and is **probable but not proven** — confirming it needs one spec run with the API up.
+
+**Reported honestly:** the E2E suite is not a green gate today; it has not been green since the real-API defaults shipped. Unit tests (65 + 50) and both typechecks are green.
+
+## 7. Manual checks (not possible from here)
+
+1. PayPal sandbox webhook registration: developer.paypal.com → Apps & Credentials → sandbox app → Webhooks → confirm the URL `https://vaultlance-ai.fly.dev/api/webhooks/paypal` and the event types listed in `backend/src/paypal/webhook.service.ts:47-128`. Expected: `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.PAYOUTS-ITEM.*`.
+2. Whether `PAYPAL_WEBHOOK_ID` in Fly matches that webhook (values are secret; compare in the dashboard only).
+3. A real buyer approval with a sandbox personal account, then a `GET /api/vaults/:id` with a client token to see whether `paypalAuthorizationId` comes from the vault row or the ledger fallback (gap B3).
+4. Rotate/set `JWT_SECRET` (`flyctl secrets set JWT_SECRET=…`), then re-login all sessions.
+5. Vercel environment: confirm `VITE_API_URL=https://vaultlance-ai.fly.dev/api` and `VITE_PAYPAL_CLIENT_ID` are set for the production build (Project → Settings → Environment Variables).
+
+## 8. Fly logs and tooling availability (added after the owner enabled Fly/PayPal access)
+
+Fly was already authenticated for `ahmedidea12@gmail.com`, so read-only CLI calls were used. `flyctl releases` shows `v43` (current), `v42`, `v41`, `v40`, `v39` all complete, the newest 14h9m old.
+
+Filtered `flyctl logs -a vaultlance-ai --no-tail` (machine start at 07:24Z):
+
+```
+07:24:16Z health  [error] Health check 'servicecheck-00-http-8080' has failed …
+07:24:21Z app     [WARN] [paypal] PAYPAL_BASE_URL is set and ignored; using https://api-m.sandbox.paypal.com
+07:24:21Z app     [INFO] [paypal] sandbox mode confirmed
+07:24:21Z app     [INFO] [schema] money-loop schema is up to date
+07:24:23Z app     [ERROR] UnauthorizedError: Authentication token is required.   (this audit's unauthenticated probes)
+07:24:29Z app     GET /api/webhooks/paypal 404 0.792 ms - 80   (this audit's GET probe)
+```
+
+What this settles:
+
+- **The money-loop DDL ran on the deployed machine.** The `ALTER TABLE vaults ADD COLUMN IF NOT EXISTS paypal_order_id / paypal_authorization_id / paypal_capture_id` statements in `money/schema.ts` executed successfully at boot. The columns exist; whether they hold values is still open (gap B3).
+- **The machine cold-started on the first request** — the health check failed at 07:24:16 and passed by 07:24:21, matching the 7.6 s first byte. `min_machines_running = 1` did not keep it warm.
+- **No PayPal webhook has ever reached the app** in the retained logs. There is no `[webhook]` line and no `POST /api/webhooks/paypal` request, only this audit's `GET` 404. Registration at PayPal is therefore still unproven (manual check 1).
+- `PAYPAL_BASE_URL` is set in Fly (and in `render.yaml`) but ignored by design; that warning is expected.
+
+### Tooling note
+
+Fly and PayPal MCP servers do not appear in this chat's tool list: `search_mcp_tools` with `server: "fly"`, `"flyio"`, `"paypal"` and `"paypal-sandbox"` all returned no tools, and generic queries returned only Playwright/filesystem/Figma servers. No MCP config exists in the workspace (`ls -a | grep -i mcp` → none).
+
+`backend/.env` contains a local `JWT_SECRET` but **not** `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` or `PAYPAL_WEBHOOK_ID`, so a direct read-only PayPal REST check (webhook list, authorization/order/capture status) could not be run from here. To enable it, either connect the PayPal MCP so its tools reach the chat, or put the two sandbox credentials in `backend/.env` locally (never in chat); the reads are three GETs and print only status and amount.
+
+Path routing matters: `POST /http` (the documented streamable-HTTP path) returns **404**, while `POST /sse` and `POST /mcp` return 401 with the OAuth challenge. A connector pointed at `/http` or at the bare host would therefore show an empty tool list even with a valid token; `https://mcp.sandbox.paypal.com/sse` is the path that exists on the sandbox deployment.
+
+The PayPal endpoint itself is healthy — it just wants a token. `GET https://mcp.sandbox.paypal.com/mcp` and a JSON-RPC `initialize` both return **401** with `WWW-Authenticate: Bearer realm="OAuth", error="invalid_token", error_description="Missing or invalid access token"`, and `/.well-known/oauth-protected-resource` answers 200 with `authorization_servers: ["https://mcp.sandbox.paypal.com"]`. An empty tool list is therefore an authorisation state, not a broken server: the connector needs an OAuth grant before it can enumerate or call its tools.
+
+The Fly **integration** (not MCP) is available and was used to corroborate the CLI: `FLY_GET_APP_DETAILS` returns `vaultlance-ai`, `FLY_LIST_MACHINES` returns exactly one machine (`801e97f61edd48`, region `cdg`, state `started`), and `FLY_LIST_APPS` for org `personal` lists only that app. The PayPal Sandbox entry in the app's Integrations screen (`mcp.sandbox.paypal.com`) sits above the "Connected" heading in the owner's screenshot, and `search_mcp_tools` for it returns nothing — so it is configured app-side but not present in this session's registry: the owner reports supplying a bearer token, yet `call_mcp_tool` for server `"PayPal Sandbox"` still answers `No MCP server named "PayPal Sandbox" is configured`, and no token file exists in the workspace (`.freebuff` holds only `project-id`). MCP servers appear to be bound when a chat starts, so the tools will only be callable from a chat opened after the connector was authorised. Alternatively the endpoint can be driven directly over HTTP with that token (read-only `initialize` → `tools/list` → `tools/call`), which needs the token in a local file, never in the transcript.
+
+## 9. PayPal sandbox MCP — reached, but the token is not a PayPal token
+
+With `BEARER_TOKEN` from the local `backend/.env` (80 characters, value never printed):
+
+```
+GET  https://mcp.sandbox.paypal.com/sse  -> 200  text/event-stream
+  event: endpoint   data: /sse/message?sessionId=<redacted>
+POST initialize  -> ok   serverInfo {"name":"PayPal MCP Agent","version":"1.0.0"}
+POST tools/list  -> 46 tools
+```
+
+So the transport question is settled: the sandbox MCP speaks **SSE** at `/sse`, and a JSON-RPC session over that stream works. `/http` and `/mcp` are 404 on this deployment, and unauthenticated requests to any path get the OAuth challenge — the 401 is a gate, not a path check.
+
+The 46 tools are invoicing (24), products/subscriptions (11), shipments (3), orders (`create_order`, `get_order`, `pay_order`), disputes (3), transactions (`list_transactions`, `create_refund`, `get_refund`) and `get_merchant_insights`. **There is no webhook tool**, so the registered-URL check cannot be done through MCP at all.
+
+Every tool call then fails at the PayPal layer:
+
+```
+get_order 23623123CT6234507        -> {"ok":false,"status":401,"code":"PAYPAL_API_HTTP_ERROR","message":"Token signature verification failed"}
+list_invoices                      -> same
+list_transactions (12-month range) -> same
+```
+
+And the token itself, straight against REST:
+
+```
+GET https://api-m.sandbox.paypal.com/v1/notifications/webhooks -> 401 invalid_token, Token signature verification failed
+GET https://api-m.paypal.com/v1/notifications/webhooks         -> 401 invalid_token, Token signature verification failed
+GET https://api-m.sandbox.paypal.com/v2/checkout/orders/...    -> 401 invalid_token, Token signature verification failed
+```
+
+Shape check of the stored value (no value shown): length 80, single segment (not a JWT), base64url-safe, begins with `A`, does not begin with `A21`. A sandbox access token begins `A21AA…` and runs to roughly 1 500 characters with a 32 400 s lifetime; 80 characters is the length of a **client ID**, not an access token. The MCP gateway accepts any bearer for the handshake, so the failure only surfaces on the first tool call.
+
+Consequence for this audit: the PayPal transport and tool catalogue are now verified, but **no PayPal data has been read**. The three intended checks (webhook registration, authorization `8WL58666GM8569742`, capture `1N580818UH671613V`) remain UNVERIFIED and need either a real access token (`POST /v1/oauth2/token`, client-credentials) or the client ID **and** secret, from which the token can be minted locally.
+
+### JWT fallback probe (read-only, confirms B1)
+
+A token was signed with the HS256 fallback literal read directly from `backend/src/shared/config.ts:10` (the value was never printed), carrying a random, non-existent `userId` and `sessionId`, then sent to `GET https://vaultlance-ai.fly.dev/api/auth/me`:
+
+```
+probe /api/auth/me: 401 code= USER_INACTIVE message= User account no longer found.
+```
+
+A wrong signature is rejected before any lookup, so `USER_INACTIVE` (a profile miss) means **the forged signature was accepted**. With a real user id from the database, the same token would authenticate as that user. B1 is no longer theoretical: the deployed API signs and accepts the public fallback secret.
