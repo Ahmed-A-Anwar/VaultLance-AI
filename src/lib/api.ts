@@ -935,16 +935,40 @@ export async function runChecks(
   return done;
 }
 
+/* GET /api/vaults/{id}/report — the grounded explanation stored by the audit */
+export async function getAuditReport(
+  id: string
+): Promise<{ text: string; sources: SourceChip[]; cached: boolean } | null> {
+  if (isDemoMode()) return null;
+  try {
+    const d = realOn("audit")
+      ? await request<{ report?: string; sources?: SourceChip[]; cached?: boolean }>(`/vaults/${id}/report`)
+      : await (async () => {
+          const res = await fetch(`${API_BASE}/api/vaults/${id}/report`, { headers: authHeaders() });
+          if (!res.ok) return null;
+          return (await res.json()).data;
+        })();
+    if (!d?.report) return null;
+    return {
+      text: d.report,
+      sources: (d.sources || []) as SourceChip[],
+      cached: d.cached ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* POST /api/vaults/{id}/chat — calls the real backend AI endpoint.
    Falls back to in-memory answerFor() if backend is unreachable. */
 export async function askAI(
   id: string,
   question: string,
   onToken: (chunk: string) => void
-): Promise<{ text: string; sources: SourceChip[]; cached: boolean }> {
+): Promise<{ text: string; sources: SourceChip[]; cached: boolean; questionsUsed?: number }> {
   if (!isDemoMode()) {
     const d = realOn("audit")
-      ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean }>(`/vaults/${id}/chat`, {
+      ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean; questionsUsed?: number }>(`/vaults/${id}/chat`, {
           method: "POST",
           body: { question },
         })
@@ -963,11 +987,13 @@ export async function askAI(
       onToken(char);
       await wait(18);
     }
-    questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
+    const used = d.questionsUsed ?? (questionsUsed.get(id) ?? 0) + 1;
+    questionsUsed.set(id, used);
     return {
       text,
       sources: (d.sources || []) as SourceChip[],
       cached: d.cached ?? false,
+      questionsUsed: used,
     };
   }
 
@@ -980,8 +1006,9 @@ export async function askAI(
     onToken(char);
     await wait(25);
   }
-  questionsUsed.set(id, (questionsUsed.get(id) ?? 0) + 1);
-  return { text: answer.text, sources: answer.sources, cached: true };
+  const used = (questionsUsed.get(id) ?? 0) + 1;
+  questionsUsed.set(id, used);
+  return { text: answer.text, sources: answer.sources, cached: true, questionsUsed: used };
 }
 
 function answerFor(v: Vault, question: string): { text: string; sources: SourceChip[] } {

@@ -102,4 +102,20 @@ describe("Step 8 – Secure File Upload & ZIP Security Checks", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("DANGEROUS_FILE_EXTENSION");
   });
+
+  it("should reject a nested archive beyond depth 1", async () => {
+    const inner = new AdmZip();
+    inner.addFile("again.zip", Buffer.from("not a real zip"));
+    const outer = new AdmZip();
+    outer.addFile("notes.txt", Buffer.from("safe"));
+    outer.addFile("inner.zip", inner.toBuffer());
+
+    const res = await request(app)
+      .post(`/api/uploads/${vaultId}`)
+      .set("Authorization", `Bearer ${freelancerToken}`)
+      .attach("file", outer.toBuffer(), "nested.zip");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("ZIP_NESTING_DEPTH_EXCEEDED");
+  });
 });

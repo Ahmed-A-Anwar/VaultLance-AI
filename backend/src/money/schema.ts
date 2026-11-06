@@ -66,6 +66,7 @@ const STATEMENTS = [
   `alter table vaults add column if not exists paypal_order_id text`,
   `alter table vaults add column if not exists paypal_authorization_id text`,
   `alter table vaults add column if not exists paypal_capture_id text`,
+  `alter table vaults add column if not exists questions_used integer not null default 0`,
   `alter table users add column if not exists paypal_payout_email text`,
   `alter table vault_files add column if not exists unlocked boolean not null default false`,
 ];

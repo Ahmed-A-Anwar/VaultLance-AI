@@ -4,6 +4,7 @@ import { logger } from "./shared/logger.js";
 import { assertSandboxPayPal } from "./shared/paypal.env.js";
 import { ensureMoneySchema } from "./money/schema.js";
 import { startSweeper } from "./money/sweeper.js";
+import { runAzureStartupProbe } from "./ai/provider.js";
 
 const PORT = config.port;
 
@@ -17,4 +18,7 @@ app.listen(PORT, () => {
   logger.info(`VaultPay API ${APP_VERSION} running on port ${PORT} [env: ${config.env}]`);
   startSweeper();
   logger.info("Sweeper started: CAPTURE_PENDING vaults are finished every 60s");
+  /* One tiny, redacted probe. It never blocks the listener and never logs the
+     endpoint, deployment or key. */
+  void runAzureStartupProbe();
 });
