@@ -4,6 +4,7 @@ import { logger } from "./shared/logger.js";
 import { assertSandboxPayPal } from "./shared/paypal.env.js";
 import { ensureMoneySchema } from "./money/schema.js";
 import { ensureSessionSchema } from "./auth/session.schema.js";
+import { ensureAuditSchema } from "./audit/schema.js";
 import { startSweeper } from "./money/sweeper.js";
 import { runAzureStartupProbe } from "./ai/provider.js";
 
@@ -17,6 +18,7 @@ assertSandboxPayPal();
    before the listener takes traffic. */
 await ensureMoneySchema();
 await ensureSessionSchema();
+await ensureAuditSchema();
 
 app.listen(PORT, () => {
   logger.info(`VaultPay API ${APP_VERSION} running on port ${PORT} [env: ${config.env}]`);

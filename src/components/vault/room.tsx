@@ -134,6 +134,12 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
         setVault(next.vault);
         setChecks(next.checks);
         setQuestionsUsed(next.questionsUsed);
+        if (next.messages.length > 0) {
+          /* the server kept the conversation: show it instead of starting with
+             the canned opening line, and never append a second one */
+          opened.current = true;
+          setMessages(next.messages);
+        }
       })
       .catch((e) => {
         if (!live) return;

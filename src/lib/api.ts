@@ -813,7 +813,15 @@ export async function getVaultDetail(id: string): Promise<VaultDetail> {
       state: c.state || "queued",
       rows: c.rows || [],
     })),
-    messages: [],
+    /* the conversation is stored by the API, so a reopened room resumes it */
+    messages: (d.messages || []).map((m: any) => ({
+      id: String(m.id),
+      role: m.role === "user" ? "user" : "ai",
+      text: String(m.text || ""),
+      sources: (m.sources || []) as SourceChip[],
+      cached: Boolean(m.cached),
+      at: new Date(m.createdAt || Date.now()).getTime(),
+    })),
     suggestions: d.suggestions || ["What was delivered?", "Are there any issues?", "Is the build ready to ship?"],
     questionsUsed: d.questionsUsed ?? 0,
     questionLimit: d.questionLimit ?? QUESTION_LIMIT,

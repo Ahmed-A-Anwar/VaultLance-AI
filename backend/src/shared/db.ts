@@ -62,12 +62,24 @@ export interface DbSessionRecord {
   user_agent?: string;
 }
 
+export interface DbAuditMessageRecord {
+  id: string;
+  vault_id: string;
+  user_id: string | null;
+  role: "ai" | "user";
+  text: string;
+  sources: string[];
+  cached: boolean;
+  created_at: Date;
+}
+
 class InMemoryDbStore {
   public users: Map<string, DbUserRecord> = new Map();
   public vaults: Map<string, DbVaultRecord> = new Map();
   public members: Map<string, DbVaultMemberRecord> = new Map();
   public files: Map<string, DbVaultFileRecord> = new Map();
   public sessions: Map<string, DbSessionRecord> = new Map();
+  public auditMessages: Map<string, DbAuditMessageRecord> = new Map();
   public failNextOperation: boolean = false;
   public simulateFailure: boolean = false;
 
@@ -77,6 +89,7 @@ class InMemoryDbStore {
     this.members.clear();
     this.files.clear();
     this.sessions.clear();
+    this.auditMessages.clear();
     this.failNextOperation = false;
     this.simulateFailure = false;
   }

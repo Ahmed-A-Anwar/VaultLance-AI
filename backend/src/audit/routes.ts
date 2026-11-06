@@ -25,6 +25,7 @@ import {
   QUESTION_LIMIT,
   MAX_QUESTION_CHARS,
 } from "./usage.js";
+import { appendAuditMessages, listAuditMessages } from "./messages.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -130,6 +131,7 @@ router.get("/:id/audit-detail", async (req, res, next) => {
     const vault = await getVaultRecord(req.user.id, vaultId);
     const files = await loadFiles(vaultId);
     const { checks } = await runChecks(vaultId, vault);
+    const messages = await listAuditMessages(vaultId);
     const settled = ["AWAITING_APPROVAL", "SUBMITTED", "VERIFYING", "PAID", "COMPLETED", "UNLOCKED"].includes(
       String(vault.status)
     );
@@ -162,6 +164,14 @@ router.get("/:id/audit-detail", async (req, res, next) => {
           mimeType: f.mimeType,
         })),
         checks: checks.map((c) => ({ ...c, state: settled ? c.result : "queued" })),
+        messages: messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          text: m.text,
+          sources: m.sources,
+          cached: m.cached,
+          createdAt: m.createdAt,
+        })),
         suggestions,
         questionsUsed: await getQuestionsUsed(vaultId),
         questionLimit: QUESTION_LIMIT,
@@ -276,6 +286,18 @@ router.post("/:id/chat", async (req, res, next) => {
     const explanation =
       (await explainAudit(vaultId, stored.checks, question)) ||
       deterministicExplanation(stored.checks, question);
+
+    /* the room can be left and reopened: keep the turn, not just the count */
+    await appendAuditMessages(vaultId, [
+      { userId: req.user.id, role: "user", text: question, sources: [], cached: false },
+      {
+        userId: req.user.id,
+        role: "ai",
+        text: explanation.text,
+        sources: explanation.sources,
+        cached: explanation.cached,
+      },
+    ]);
 
     return sendSuccess(
       res,
