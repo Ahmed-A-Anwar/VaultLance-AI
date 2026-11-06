@@ -35,6 +35,13 @@ import {
   getCapture,
 } from "../money/money.store.js";
 import type { VaultStatus } from "../shared/types.js";
+import { VaultStateMachine } from "./vault.state-machine.js";
+import {
+  getFailedChecks,
+  recordWaivers,
+  setRevisionNote,
+  type WaiverRecord,
+} from "../audit/waivers.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -200,6 +207,9 @@ async function getFullVault(vaultId: string) {
       paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
       paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
       paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
+      failedChecks: Array.isArray((vault as any).failed_checks) ? (vault as any).failed_checks : [],
+      waivedChecks: Array.isArray((vault as any).waived_checks) ? (vault as any).waived_checks : [],
+      revisionNote: (vault as any).revision_note ?? null,
       /* no payout row yet means nothing has been attempted, not "paid" */
       payoutCents: payoutRow?.amount_cents != null ? Number(payoutRow.amount_cents) : captureRow?.payout_cents ?? null,
       payoutStatus: payoutRow?.status ?? null,
@@ -266,6 +276,36 @@ router.post("/:id/authorize", async (req, res, next) => {
   }
 });
 
+/* the body's waivers: check ids, each with an optional reason. Unknown shapes
+   are refused rather than guessed at, so a malformed list cannot silently
+   approve without the waiver it meant to record. */
+function parseWaivers(raw: unknown): Array<{ checkId: string; reason?: string }> {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) {
+    throw new BadRequestError("'waivers' must be a list of check ids.", "INVALID_WAIVERS");
+  }
+
+  const seen = new Set<string>();
+  const out: Array<{ checkId: string; reason?: string }> = [];
+  for (const item of raw) {
+    const checkId =
+      typeof item === "string"
+        ? item.trim()
+        : typeof (item as any)?.checkId === "string"
+          ? String((item as any).checkId).trim()
+          : "";
+    const reason =
+      typeof (item as any)?.reason === "string"
+        ? String((item as any).reason).trim().slice(0, 500)
+        : "";
+    if (!checkId) throw new BadRequestError("Each waiver needs a checkId.", "INVALID_WAIVERS");
+    if (seen.has(checkId)) continue;
+    seen.add(checkId);
+    out.push({ checkId, ...(reason ? { reason } : {}) });
+  }
+  return out;
+}
+
 /* ── POST /api/vaults/:id/approve ───────────────────────────────────── */
 /* Client approves and captures → AUTHORIZED|AWAITING_APPROVAL → PAID   */
 
@@ -275,23 +315,62 @@ router.post("/:id/approve", async (req, res, next) => {
     const vaultId = String(req.params.id);
     const vault = await getVaultRecord(req.user.id, vaultId);
 
-    /* Safety Gate: if checks were run and ANY failed, block approval unless waived */
-    if (isSupabaseConfigured() && supabase) {
-      const { data: dbFiles } = await supabase
-        .from("vault_files")
-        .select("file_name, mime_type, file_size, sha256_hash")
-        .eq("vault_id", vaultId);
+    /* The stored failed report is authoritative: a waiver may name only a check
+       the server recorded as failed, and every unwaived failure blocks capture. */
+    const requested = parseWaivers(req.body?.waivers);
+    const failedChecks = await getFailedChecks(vaultId);
+    const failedById = new Map(failedChecks.map((check) => [check.id, check]));
 
-      const checks = generateChecksForFiles(dbFiles || [], vault.description || "");
-      const failedChecks = checks.filter((c) => c.result === "fail");
-      if (failedChecks.length > 0 && !req.body?.overrideFailures) {
-        throw new BadRequestError(
-          `Cannot approve payment: ${failedChecks.length} verification check(s) failed (${failedChecks
-            .map((c) => c.name)
-            .join(", ")}). Revisions or explicit waiver required.`,
-          "VERIFICATION_FAILED"
+    const unknown = requested.filter((waiver) => !failedById.has(waiver.checkId));
+    if (unknown.length > 0) {
+      throw new BadRequestError(
+        `Only checks that actually failed can be waived. Not failed: ${unknown
+          .map((waiver) => waiver.checkId)
+          .join(", ")}.`,
+        "WAIVER_NOT_ALLOWED"
+      );
+    }
+
+    const waivedIds = new Set(requested.map((waiver) => waiver.checkId));
+    const unwaived = failedChecks.filter((check) => !waivedIds.has(check.id));
+    if (unwaived.length > 0) {
+      throw new BadRequestError(
+        `Cannot approve payment: ${unwaived.length} verification check(s) failed (${unwaived
+          .map((check) => check.name)
+          .join(", ")}). Waive them or request a revision.`,
+        "VERIFICATION_FAILED"
+      );
+    }
+
+    if (requested.length > 0) {
+      const records: WaiverRecord[] = requested.map((waiver) => {
+        const failed = failedById.get(waiver.checkId)!;
+        return {
+          checkId: failed.id,
+          name: failed.name,
+          ...(waiver.reason ? { reason: waiver.reason } : {}),
+          waivedAt: new Date().toISOString(),
+          waivedBy: req.user!.id,
+        };
+      });
+
+      await recordWaivers(vaultId, records);
+      for (const record of records) {
+        await appendLedger(
+          vaultId,
+          "CHECK_WAIVED",
+          req.user.id,
+          null,
+          vault.currency || "USD",
+          `Waived failed check: ${record.name}${record.reason ? ` — ${record.reason}` : ""}`,
+          {
+            checkId: record.checkId,
+            checkName: record.name,
+            ...(record.reason ? { reason: record.reason } : {}),
+          }
         );
       }
+      logger.info(`[approve] vault ${vaultId} waived ${records.length} failed check(s)`);
     }
 
     /* Approval is what captures the money. Only the invited client may do it,
@@ -305,6 +384,47 @@ router.post("/:id/approve", async (req, res, next) => {
       updated,
       `Payment captured (${result.captureId}), payout ${result.payoutStatus}, files unlocked`
     );
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ── POST /api/vaults/:id/revision ──────────────────────────────────── */
+/* Client sends failed work back → AWAITING_APPROVAL → NEEDS_REVISION    */
+
+router.post("/:id/revision", async (req, res, next) => {
+  try {
+    if (!req.user) throw new ForbiddenError("Not authenticated.", "AUTH_REQUIRED");
+    const vaultId = String(req.params.id);
+    const vault = await getVaultRecord(req.user.id, vaultId);
+    await assertClientMember(req.user.id, vaultId);
+
+    const from = String(vault.status).toUpperCase() as VaultStatus;
+    /* the state machine already carries this edge; anything else is 409 */
+    VaultStateMachine.assertTransition(from, "NEEDS_REVISION");
+
+    const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 500) : "";
+    const moved = await casStatus(vaultId, from, "NEEDS_REVISION");
+    if (!moved) {
+      throw new ConflictError(
+        "The vault changed while the revision was being requested.",
+        "INVALID_STATE"
+      );
+    }
+
+    await setRevisionNote(vaultId, note || null);
+    await appendLedger(
+      vaultId,
+      "REVISION_REQUESTED",
+      req.user.id,
+      null,
+      vault.currency || "USD",
+      note ? `Revision requested: ${note}` : "Revision requested",
+      note ? { note } : {}
+    );
+    logger.info(`[revision] vault ${vaultId} sent back for revision`);
+
+    return sendSuccess(res, await getFullVault(vaultId), "Revision requested");
   } catch (err) {
     next(err);
   }

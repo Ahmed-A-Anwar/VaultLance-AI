@@ -69,6 +69,12 @@ const STATEMENTS = [
   `alter table vaults add column if not exists questions_used integer not null default 0`,
   `alter table users add column if not exists paypal_payout_email text`,
   `alter table vault_files add column if not exists unlocked boolean not null default false`,
+  /* the failed report the waiver rule checks against, the waivers taken at
+     approval, and the client's revision note */
+  `alter table vaults add column if not exists failed_checks jsonb not null default '[]'::jsonb`,
+  `alter table vaults add column if not exists waived_checks jsonb not null default '[]'::jsonb`,
+  `alter table vaults add column if not exists revision_note text`,
+  `alter table vault_manifests add column if not exists version integer not null default 1`,
 ];
 
 export async function ensureMoneySchema(): Promise<boolean> {

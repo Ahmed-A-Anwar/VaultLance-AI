@@ -104,6 +104,11 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
         <div className="fd-card-head">
           <h3 className="fd-card-project">{vault.project}</h3>
           <PhaseChip phase={phase} />
+          {(vault.waivedChecks?.length ?? 0) > 0 && (
+            <span className="fd-chip" data-phase="waived">
+              WAIVED {vault.waivedChecks!.length}
+            </span>
+          )}
         </div>
 
         <p className="fd-card-meta">

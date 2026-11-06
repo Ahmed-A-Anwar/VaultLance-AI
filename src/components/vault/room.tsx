@@ -16,13 +16,17 @@ import {
   authorizeVault,
   getVaultDetail,
   rejectVault,
+  requestRevision as requestRevisionApi,
   runChecks,
   type ChatMessage,
+  type FailedCheck,
   type SourceChip,
   type Vault,
   type VaultCheck,
   type VaultDetail,
   type VaultStatus,
+  type WaivedCheck,
+  type WaiverRequest,
 } from "../../lib/api";
 import { getAccessToken } from "../../lib/http";
 import { authorizePaypalOrder, reconcilePaypalOrder } from "../../lib/paypalWrites";
@@ -55,6 +59,10 @@ interface RoomValue {
   approvedPending: boolean;
 
   checks: VaultCheck[];
+  /* what the server recorded as failed, and what was waived at approval */
+  failedChecks: FailedCheck[];
+  waivedChecks: WaivedCheck[];
+  revisionNote: string | null;
   running: boolean;
   runAll: () => Promise<void>;
   progress: number;
@@ -66,9 +74,10 @@ interface RoomValue {
   ask: (text: string) => Promise<void>;
   retry: (messageId: string) => Promise<void>;
 
-  busy: "" | "authorize" | "approve" | "reject";
+  busy: "" | "authorize" | "approve" | "reject" | "revision";
   authorize: () => Promise<void>;
-  approve: (overrideFailures?: boolean) => Promise<void>;
+  approve: (waivers?: WaiverRequest[]) => Promise<void>;
+  requestRevision: (note?: string) => Promise<void>;
   reject: () => Promise<void>;
 
   /* one pass of motion when files unlock, then cleared */
@@ -95,6 +104,9 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
   const [pass, setPass] = useState(0);
 
   const [checks, setChecks] = useState<VaultCheck[]>([]);
+  const [failedChecks, setFailedChecks] = useState<FailedCheck[]>([]);
+  const [waivedChecks, setWaivedChecks] = useState<WaivedCheck[]>([]);
+  const [revisionNote, setRevisionNote] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -133,6 +145,9 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
         setDetail(next);
         setVault(next.vault);
         setChecks(next.checks);
+        setFailedChecks(next.failedChecks);
+        setWaivedChecks(next.waivedChecks);
+        setRevisionNote(next.revisionNote);
         setQuestionsUsed(next.questionsUsed);
         if (next.messages.length > 0) {
           /* the server kept the conversation: show it instead of starting with
@@ -311,6 +326,11 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
         setChecks((prev) => prev.map((c) => (c.id === checkId ? { ...c, state } : c)));
       });
       setChecks(results);
+      setFailedChecks(
+        results
+          .filter((check) => check.result === "fail")
+          .map((check) => ({ id: check.id, name: check.name, ...(check.detail ? { detail: check.detail } : {}) }))
+      );
       /* runChecks already marked the vault audited on the server */
       setVault((v) => (v ? { ...v, status: "audited" } : v));
       const passed = results.filter((r) => r.result === "pass").length;
@@ -410,11 +430,11 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
     }
   }, [busy, id, pushAi, streamInto]);
 
-  const approve = useCallback(async (overrideFailures = false) => {
+  const approve = useCallback(async (waivers: WaiverRequest[] = []) => {
     if (busy) return;
     setBusy("approve");
     try {
-      const next = await approveVault(id, overrideFailures);
+      const next = await approveVault(id, waivers);
       setVault(next);
       setCapturedAt(Date.now());
       setUnlocking(true);
@@ -426,6 +446,18 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       setBusy("");
     }
   }, [busy, id, pushAi, streamInto]);
+
+  const requestRevision = useCallback(async (note?: string) => {
+    if (busy) return;
+    setBusy("revision");
+    try {
+      const next = await requestRevisionApi(id, note);
+      setVault(next);
+      setRevisionNote(note?.trim() || null);
+    } finally {
+      setBusy("");
+    }
+  }, [busy, id]);
 
   const reject = useCallback(async () => {
     if (busy) return;
@@ -449,6 +481,9 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       reload,
       approvedPending,
       checks,
+      failedChecks,
+      waivedChecks,
+      revisionNote,
       running,
       runAll,
       progress,
@@ -461,6 +496,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       busy,
       authorize,
       approve,
+      requestRevision,
       reject,
       unlocking,
       voiding,
@@ -475,6 +511,9 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       reload,
       approvedPending,
       checks,
+      failedChecks,
+      waivedChecks,
+      revisionNote,
       running,
       runAll,
       progress,
@@ -486,6 +525,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       busy,
       authorize,
       approve,
+      requestRevision,
       reject,
       unlocking,
       voiding,

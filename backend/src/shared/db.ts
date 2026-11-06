@@ -26,6 +26,10 @@ export interface DbVaultRecord {
   expires_at?: Date | null;
   created_at: Date;
   updated_at: Date;
+  /* the last failed audit, the waivers taken at approval, and the revision note */
+  failed_checks?: Array<{ id: string; name: string; detail?: string }>;
+  waived_checks?: Array<{ checkId: string; name: string; reason?: string; waivedAt?: string; waivedBy?: string }>;
+  revision_note?: string | null;
 }
 
 export interface DbVaultMemberRecord {

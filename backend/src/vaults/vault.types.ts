@@ -53,4 +53,8 @@ export interface VaultDTO {
   paypalAuthorizationId?: string | null;
   paypalCaptureId?: string | null;
   fees?: VaultCapturedFees;
+  /* the failed report, what was waived at approval, and the revision request */
+  failedChecks?: Array<{ id: string; name: string; detail?: string }>;
+  waivedChecks?: Array<{ checkId: string; name: string; reason?: string; waivedAt?: string; waivedBy?: string }>;
+  revisionNote?: string | null;
 }

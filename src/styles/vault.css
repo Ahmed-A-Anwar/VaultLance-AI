@@ -2077,3 +2077,117 @@
     transform: none;
   }
 }
+
+/* --- failed checks: the review dialog and the waived chip --- */
+
+.dash-chip[data-status="waived"] {
+  color: var(--c-warn, #b7791f);
+  border-color: color-mix(in srgb, var(--c-warn, #b7791f) 45%, transparent);
+  background: color-mix(in srgb, var(--c-warn, #b7791f) 12%, transparent);
+}
+
+.room-review-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+  background: rgb(8 8 10 / 0.62);
+  backdrop-filter: blur(3px);
+}
+
+.room-review {
+  width: 100%;
+  max-height: calc(100% - 8px);
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--line, #2a2a2e);
+  border-radius: 10px;
+  background: var(--panel, #141416);
+}
+
+.room-review-h {
+  margin: 0 0 4px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.room-review-list {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.room-review-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.room-review-check span {
+  display: grid;
+  gap: 1px;
+}
+
+.room-review-check small {
+  color: var(--dim, #8a8a92);
+  font-size: 11px;
+}
+
+.room-review-note {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 10px;
+  font-size: 11px;
+  color: var(--dim, #8a8a92);
+}
+
+.room-review-note textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 6px 8px;
+  border: 1px solid var(--line, #2a2a2e);
+  border-radius: 6px;
+  background: var(--bg, #0b0b0d);
+  color: inherit;
+  font: inherit;
+}
+
+.room-review-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.room-review-cancel,
+.room-review-revision {
+  padding: 6px 10px;
+  border: 1px solid var(--line, #2a2a2e);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.room-review-revision {
+  color: var(--c-warn, #b7791f);
+}
+
+.room-waived-line {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.fd-chip[data-phase="waived"] {
+  color: var(--c-warn, #b7791f);
+  border-color: color-mix(in srgb, var(--c-warn, #b7791f) 45%, transparent);
+}

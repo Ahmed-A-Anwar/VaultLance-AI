@@ -114,6 +114,13 @@ async function toVault(raw: any): Promise<FreelancerVault> {
       : {}),
     ...(payoutStatus ? { payoutStatus } : {}),
     ...(payout?.failure?.message ? { payoutReason: String(payout.failure.message) } : {}),
+    waivedChecks: Array.isArray(raw.waivedChecks)
+      ? raw.waivedChecks.map((w: any) => ({
+          checkId: String(w.checkId),
+          name: String(w.name || w.checkId),
+          ...(w.reason ? { reason: String(w.reason) } : {}),
+        }))
+      : [],
   };
 }
 

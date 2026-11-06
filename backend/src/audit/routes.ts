@@ -26,6 +26,7 @@ import {
   MAX_QUESTION_CHARS,
 } from "./usage.js";
 import { appendAuditMessages, listAuditMessages } from "./messages.js";
+import { getFailedChecks, getRevisionNote, getWaivedChecks, recordFailedChecks } from "./waivers.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -132,6 +133,11 @@ router.get("/:id/audit-detail", async (req, res, next) => {
     const files = await loadFiles(vaultId);
     const { checks } = await runChecks(vaultId, vault);
     const messages = await listAuditMessages(vaultId);
+    const [failedChecks, waivedChecks, revisionNote] = await Promise.all([
+      getFailedChecks(vaultId),
+      getWaivedChecks(vaultId),
+      getRevisionNote(vaultId),
+    ]);
     const settled = ["AWAITING_APPROVAL", "SUBMITTED", "VERIFYING", "PAID", "COMPLETED", "UNLOCKED"].includes(
       String(vault.status)
     );
@@ -172,6 +178,9 @@ router.get("/:id/audit-detail", async (req, res, next) => {
           cached: m.cached,
           createdAt: m.createdAt,
         })),
+        failedChecks,
+        waivedChecks,
+        revisionNote,
         suggestions,
         questionsUsed: await getQuestionsUsed(vaultId),
         questionLimit: QUESTION_LIMIT,
@@ -196,6 +205,8 @@ router.post("/:id/checks/run", async (req, res, next) => {
     const { checks } = await runChecks(vaultId, vault, req.body?.stagingUrl);
     const explanation = (await explainAudit(vaultId, checks)) || deterministicExplanation(checks);
     const results = checks.map((c) => ({ ...c, state: c.result }));
+    /* the server's record of what failed is what a waiver is checked against */
+    await recordFailedChecks(vaultId, results);
     reports.set(vaultId, { checks: results, explanation, generatedAt: new Date().toISOString() });
 
     if (vault.status !== "AWAITING_APPROVAL") {

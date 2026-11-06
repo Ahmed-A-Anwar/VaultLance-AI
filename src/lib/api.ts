@@ -46,6 +46,26 @@ export interface Vault {
   /* the delivered files a paid vault may download, when the response carries
      them; the list used to drop this and left the card with nothing to fetch */
   files?: Array<{ id: string; name: string }>;
+  /* recorded by the server when the client approved with waivers */
+  waivedChecks?: WaivedCheck[];
+}
+
+export interface FailedCheck {
+  id: string;
+  name: string;
+  detail?: string;
+}
+
+export interface WaivedCheck {
+  checkId: string;
+  name: string;
+  reason?: string;
+  waivedAt?: string;
+}
+
+export interface WaiverRequest {
+  checkId: string;
+  reason?: string;
 }
 
 export type LedgerType =
@@ -305,6 +325,9 @@ export function backendVaultToFrontend(bv: any): Vault {
     status: mapBackendStatusToFrontend(bv.status),
     createdAt: new Date(bv.createdAt || bv.created_at || Date.now()).getTime(),
     paypalOrderId: bv.paypalOrderId || bv.paypal_order_id || bv.paypal_capture_id || undefined,
+    ...(Array.isArray(bv.waivedChecks) && bv.waivedChecks.length > 0
+      ? { waivedChecks: bv.waivedChecks as WaivedCheck[] }
+      : {}),
   };
 }
 
@@ -399,15 +422,25 @@ export async function markAudited(id: string): Promise<Vault> {
 }
 
 /* POST /api/vaults/{id}/approve */
-export async function approveVault(id: string, overrideFailures = false): Promise<Vault> {
+export async function approveVault(id: string, waivers: WaiverRequest[] = []): Promise<Vault> {
   /* with FX.real.vaultsWrite on the capture goes through the http client, so a
      timeout, a 401 and a 409 all arrive as the typed error the UI already
      handles; with it off the shipped call is untouched */
+  const body = waivers.length > 0 ? { waivers } : undefined;
   const v = realOn("vaultsWrite")
-    ? await decideVaultOnServer(id, "approve", overrideFailures ? { overrideFailures: true } : undefined)
-    : await postAction(id, "approve", overrideFailures ? { overrideFailures: true } : undefined);
+    ? await decideVaultOnServer(id, "approve", body)
+    : await postAction(id, "approve", body);
   emit("PAYMENT.CAPTURED", v.id, "Capture completed, funds moved", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   emit("FILES.UNLOCKED", v.id, "Delivery unlocked to the freelancer", { paypalId: v.paypalOrderId });
+  return v;
+}
+
+/* POST /api/vaults/{id}/revision — the client sends failed work back. */
+export async function requestRevision(id: string, note?: string): Promise<Vault> {
+  const body = note && note.trim() ? { note: note.trim() } : undefined;
+  const v = realOn("vaultsWrite")
+    ? await decideVaultOnServer(id, "revision", body)
+    : await postAction(id, "revision", body);
   return v;
 }
 
@@ -597,6 +630,9 @@ export interface VaultDetail {
   vault: Vault;
   files: VaultFile[];
   checks: VaultCheck[];
+  failedChecks: FailedCheck[];
+  waivedChecks: WaivedCheck[];
+  revisionNote: string | null;
   messages: ChatMessage[];
   suggestions: string[];
   questionsUsed: number;
@@ -813,6 +849,18 @@ export async function getVaultDetail(id: string): Promise<VaultDetail> {
       state: c.state || "queued",
       rows: c.rows || [],
     })),
+    failedChecks: (d.failedChecks || []).map((c: any) => ({
+      id: String(c.id),
+      name: String(c.name || c.id),
+      detail: c.detail ? String(c.detail) : undefined,
+    })),
+    waivedChecks: (d.waivedChecks || []).map((w: any) => ({
+      checkId: String(w.checkId),
+      name: String(w.name || w.checkId),
+      ...(w.reason ? { reason: String(w.reason) } : {}),
+      ...(w.waivedAt ? { waivedAt: String(w.waivedAt) } : {}),
+    })),
+    revisionNote: typeof d.revisionNote === "string" ? d.revisionNote : null,
     /* the conversation is stored by the API, so a reopened room resumes it */
     messages: (d.messages || []).map((m: any) => ({
       id: String(m.id),
@@ -838,6 +886,9 @@ function demoVaultDetail(id: string): Promise<VaultDetail> {
       vault: { ...v },
       files: seed.files.map((f) => ({ ...f })),
       checks: seed.checks.map((c) => ({ ...c, state: settled ? c.result : "queued", rows: c.rows.map((r) => ({ ...r })) })),
+      failedChecks: [],
+      waivedChecks: [],
+      revisionNote: null,
       messages: [],
       suggestions: [...seed.suggestions],
       questionsUsed: questionsUsed.get(id) ?? 0,

@@ -52,7 +52,7 @@ export async function createVaultOnServer(input: NewVaultInput): Promise<{ id: s
     and approve only answers from AWAITING_APPROVAL. */
 export async function decideVaultOnServer(
   id: string,
-  decision: "approve" | "reject",
+  decision: "approve" | "reject" | "revision",
   body?: unknown
 ): Promise<Vault> {
   if (!realOn("vaultsWrite")) throw new Error("Real vault writes are switched off.");

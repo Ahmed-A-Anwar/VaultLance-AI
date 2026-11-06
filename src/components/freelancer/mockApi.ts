@@ -56,6 +56,8 @@ export interface FreelancerVault {
     source: "captured";
   };
   captureId?: string;
+  /* failed checks the client waived when paying; the card shows the chip */
+  waivedChecks?: Array<{ checkId: string; name: string; reason?: string }>;
   createdAt: number;
   remindedAt?: number;
   stagingUrl?: string;
@@ -165,6 +167,7 @@ function seed(): void {
       uiStatus: "unlocked",
       kind: "design",
       filesCount: 2,
+      waivedChecks: [],
       files: [file("icons.zip", 480), file("icons-preview.pdf", 120)],
       submittedAt: NOW - 6 * DAY,
       invitedAt: NOW - 9 * DAY,

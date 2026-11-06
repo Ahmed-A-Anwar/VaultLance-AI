@@ -270,6 +270,9 @@ export class VaultDomainService {
         paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
         paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
         paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
+        failedChecks: Array.isArray((vault as any).failed_checks) ? (vault as any).failed_checks : [],
+        waivedChecks: Array.isArray((vault as any).waived_checks) ? (vault as any).waived_checks : [],
+        revisionNote: (vault as any).revision_note ?? null,
         members,
         files,
         ...(captureRow
@@ -334,6 +337,9 @@ export class VaultDomainService {
       expiresAt: vault.expires_at,
       createdAt: vault.created_at,
       updatedAt: vault.updated_at,
+      failedChecks: Array.isArray((vault as any).failed_checks) ? (vault as any).failed_checks : [],
+      waivedChecks: Array.isArray((vault as any).waived_checks) ? (vault as any).waived_checks : [],
+      revisionNote: (vault as any).revision_note ?? null,
       members,
       files,
       ...(capture
