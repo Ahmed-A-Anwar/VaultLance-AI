@@ -224,7 +224,7 @@ class ApiClient {
 
     /* POST /vaults/join { code } — the client holds the code, never the vault id */
     joinByCode: (code: string) =>
-      this.request<{ vaultId: string; joined: boolean; status?: string }>("/vaults/join", {
+      this.request<{ vaultId: string }>("/vaults/join", {
         method: "POST",
         body: JSON.stringify({ code }),
       }),

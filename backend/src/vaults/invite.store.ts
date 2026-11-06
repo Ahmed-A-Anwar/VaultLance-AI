@@ -88,7 +88,11 @@ export async function redeemInviteByCode(code: string, userId: string): Promise<
       .eq("code", code)
       .maybeSingle();
 
-    if (!data || data.used_by || new Date(data.expires_at).getTime() < Date.now()) return null;
+    if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
+
+    /* the client who already spent this code is the same client retrying:
+       answer with the same vault instead of failing their own code */
+    if (data.used_by) return data.used_by === userId ? { vaultId: String(data.vault_id) } : null;
 
     const { data: claimed } = await supabase
       .from("vault_invites")
@@ -97,13 +101,21 @@ export async function redeemInviteByCode(code: string, userId: string): Promise<
       .is("used_by", null)
       .select("vault_id");
 
-    if (!claimed || claimed.length !== 1) return null;
-    return { vaultId: String(data.vault_id) };
+    if (claimed && claimed.length === 1) return { vaultId: String(data.vault_id) };
+
+    /* lost the race to a concurrent request from the same client? */
+    const { data: after } = await supabase
+      .from("vault_invites")
+      .select("vault_id, used_by")
+      .eq("id", data.id)
+      .maybeSingle();
+    return after?.used_by === userId ? { vaultId: String(after.vault_id) } : null;
   }
 
   const invite = memoryInvites.get(code);
-  if (!invite || invite.usedBy) return null;
-  if (invite.expiresAt.getTime() < Date.now()) return null;
+  if (!invite || invite.expiresAt.getTime() < Date.now()) return null;
+  /* single use, but a retry by the same client is idempotent */
+  if (invite.usedBy) return invite.usedBy === userId ? { vaultId: invite.vaultId } : null;
   invite.usedBy = userId;
   return { vaultId: invite.vaultId };
 }
