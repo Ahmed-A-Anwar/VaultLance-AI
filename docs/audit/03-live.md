@@ -194,7 +194,52 @@ GET https://api-m.sandbox.paypal.com/v2/checkout/orders/...    -> 401 invalid_to
 
 Shape check of the stored value (no value shown): length 80, single segment (not a JWT), base64url-safe, begins with `A`, does not begin with `A21`. A sandbox access token begins `A21AA…` and runs to roughly 1 500 characters with a 32 400 s lifetime; 80 characters is the length of a **client ID**, not an access token. The MCP gateway accepts any bearer for the handshake, so the failure only surfaces on the first tool call.
 
-Consequence for this audit: the PayPal transport and tool catalogue are now verified, but **no PayPal data has been read**. The three intended checks (webhook registration, authorization `8WL58666GM8569742`, capture `1N580818UH671613V`) remain UNVERIFIED and need either a real access token (`POST /v1/oauth2/token`, client-credentials) or the client ID **and** secret, from which the token can be minted locally.
+Consequence at the time: the transport and tool catalogue were verified but no PayPal data had been read. That changed once the sandbox client ID and secret were placed in `backend/.env` — see §10.
+
+## 10. PayPal sandbox verified with client credentials
+
+A client-credentials token was minted from the sandbox app (`POST /v1/oauth2/token` → 200, `expires_in` 32 125) and used for four read-only calls. No value was printed.
+
+### Webhook registration — registered, all events
+
+```
+GET /v1/notifications/webhooks -> 200
+  id 59D07142LE8753137
+  url https://vaultlance-ai.fly.dev/api/webhooks/paypal
+  event_types: *   (one wildcard subscription)
+```
+
+So the endpoint is registered and subscribed to **every** event, which is why the app's own filter matters: unknown types are stored and ignored.
+
+### The $23 order and its hold — uncaptured, expires 4 December
+
+```
+GET /v2/checkout/orders/23623123CT6234507 -> 200
+  23623123CT6234507  COMPLETED  23.00 USD
+  authorization 8WL58666GM8569742  CREATED  23.00
+
+GET /v2/payments/authorizations/8WL58666GM8569742 -> 200
+  CREATED | 23.00 USD | created 2026-11-05T17:02:23Z | expires 2026-12-04T17:02:23Z
+```
+
+The hold is real, uncaptured and **valid for another four weeks**. This is the concrete cost behind B4: a reject that cancelled the vault without voiding would leave $23 of the client's money held until 4 December. The batch-1 fix voids before cancelling.
+
+### The $42 capture — completed, with the real fee
+
+```
+GET /v2/payments/captures/1N580818UH671613V -> 200
+  COMPLETED | 42.00 USD | fee 1.96 | net 40.04 | 2026-11-05T14:57:20Z
+```
+
+The effective PayPal fee is 4.67% of gross. The app's payout rule (`net − 5% of gross`) therefore pays less than "gross − PayPal fee"; the two figures can now be reconciled against `vault_captures.paypal_fee_cents` and `payout_cents` instead of assumed.
+
+### PayPal's event log — the events exist
+
+`GET /v1/notifications/webhooks-events?page_size=20` returned 20 events from 2026-11-05, including `CHECKOUT.ORDER.APPROVED` (17:01:32Z) and `PAYMENT.AUTHORIZATION.CREATED` for `8WL58666GM8569742` (17:02:27Z), `PAYMENT.CAPTURE.COMPLETED` for `1N580818UH671613V` (14:57:25Z) and `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` (14:57:46Z). This endpoint lists the events PayPal produced, not per-delivery HTTP results, and the retained Fly logs only start at 07:24Z on 6 November, after all of them — so it still does not prove whether the app received them. That needs `paypal_events` / `ledger_events` rows or a delivery log from the dashboard.
+
+### MCP with a real token
+
+With the same access token the MCP session works end to end: `GET /sse` → 200, `initialize` → `PayPal MCP Agent 1.0.0`, `tools/list` → 46 tools, and `get_order` returned the real order (`COMPLETED`, `23.00`, buyer `freebuffclient@personal.example.com`). The earlier failure was the credential, not the server or the connector.
 
 ### JWT fallback probe (read-only, confirms B1)
 

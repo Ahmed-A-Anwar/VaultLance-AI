@@ -48,3 +48,20 @@ Effort: S < 2 h, M ≈ half a day, L ≥ a day. Owner: FE (frontend), EX (Expres
 | Playground / judge path | **MISSING** | `/playground` redirects or says it moved (`src/App.tsx:33-43`) |
 | Sponsor deliverables | **PARTIAL** | Postman ✓, AG Grid ✓, APIMatic/Zapier/Kernel ✗ |
 | README, license, demo video, honest limits | **PARTIAL** | LICENSE present; README stale; no video; no limits section |
+
+## Batch 1 status (2026-11-06)
+
+Fixed on branch `fix/batch1-security-money`, one commit per item:
+
+| Gap | Commit | What the fix does |
+| --- | --- | --- |
+| B1 | `ecf2544` | no JWT fallback; production refuses to start without a 32+ char secret; a token without a live session row is 401; algorithm pinned |
+| B4 | `659544c` | reject voids the authorization first and only cancels on success; void/expired confirmed via getAuthorization; client-only |
+| B7 | `142ac27` | one idempotent claim routine for return, reconcile and `PAYMENT.AUTHORIZATION.CREATED` |
+| B3 | `acccd70` | id writes throw `MONEY_WRITE_FAILED`; `scripts/backfill-paypal-ids.mjs` (dry-run default) |
+| B9 | `4d1b40e` | demo mode only in dev or `VITE_ENABLE_DEMO=true`; invented `8XK` ids removed from cards |
+| B10 | `8798808` | FastAPI PayPal router no longer registered |
+
+Verification at that commit: backend 16 files / 73 tests, frontend 12 files / 68 tests, both typechecks clean, secrets scan clean, production boot without `JWT_SECRET` exits 3.
+
+Live evidence gathered after the code fix, supporting B4's severity: authorization `8WL58666GM8569742` is still `CREATED` for $23.00 and expires 2026-12-04T17:02:23Z (see `03-live.md` §10).

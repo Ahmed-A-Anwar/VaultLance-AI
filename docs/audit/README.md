@@ -56,7 +56,8 @@ The money loop is the strongest part of the product; the AI claim and one secret
 ## What could not be verified, and why
 
 - **Live capture/payout after the latest changes** — the mandate is read-only; no approval, capture or payout was executed.
-- **Webhook registration at PayPal** — dashboard access is manual; `PAYPAL_WEBHOOK_ID` is set in Fly but the registered URL cannot be read from here. The retained Fly logs contain no `[webhook]` line and no `POST /api/webhooks/paypal`, so no event has ever reached the app in that window. The PayPal sandbox MCP is reachable (SSE at `/sse`, 46 tools) but the stored credential is an 80-character client-ID-shaped value that PayPal rejects in both environments, so no PayPal data could be read — `03-live.md` §9.
+- **Webhook registration** — **now verified**: `https://vaultlance-ai.fly.dev/api/webhooks/paypal` is registered (id `59D07142LE8753137`) for all events. Whether individual deliveries reached the app is still open; PayPal's event log shows the events were produced, but the retained Fly logs start after them (`03-live.md` §10).
+- **PayPal money state** — **now verified** with client credentials: the $23 authorization is `CREATED` and expires 2026-12-04, the $42 capture is `COMPLETED` with a $1.96 fee and $40.04 net. The PayPal sandbox MCP also works with a real token (46 tools), so `03-live.md` §9's empty tool list was a credential problem, not a server one.
 - **Whether `paypal_*` columns are populated** — the boot log proves the DDL ran, but reading the values needs an authenticated `GET /api/vaults/:id` on a funded vault.
 - **RLS policies and backups** — no policy files in the repo; Supabase dashboard not available.
 - **Email delivery for password reset** — no transport provider appears in the code.
