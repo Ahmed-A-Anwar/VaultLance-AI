@@ -328,3 +328,25 @@ The first secret was base64. It verified correctly in Node but every token minte
 
 - **B4 (reject → void)** and **B7's claim on an `AWAITING_CAPTURE` vault** need a signed-in client and a fresh PayPal hold. No test credentials are available to this audit, so both remain in MANUAL CHECKS.
 - **B9 (frontend demo gate)** is not live: only the API was deployed. The Vercel CLI is not installed here and no frontend deploy was made, so the production bundle still runs the previous build.
+
+## 13. B9 verified against a production build (6 November)
+
+`npm run build` (typecheck + Vite) exited 0. In the emitted bundle `VITE_ENABLE_DEMO` is absent entirely: the flag was undefined at build time, so `demoAllowedInBuild(false, undefined)` folded to `false`. The `vl_demo_mode` storage key survives as a harmless string, but nothing consults it without that gate.
+
+Functional check, served with `vite preview` on the built `dist/`:
+
+1. open `/signin?demo=1`
+2. set `localStorage.vl_demo_mode = "true"`
+3. sign in with `demo@example.com` / `password123`
+
+Result: `POST /api/auth/login` → `404`, the page stayed on `/signin` showing "Request failed with status 404", and no `vl.dash.session` or token was written. A demo-enabled build would have fabricated a session from the email and navigated into the dashboard. **B9 holds for a production bundle.**
+
+### Deployment blocker
+
+The frontend was **not** deployed. `vercel whoami` answers "Logged out", there is no `VERCEL_*` token in the environment and no `.vercel/project.json` link, so a production deploy needs `npx vercel login` first. Production still serves the previous bundle.
+
+When it is deployed, `VITE_API_URL` must be set to `https://vaultlance-ai.fly.dev/api` in the Vercel project: the built bundle falls back to same-origin `/api`, and `vercel.json` rewrites everything to `index.html`, so without it the sign-in POST lands on HTML. The local 404 above is precisely that failure with no proxy.
+
+### B4 still needs a session
+
+Rejecting a vault is a client-only, authenticated action. No test credentials are available to this audit, so the void-on-reject path has not been exercised against the deployed API. It needs a client login on an `AUTHORIZED` vault (the $23 hold is live until 4 December) and then a check of the authorization in PayPal.
