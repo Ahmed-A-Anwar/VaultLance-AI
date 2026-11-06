@@ -146,7 +146,7 @@ What this settles:
 
 - **The money-loop DDL ran on the deployed machine.** The `ALTER TABLE vaults ADD COLUMN IF NOT EXISTS paypal_order_id / paypal_authorization_id / paypal_capture_id` statements in `money/schema.ts` executed successfully at boot. The columns exist; whether they hold values is still open (gap B3).
 - **The machine cold-started on the first request** — the health check failed at 07:24:16 and passed by 07:24:21, matching the 7.6 s first byte. `min_machines_running = 1` did not keep it warm.
-- **No PayPal webhook has ever reached the app** in the retained logs. There is no `[webhook]` line and no `POST /api/webhooks/paypal` request, only this audit's `GET` 404. Registration at PayPal is therefore still unproven (manual check 1).
+- **No PayPal webhook appears in the retained logs** — but that is a window artefact, not a fact about the app: these logs start at 07:24Z on 6 November and every event is from 5 November. Delivery and storage are now proven directly from the PayPal dashboard and the database (§11), and the registration is confirmed (§10).
 - `PAYPAL_BASE_URL` is set in Fly (and in `render.yaml`) but ignored by design; that warning is expected.
 
 ### Tooling note
@@ -235,7 +235,7 @@ The effective PayPal fee is 4.67% of gross. The app's payout rule (`net − 5% o
 
 ### PayPal's event log — the events exist
 
-`GET /v1/notifications/webhooks-events?page_size=20` returned 20 events from 2026-11-05, including `CHECKOUT.ORDER.APPROVED` (17:01:32Z) and `PAYMENT.AUTHORIZATION.CREATED` for `8WL58666GM8569742` (17:02:27Z), `PAYMENT.CAPTURE.COMPLETED` for `1N580818UH671613V` (14:57:25Z) and `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` (14:57:46Z). This endpoint lists the events PayPal produced, not per-delivery HTTP results, and the retained Fly logs only start at 07:24Z on 6 November, after all of them — so it still does not prove whether the app received them. That needs `paypal_events` / `ledger_events` rows or a delivery log from the dashboard.
+`GET /v1/notifications/webhooks-events?page_size=20` returned 20 events from 2026-11-05, including `CHECKOUT.ORDER.APPROVED` (17:01:32Z) and `PAYMENT.AUTHORIZATION.CREATED` for `8WL58666GM8569742` (17:02:27Z), `PAYMENT.CAPTURE.COMPLETED` for `1N580818UH671613V` (14:57:25Z) and `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` (14:57:46Z). The dashboard shows every one of these deliveries as `Status: Success`, and the matching `paypal_events` rows exist in the database — receipt is proven in §11.
 
 ### MCP with a real token
 
@@ -250,3 +250,50 @@ probe /api/auth/me: 401 code= USER_INACTIVE message= User account no longer foun
 ```
 
 A wrong signature is rejected before any lookup, so `USER_INACTIVE` (a profile miss) means **the forged signature was accepted**. With a real user id from the database, the same token would authenticate as that user. B1 is no longer theoretical: the deployed API signs and accepts the public fallback secret.
+
+## 11. Database reconciliation — what the app actually recorded
+
+Read-only SQL run by the owner in the Supabase editor, 6 November. These are the first figures that come from the app's own tables rather than from inference.
+
+### The $23 vault was authorized — twelve minutes after the webhook
+
+```
+vault 966d3c39-d178-4105-b53e-e0fd40fe574f
+  status AUTHORIZED | amount 23.00
+  paypal_order_id         23623123CT6234507
+  paypal_authorization_id 8WL58666GM8569742
+  paypal_capture_id       NULL
+  updated_at              2026-11-05 17:15:02.2891+00
+```
+
+```
+paypal_events
+  PAYMENT.CAPTURE.COMPLETED       vault 76c4f095-…  received 2026-11-05 14:57:36.758  COMPLETED
+  CHECKOUT.ORDER.APPROVED         vault 966d3c39-…  received 2026-11-05 17:01:33.520  COMPLETED
+  PAYMENT.AUTHORIZATION.CREATED   vault 966d3c39-…  received 2026-11-05 17:02:46.511  COMPLETED
+```
+
+```
+ledger_events (966d3c39)
+  VAULT_CREATED     23.00  2026-11-05 16:58:15.997
+  FUNDS_AUTHORIZED  23.00  2026-11-05 17:15:02.335
+```
+
+The webhook event was stored and marked `COMPLETED` at **17:02:46**, but `FUNDS_AUTHORIZED` and the `updated_at` that matches it are at **17:15:02** — a 12 minute 16 second gap. At `batch1-pre` the `PAYMENT.AUTHORIZATION.CREATED` branch only called `rememberAuthorization(vaultId, resource.id)` and returned; it never moved the vault or wrote the ledger. The state change therefore came from the browser return route (`claimApprovedOrder`), which is exactly B7: a buyer who never comes back has a paid-looking PayPal hold and a vault that stays `AWAITING_CAPTURE`.
+
+It also shows why `processing_status = COMPLETED` must not be read as "the money moved": the handler finished normally while doing nothing to the state machine.
+
+### The $42 capture reconciles exactly
+
+```
+vault_captures (76c4f095-…)
+  capture 1N580818UH671613V | gross 4200 | fee 196 | net 4004 | payout 3794
+```
+
+`4004 − 5% × 4200 (210) = 3794`, and `fee 196` equals PayPal's `1.96` from §10. So for this vault the recorded fee is real, not estimated, and the payout follows the documented rule (`net − 5% of gross`). No B3-style id corruption on this path.
+
+### What this settles, and what it does not
+
+- **Settled:** webhook registration, delivery (dashboard `Success`), signature acceptance, dedupe, vault matching, and event persistence all work.
+- **Settled:** the webhook did not claim the authorization; the return did, 12 minutes later. B7 is confirmed on live data, and its fix targets the right path.
+- **Not settled:** whether the fix works. Every row above predates `142ac27`; proving the new claim needs a deploy and a resent `AUTHORIZATION.CREATED` (see MANUAL CHECKS). Reject/void (B4) likewise still needs the sandbox run.

@@ -65,3 +65,5 @@ Fixed on branch `fix/batch1-security-money`, one commit per item:
 Verification at that commit: backend 16 files / 73 tests, frontend 12 files / 68 tests, both typechecks clean, secrets scan clean, production boot without `JWT_SECRET` exits 3.
 
 Live evidence gathered after the code fix, supporting B4's severity: authorization `8WL58666GM8569742` is still `CREATED` for $23.00 and expires 2026-12-04T17:02:23Z (see `03-live.md` §10).
+
+**B7, confirmed on live data (6 November).** Vault `966d3c39-…` received `PAYMENT.AUTHORIZATION.CREATED` at 17:02:46 and the event row says `COMPLETED`, but `FUNDS_AUTHORIZED` and the vault's `updated_at` are both 17:15:02 — the browser return, 12 minutes later. At `batch1-pre` the webhook branch only stored the authorization id. The capture vault `76c4f095-…` reconciles exactly (`4200 − 196 = 4004`, payout `3794 = 4004 − 210`). See `03-live.md` §11.
