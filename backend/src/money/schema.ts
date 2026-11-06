@@ -75,6 +75,13 @@ const STATEMENTS = [
   `alter table vaults add column if not exists waived_checks jsonb not null default '[]'::jsonb`,
   `alter table vaults add column if not exists revision_note text`,
   `alter table vault_manifests add column if not exists version integer not null default 1`,
+  /* the ledger event type is a Postgres enum in Supabase, so a new event name
+     is refused until it is added here. Ordering last keeps these additive DDL
+     statements from blocking the column changes above if one ever fails. */
+  `alter type ledger_event_type_enum add value if not exists 'MANIFEST.LOCKED'`,
+  `alter type ledger_event_type_enum add value if not exists 'AUDIT_COMPLETED'`,
+  `alter type ledger_event_type_enum add value if not exists 'CHECK_WAIVED'`,
+  `alter type ledger_event_type_enum add value if not exists 'REVISION_REQUESTED'`,
 ];
 
 export async function ensureMoneySchema(): Promise<boolean> {
