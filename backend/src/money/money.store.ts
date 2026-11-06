@@ -283,18 +283,22 @@ export async function appendLedger(
   extra: Record<string, unknown> = {}
 ): Promise<void> {
   if (live()) {
-    await supabase!.from("ledger_events").insert([
+    /* a non-money event still needs a numeric amount: the column is not null,
+       and a null here made the insert fail silently, losing waivers and
+       revisions from the ledger. 0 says "no money moved" and keeps the row. */
+    const { error } = await supabase!.from("ledger_events").insert([
       {
         id: crypto.randomUUID(),
         vault_id: vaultId,
         actor_id: actorId,
         event_type: eventType,
-        amount: amountCents === null ? null : amountCents / 100,
+        amount: amountCents === null ? 0 : amountCents / 100,
         currency,
         metadata: { note, amountCents, ...extra },
         created_at: new Date().toISOString(),
       },
     ]);
+    if (error) logger.error(`[money] ledger write failed for ${eventType}: ${error.message}`);
     return;
   }
   memoryLedger.push({ vault_id: vaultId, event_type: eventType, actor_id: actorId, metadata: { note, amountCents, ...extra } });
