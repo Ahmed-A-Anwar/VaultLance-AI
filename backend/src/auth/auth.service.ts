@@ -423,29 +423,27 @@ export class AuthService {
     const payload = verifyToken(token);
     const session = await sessionStore.getSession(payload.sessionId);
 
-    // If session is revoked explicitly, reject
-    if (session && session.revoked) {
+
+    /* A signature proves we minted the token; it does not prove the session is
+       live. A missing row is a 401 and is never recreated here: recreating it
+       from the payload is what let a token signed with the repository's old
+       fallback secret log in as a user that never existed. getSession already
+       treats revoked and expired rows as absent. */
+    if (!session) {
       throw new UnauthorizedError(
         "Session has been revoked or expired.",
         "SESSION_REVOKED"
       );
     }
 
-    // In production with Supabase, if the server restarted and memory session was wiped,
-    // verify the signed JWT payload directly and recreate session
-    if (!session && isSupabaseConfigured() && supabase) {
-      await sessionStore.createSession(
-        payload.userId,
-        token,
-        undefined,
-        undefined,
-        payload.sessionId
-      );
-    } else if (!session) {
-      throw new UnauthorizedError(
-        "Session has been revoked or expired.",
-        "SESSION_REVOKED"
-      );
+    if (session.userId !== payload.userId) {
+      throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
+    }
+
+    /* the row keeps the exact token it issued, so a rewritten payload under the
+       same session id is rejected even if it verifies */
+    if (session.token && session.token !== token) {
+      throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
     }
 
     // ── Supabase path ──────────────────────────────────────────────

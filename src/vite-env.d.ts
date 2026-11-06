@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_ERRORS?: string;
   /** Runs the offline demo instead of calling the API. */
   readonly VITE_DEMO_MODE?: string;
+  readonly VITE_ENABLE_DEMO?: string;
 }
 
 interface ImportMeta {

@@ -9,6 +9,7 @@
 import { logger } from "../shared/logger.js";
 import * as store from "../money/money.store.js";
 import { confirmCapture } from "../money/capture.service.js";
+import { claimAuthorization } from "../money/claim.service.js";
 
 const stripBatch = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
@@ -46,17 +47,36 @@ export async function processEvent(event: any): Promise<void> {
 
   switch (type) {
     case "CHECKOUT.ORDER.APPROVED": {
-      if (resource.id) await store.rememberOrder(vaultId, String(resource.id));
+      if (!resource.id) return;
+      if (vault.paypalOrderId && String(resource.id) !== vault.paypalOrderId) {
+        logger.warn(`[webhook] order ${resource.id} is not the order stored for vault ${vaultId}; ignored`);
+        return;
+      }
+      await store.rememberOrder(vaultId, String(resource.id));
       return;
     }
 
     case "PAYMENT.AUTHORIZATION.CREATED": {
       const declaredOrder = resource.supplementary_data?.related_ids?.order_id;
-      if (vault.paypalOrderId && declaredOrder && declaredOrder !== vault.paypalOrderId) {
-        logger.warn(`[webhook] authorization for vault ${vaultId} names another order; ignored`);
-        return;
+      const amountCents = Math.round(Number(resource.amount?.value || 0) * 100);
+      const currency = String(resource.amount?.currency_code || vault.currency);
+
+      try {
+        /* the same idempotent claim the browser return uses: a buyer who never
+           comes back still gets an AUTHORIZED vault, and a race between the two
+           is decided by one compare-and-set */
+        await claimAuthorization(vaultId, {
+          authorizationId: String(resource.id || ""),
+          orderId: declaredOrder || null,
+          amountCents,
+          currency,
+          via: "webhook",
+        });
+      } catch (err: any) {
+        logger.warn(
+          `[webhook] authorization ${resource.id || "(none)"} for vault ${vaultId} ignored: ${err?.message || "unknown"}`
+        );
       }
-      if (resource.id) await store.rememberAuthorization(vaultId, String(resource.id));
       return;
     }
 

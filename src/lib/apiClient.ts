@@ -5,6 +5,7 @@
 
 import { clearAccessToken, configureHttp, getAccessToken, setAccessToken } from "./http";
 import { realOn } from "../config/fx";
+import { demoBuildEnabled } from "./demoGate";
 
 const explicitApiUrl = (import.meta.env.VITE_API_URL || "").trim();
 
@@ -30,13 +31,14 @@ export const mockHoldAllowed = (): boolean => !import.meta.env.PROD || !hasApiCo
 
 export const isDemoMode = (): boolean => {
   if (typeof window === "undefined") return false;
+  /* A production build ignores ?demo=1 and the localStorage flag unless it was
+     built with VITE_ENABLE_DEMO=true. The query parameter is visitor-controlled,
+     so it must never be able to open a fabricated signed-in shell. */
+  if (!demoBuildEnabled()) return false;
   const urlParam = new URLSearchParams(window.location.search).get("demo");
   if (urlParam === "1" || urlParam === "true") return true;
   if (import.meta.env.VITE_DEMO_MODE === "true") return true;
-  if (window.localStorage.getItem("vl_demo_mode") === "true") return true;
-  /* a production build with no API configured has nothing to authenticate
-     against, so it runs the local demo instead of posting into the void */
-  return import.meta.env.PROD && !explicitApiUrl;
+  return window.localStorage.getItem("vl_demo_mode") === "true";
 };
 
 export const setDemoMode = (enabled: boolean): void => {

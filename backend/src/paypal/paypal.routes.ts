@@ -26,6 +26,7 @@ import { logger } from "../shared/logger.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { approveVault } from "../money/approve.service.js";
 import { rememberAuthorization, rememberOrder } from "../money/money.store.js";
+import { claimAuthorization } from "../money/claim.service.js";
 import { database } from "../shared/db.js";
 import type { VaultStatus } from "../shared/types.js";
 
@@ -123,24 +124,24 @@ async function claimApprovedOrder(vaultId: string, vault: any, userId: string, o
     );
   }
 
-  await rememberAuthorization(vaultId, authResult.authorizationId);
-  await rememberOrder(vaultId, orderId);
+  /* The webhook can deliver the same hold while the buyer's browser is still
+     on the way back. Both go through one compare-and-set, so exactly one writes
+     the id and the ledger row and the other is a no-op. */
+  await claimAuthorization(vaultId, {
+    authorizationId: authResult.authorizationId,
+    orderId,
+    amountCents: Math.round(authResult.amount * 100),
+    currency: authResult.currency,
+    via: "return",
+    actorId: userId,
+  });
 
   if (isSupabaseConfigured() && supabase) {
-    await supabase
-      .from("vaults")
-      .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
-      .eq("id", vaultId);
     await supabase
       .from("paypal_transactions")
       .update({ status: "AUTHORIZED", updated_at: new Date().toISOString() })
       .eq("paypal_order_id", orderId);
   } else {
-    const v = database.store.vaults.get(vaultId);
-    if (v) {
-      v.status = "AUTHORIZED";
-      v.updated_at = new Date();
-    }
     const tx = localTxStore.get(orderId);
     if (tx) {
       tx.authorizationId = authResult.authorizationId;
@@ -148,16 +149,6 @@ async function claimApprovedOrder(vaultId: string, vault: any, userId: string, o
       tx.updatedAt = new Date();
     }
   }
-
-  await recordLedgerEvent(
-    vaultId,
-    userId,
-    "FUNDS_AUTHORIZED",
-    authResult.amount,
-    authResult.currency,
-    "PayPal funds authorized and held in escrow",
-    { orderId, authorizationId: authResult.authorizationId }
-  );
 
   return authResult;
 }

@@ -86,3 +86,10 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Interactive API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+## PayPal router is disabled
+
+PayPal calls are owned by the Express service (`backend/`). This engine's
+`app/api/routes/paypal.py` is kept for reference but is **not registered** in
+`app/main.py`, so this service cannot create an order, capture, void or pay out.
+The engine is internal and stateless about money; see `docs/architecture.md`.

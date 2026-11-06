@@ -35,8 +35,11 @@ export class PayPalService {
     return paypalBaseUrl();
   }
 
+  /* No fallback: an unset webhook id must never turn verification into a pass.
+     The route refuses to call us without it, and verifyWebhookSignature below
+     fails closed if it is reached anyway. */
   public get webhookId(): string {
-    return process.env.PAYPAL_WEBHOOK_ID || "MOCK_WEBHOOK_ID";
+    return (process.env.PAYPAL_WEBHOOK_ID || "").trim();
   }
 
   /**
@@ -272,7 +275,26 @@ export class PayPalService {
   /**
    * 5. Void an existing Authorization: POST /v2/payments/authorizations/{authorization_id}/void
    */
-  public async voidAuthorization(authorizationId: string): Promise<{
+  /** Read an authorization's current state, used to confirm a void landed. */
+  public async getAuthorization(authorizationId: string): Promise<{
+    id: string;
+    status: string;
+    amount: number;
+    currency: string;
+  }> {
+    const res = await this.request<any>(`/v2/payments/authorizations/${authorizationId}`, { method: "GET" });
+    return {
+      id: res.id,
+      status: String(res.status || ""),
+      amount: parseFloat(res.amount?.value || "0"),
+      currency: res.amount?.currency_code || "USD",
+    };
+  }
+
+  public async voidAuthorization(
+    authorizationId: string,
+    requestId: string = `void-${authorizationId}`
+  ): Promise<{
     status: string;
     raw: any;
   }> {
@@ -282,7 +304,7 @@ export class PayPalService {
       res = await this.request<any>(`/v2/payments/authorizations/${authorizationId}/void`, {
         method: "POST",
         headers: {
-          "PayPal-Request-Id": `void-${authorizationId}`,
+          "PayPal-Request-Id": requestId,
           Prefer: "return=representation",
         },
         body: JSON.stringify({}),
@@ -314,10 +336,9 @@ export class PayPalService {
   }): Promise<boolean> {
     const { authAlgo, certUrl, transmissionId, transmissionSig, transmissionTime, webhookEvent } = params;
 
-    // In demo/test mode with dummy webhook ID
-    if (!this.webhookId || this.webhookId === "MOCK_WEBHOOK_ID") {
-      logger.info("[PayPal] Webhook verification bypassed (MOCK_WEBHOOK_ID configured)");
-      return true;
+    if (!this.webhookId) {
+      logger.error("[PayPal] PAYPAL_WEBHOOK_ID is not set; refusing to verify");
+      return false;
     }
 
     try {
