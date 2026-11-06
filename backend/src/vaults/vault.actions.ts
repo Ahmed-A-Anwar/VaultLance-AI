@@ -20,10 +20,20 @@ import {
   ForbiddenError,
   BadRequestError,
   ConflictError,
+  AppError,
 } from "../shared/errors.js";
+import { logger } from "../shared/logger.js";
 import { database } from "../shared/db.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { approveVault } from "../money/approve.service.js";
+import { assertClientMember } from "../money/access.js";
+import { paypalService } from "../paypal/paypal.client.js";
+import {
+  appendLedger,
+  casStatus,
+  getAuthorizationId,
+  getCapture,
+} from "../money/money.store.js";
 import type { VaultStatus } from "../shared/types.js";
 
 const router = Router();
@@ -308,6 +318,24 @@ router.post("/:id/reject", async (req, res, next) => {
     const vaultId = String(req.params.id);
     const vault = await getVaultRecord(req.user.id, vaultId);
 
+    /* Only the invited client may reject. Membership alone is not enough: the
+       freelancer owns the vault and must not be able to cancel the client's
+       hold. */
+    await assertClientMember(req.user.id, vaultId);
+
+    /* a second reject is the same answer, and must not void twice */
+    if (String(vault.status).toUpperCase() === "CANCELLED") {
+      const updated = await getFullVault(vaultId);
+      return sendSuccess(res, updated, "Vault hold voided");
+    }
+
+    if (String(vault.status).toUpperCase() === "PAID") {
+      throw new ConflictError(
+        "Payment was already captured; a void is no longer possible.",
+        "ALREADY_CAPTURED"
+      );
+    }
+
     const allowedFrom: VaultStatus[] = [
       "AUTHORIZED",
       "IN_PROGRESS",
@@ -325,14 +353,62 @@ router.post("/:id/reject", async (req, res, next) => {
       );
     }
 
-    await updateVaultStatus(vaultId, "CANCELLED");
-    await insertLedgerEvent(
+    /* A recorded capture means the money moved; voiding is no longer possible. */
+    const capture = await getCapture(vaultId);
+    if (capture) {
+      throw new ConflictError(
+        "Payment was already captured; a void is no longer possible.",
+        "ALREADY_CAPTURED"
+      );
+    }
+
+    const authorizationId = await getAuthorizationId(vaultId);
+
+    /* The hold is real money. Void it first and only cancel once PayPal agrees:
+       a cancelled vault whose authorization is still active looks settled to the
+       client while the bank still has the funds on hold. */
+    if (authorizationId && !authorizationId.startsWith("mock-")) {
+      try {
+        await paypalService.voidAuthorization(authorizationId, `void-reject-${vaultId}`);
+      } catch (err: any) {
+        /* PayPal says "already voided/expired" as an error; confirm the state
+           instead of trusting the message, and only then continue. */
+        const state = await paypalService
+          .getAuthorization(authorizationId)
+          .catch(() => null);
+        const done = state && ["VOIDED", "EXPIRED"].includes(String(state.status).toUpperCase());
+        if (!done) {
+          logger.error(
+            `[reject] void failed for vault ${vaultId} (${err?.message || "unknown"}); vault left unchanged`
+          );
+          throw new AppError(
+            "PayPal did not confirm the void. The vault was left unchanged so you can retry.",
+            502,
+            "VOID_FAILED"
+          );
+        }
+      }
+    }
+
+    const moved = await casStatus(vaultId, String(vault.status).toUpperCase(), "CANCELLED");
+    if (!moved) {
+      const now = await getVaultRecord(req.user.id, vaultId);
+      if (String(now.status).toUpperCase() !== "CANCELLED") {
+        throw new ConflictError(
+          `The vault changed while it was being rejected (now '${now.status}').`,
+          "INVALID_STATE"
+        );
+      }
+    }
+
+    await appendLedger(
       vaultId,
-      req.user.id,
       "VAULT_CANCELLED",
-      Number(vault.amount),
+      req.user.id,
+      Math.round(Number(vault.amount) * 100),
       vault.currency || "USD",
-      "Hold voided, nothing was charged"
+      "Hold voided, nothing was charged",
+      authorizationId ? { authorizationId, voided: true } : { voided: false }
     );
 
     const updated = await getFullVault(vaultId);
