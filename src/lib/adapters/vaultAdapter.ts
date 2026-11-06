@@ -35,6 +35,17 @@ export const vaultSchema = z.object({
   paypalOrderId: z.string().nullish(),
   paypal_capture_id: z.string().nullish(),
   paypalCaptureId: z.string().nullish(),
+  /* carried so a paid card can say a failed check was waived */
+  waivedChecks: z
+    .array(
+      z.object({
+        checkId: z.string(),
+        name: z.string().nullish(),
+        reason: z.string().nullish(),
+        waivedAt: z.string().nullish(),
+      })
+    )
+    .nullish(),
 });
 
 const SUBMITTED = ["SUBMITTED", "VERIFYING", "AWAITING_APPROVAL", "CAPTURE_PENDING"];
@@ -70,6 +81,16 @@ export function toClientVault(raw: unknown): ClientVault | null {
     createdAt: msOf(dto.createdAt) ?? 0,
     ...(order ? { paypalOrderId: String(order) } : {}),
     ...(capture ? { captureId: String(capture) } : {}),
+    ...(dto.waivedChecks && dto.waivedChecks.length > 0
+      ? {
+          waivedChecks: dto.waivedChecks.map((w) => ({
+            checkId: String(w.checkId),
+            name: String(w.name ?? w.checkId),
+            ...(w.reason ? { reason: String(w.reason) } : {}),
+            ...(w.waivedAt ? { waivedAt: String(w.waivedAt) } : {}),
+          })),
+        }
+      : {}),
     /* kept for the download button: the signed link is minted per file */
     ...(dto.files && dto.files.length > 0
       ? { files: dto.files.map((f) => ({ id: f.id, name: String(f.fileName ?? "file") })) }
