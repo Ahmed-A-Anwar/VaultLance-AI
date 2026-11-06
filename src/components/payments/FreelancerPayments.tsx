@@ -65,6 +65,19 @@ export function FreelancerPayments({ onOpenVault }: { onOpenVault: (vaultId: str
     };
   }, [load]);
 
+  /* while PayPal is still moving the money, ask again every five seconds; a
+     terminal row stops the clock. */
+  useEffect(() => {
+    const moving = (payouts ?? []).some(
+      (p) => p.serverStatus === "creating" || p.serverStatus === "pending" || p.status === "pending"
+    );
+    if (!moving) return;
+    const timer = window.setInterval(() => {
+      void load();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [payouts, load]);
+
   /* one sweep, then the row is just a paid row again */
   useEffect(() => {
     if (!justPaid) return;

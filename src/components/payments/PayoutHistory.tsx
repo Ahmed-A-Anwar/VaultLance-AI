@@ -15,6 +15,7 @@ import { Copy, Download, VaultGlyph } from "../dashboard/icons";
 import { Refresh } from "./icons";
 import { useToast } from "../shared/Toasts";
 import { formatCents } from "../../lib/fees";
+import { payoutChip } from "../../lib/payout";
 import { gridTheme } from "../freelancer/gridTheme";
 import type { Payout } from "./paymentsModel";
 
@@ -211,15 +212,16 @@ export function PayoutHistory({
         cellClass: "pay-status-cell",
         cellRenderer: (p: { data?: Payout }) => {
           if (!p.data) return null;
-          const meta = STATUS_STYLE[p.data.status];
+          const meta = payoutChip(p.data.serverStatus) ?? STATUS_STYLE[p.data.status];
           const failed = p.data.status === "failed";
+          const retryable = p.data.serverStatus ? p.data.serverStatus === "failed" : failed;
           return (
             <div className="pay-status">
               <div className="pay-status-row">
                 <span className="pay-chip" data-tone={meta.tone}>
                   {meta.label}
                 </span>
-                {failed && (
+                {retryable && (
                   <button
                     type="button"
                     className="fd-btn fd-btn-secondary pay-retry"
@@ -439,7 +441,7 @@ export function PayoutHistory({
                 <dd>−{formatCents(pop.row.vaultlanceFeeCents)}</dd>
               </div>
               <div>
-                <dt>PAYPAL FEE</dt>
+                <dt>{pop.row.feesSource === "captured" ? "PAYPAL FEE" : "PAYPAL FEE (EST.)"}</dt>
                 <dd>−{formatCents(pop.row.paypalFeeCents)}</dd>
               </div>
               <div className="pay-pop-total">
@@ -452,6 +454,10 @@ export function PayoutHistory({
                   <dd className="fd-mono pay-pop-mono">{pop.row.paypalPayoutId}</dd>
                 </div>
               )}
+              <div>
+                <dt>FEES</dt>
+                <dd>{pop.row.feesSource ?? "estimated"}</dd>
+              </div>
               {pop.row.failureReason && (
                 <div>
                   <dt>REASON</dt>

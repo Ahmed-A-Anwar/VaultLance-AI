@@ -14,6 +14,7 @@
 import { FX } from "../../config/fx";
 import { isDemoMode } from "../../lib/apiClient";
 import { retryPayoutOnServer } from "../../lib/vaultWrites";
+import { payoutStatusOf, readPayout } from "../../lib/payout";
 import {
   hasPayoutEmail,
   listEvents,
@@ -101,7 +102,7 @@ export async function listPayouts(): Promise<Payout[]> {
   if (!isDemoMode()) {
     const vaults = await listLiveFreelancerVaults();
     const events = await listLiveFreelancerEvents(vaults);
-    return payoutsFrom(withPayoutStatus(vaults, events), events);
+    return withServerPayout(payoutsFrom(withPayoutStatus(vaults, events), events));
   }
 
   const [vaults, events] = await Promise.all([listFreelancerVaults(), listFreelancerEvents()]);
@@ -109,6 +110,42 @@ export async function listPayouts(): Promise<Payout[]> {
   maybeFail();
   if (EMPTY) return [];
   return payoutsFrom(vaults, events);
+}
+
+/** The payout read is the authority on status, attempt and the allowed failure
+    sentence. It is read per row; a refused read leaves the row as the ledger
+    shaped it rather than hiding it. */
+async function withServerPayout(rows: Payout[]): Promise<Payout[]> {
+  return Promise.all(
+    rows.map(async (row) => {
+      try {
+        const view = await readPayout(row.vaultId);
+        if (view.role !== "freelancer") return row;
+        const status = payoutStatusOf(view.status);
+        return {
+          ...row,
+          status,
+          serverStatus: view.status,
+          ...(view.payoutItemId ? { paypalPayoutId: view.payoutItemId } : {}),
+          ...(view.timestamps.createdAt
+            ? { createdAt: Date.parse(view.timestamps.createdAt) || row.createdAt }
+            : {}),
+          ...(view.failure?.message ? { failureReason: view.failure.message } : {}),
+          ...(view.cents
+            ? {
+                grossCents: view.cents.gross,
+                vaultlanceFeeCents: view.cents.vaultlanceFee,
+                paypalFeeCents: view.cents.paypalFee,
+                netCents: view.cents.payout,
+                feesSource: "captured" as const,
+              }
+            : {}),
+        } as Payout;
+      } catch {
+        return row;
+      }
+    })
+  );
 }
 
 /** The server keeps the payout as a ledger pair (SENT / FAILED) and the vault

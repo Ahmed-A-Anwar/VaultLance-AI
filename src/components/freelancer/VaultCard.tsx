@@ -131,6 +131,12 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           {HINT[phase]}
         </p>
 
+        {phase === "payout_failed" && vault.payoutReason && (
+          <p className="pay-reason" title={vault.payoutReason}>
+            {vault.payoutReason}
+          </p>
+        )}
+
         <div className="fd-card-actions">
           {phase === "draft" && (
             <>

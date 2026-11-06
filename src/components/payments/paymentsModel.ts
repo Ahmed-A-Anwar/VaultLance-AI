@@ -22,10 +22,14 @@ export interface Payout {
   paypalFeeCents: number;
   netCents: number;
   status: PayoutStatus;
+  /** the server's own six-state answer, when it has one */
+  serverStatus?: "none" | "creating" | "pending" | "paid" | "failed" | "blocked";
   paypalPayoutId?: string;
   createdAt: number;
   paidAt?: number;
   failureReason?: string;
+  /** captured fees are real; before capture the numbers are an estimate */
+  feesSource?: "captured" | "estimated";
 }
 
 export interface Receipt {
@@ -87,19 +91,21 @@ export function payoutsFrom(vaults: FreelancerVault[], events: FreelancerEvent[]
     .filter((v) => v.payoutStatus === "paid" || v.payoutStatus === "pending" || v.payoutStatus === "failed")
     .map((v): Payout => {
       const status = v.payoutStatus as PayoutStatus;
+      const captured = v.capturedFees;
       return {
         id: `po_${v.id}`,
         vaultId: v.id,
         project: v.project,
-        grossCents: v.amountCents,
-        vaultlanceFeeCents: vaultlanceFee(v.amountCents),
-        paypalFeeCents: paypalFeeEstimate(v.amountCents),
-        netCents: freelancerPayoutEstimate(v.amountCents),
+        grossCents: captured?.grossCents ?? v.amountCents,
+        vaultlanceFeeCents: captured?.vaultlanceFeeCents ?? vaultlanceFee(v.amountCents),
+        paypalFeeCents: captured?.paypalFeeCents ?? paypalFeeEstimate(v.amountCents),
+        netCents: captured?.payoutCents ?? freelancerPayoutEstimate(v.amountCents),
         status,
+        feesSource: captured ? "captured" : "estimated",
         paypalPayoutId: v.payoutPaypalId,
         createdAt: latest.get(v.id) ?? v.lastEventAt ?? v.createdAt,
         paidAt: status === "paid" ? sent.get(v.id) ?? v.lastEventAt ?? undefined : undefined,
-        failureReason: status === "failed" ? FAILURE_REASON : undefined,
+        failureReason: v.payoutReason ?? (status === "failed" ? FAILURE_REASON : undefined),
       };
     })
     .sort((a, b) => b.createdAt - a.createdAt);

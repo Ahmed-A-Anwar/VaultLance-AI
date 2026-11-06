@@ -12,6 +12,8 @@ import {
 import type { VaultStatus } from "../shared/types.js";
 import type { VaultDTO, VaultMemberItem, VaultFileItem } from "./vault.types.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
+import { getCapture } from "../money/money.store.js";
+import { platformFeeCents } from "../money/money.types.js";
 
 export interface CreateVaultDTO {
   freelancerId: string;
@@ -232,7 +234,7 @@ export class VaultDomainService {
          before the column existed, or a write the database refused), and the
          ledger metadata records the same ids, so it is the fallback */
       const [{ data: captureRow }, { data: moneyEvents }] = await Promise.all([
-        supabase.from("vault_captures").select("capture_id").eq("vault_id", vaultId).maybeSingle(),
+        supabase.from("vault_captures").select("*").eq("vault_id", vaultId).maybeSingle(),
         supabase
           .from("ledger_events")
           .select("metadata, created_at")
@@ -270,6 +272,18 @@ export class VaultDomainService {
         paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
         members,
         files,
+        ...(captureRow
+          ? {
+              fees: {
+                grossCents: Number(captureRow.gross_cents),
+                vaultlanceFeeCents: platformFeeCents(Number(captureRow.gross_cents)),
+                paypalFeeCents: Number(captureRow.paypal_fee_cents),
+                netCents: Number(captureRow.net_cents),
+                payoutCents: Number(captureRow.payout_cents),
+                source: "captured" as const,
+              },
+            }
+          : {}),
       };
     }
 
@@ -308,6 +322,7 @@ export class VaultDomainService {
       }
     }
 
+    const capture = await getCapture(vaultId);
     return {
       id: vault.id,
       freelancerId: vault.freelancer_id,
@@ -321,6 +336,18 @@ export class VaultDomainService {
       updatedAt: vault.updated_at,
       members,
       files,
+      ...(capture
+        ? {
+            fees: {
+              grossCents: capture.grossCents,
+              vaultlanceFeeCents: platformFeeCents(capture.grossCents),
+              paypalFeeCents: capture.feeCents,
+              netCents: capture.netCents,
+              payoutCents: capture.payoutCents,
+              source: "captured" as const,
+            },
+          }
+        : {}),
     };
   }
 

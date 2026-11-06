@@ -199,6 +199,7 @@ export async function getCapture(vaultId: string): Promise<CaptureRecord | null>
       netCents: Number(data.net_cents),
       payoutCents: Number(data.payout_cents),
       confirmedVia: data.confirmed_via,
+      createdAt: data.created_at || undefined,
     };
   }
   return memoryCaptures.get(vaultId) || null;
@@ -225,8 +226,10 @@ export async function createPayoutOnce(record: PayoutRecord): Promise<{ created:
   }
   const existing = memoryPayouts.get(record.vaultId);
   if (existing) return { created: false, record: existing };
-  memoryPayouts.set(record.vaultId, record);
-  return { created: true, record };
+  const now = new Date().toISOString();
+  const stored = { ...record, createdAt: record.createdAt ?? now, updatedAt: record.updatedAt ?? now };
+  memoryPayouts.set(record.vaultId, stored);
+  return { created: true, record: stored };
 }
 
 export async function getPayout(vaultId: string): Promise<PayoutRecord | null> {
@@ -242,6 +245,8 @@ export async function getPayout(vaultId: string): Promise<PayoutRecord | null> {
       payoutItemId: data.payout_item_id || null,
       reason: data.reason || null,
       attempt: Number(data.attempt || 1),
+      createdAt: data.created_at || undefined,
+      updatedAt: data.updated_at || undefined,
     };
   }
   return memoryPayouts.get(vaultId) || null;
@@ -259,7 +264,13 @@ export async function updatePayout(vaultId: string, patch: Partial<PayoutRecord>
     return;
   }
   const existing = memoryPayouts.get(vaultId);
-  if (existing) memoryPayouts.set(vaultId, { ...existing, ...patch });
+  if (existing) {
+    memoryPayouts.set(vaultId, {
+      ...existing,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    });
+  }
 }
 
 export async function appendLedger(

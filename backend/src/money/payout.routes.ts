@@ -8,14 +8,28 @@
  */
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { ConflictError, ForbiddenError } from "../shared/errors.js";
+import { ConflictError, ForbiddenError, NotFoundError } from "../shared/errors.js";
 import { sendSuccess } from "../shared/response.js";
 import { assertFreelancerOwner } from "./access.js";
 import * as store from "./money.store.js";
 import { ensurePayout } from "./payout.service.js";
+import { buildPayoutView } from "./payout.view.js";
 
 const router = Router();
 router.use(requireAuth);
+
+/* GET /api/vaults/:id/payout — the same vault, two views. A non-member gets the
+   missing-vault answer, so the route cannot be used to discover vault ids. */
+router.get("/:id/payout", async (req, res, next) => {
+  try {
+    if (!req.user) throw new ForbiddenError("Not authenticated.", "AUTH_REQUIRED");
+    const view = await buildPayoutView(req.user.id, String(req.params.id));
+    if (!view) throw new NotFoundError("Vault not found.", "VAULT_NOT_FOUND");
+    return sendSuccess(res, view, "Payout retrieved successfully");
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.post("/:id/payout/retry", async (req, res, next) => {
   try {
