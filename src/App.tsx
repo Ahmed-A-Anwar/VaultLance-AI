@@ -36,6 +36,33 @@ const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
 
 const Fallback = () => <p role="status" style={{ padding: "var(--s-8)" }}>Loading…</p>;
 
+/* Every route had the landing page's title, so a tab or a bookmark said nothing
+   about where the reader was. One map, read on each route change. */
+const TITLES: Array<[RegExp, string]> = [
+  [/^\/$/, "VaultLance AI — escrow that releases when the work checks out"],
+  [/^\/signup/, "Create your account — VaultLance AI"],
+  [/^\/signin/, "Sign in — VaultLance AI"],
+  [/^\/forgot-password/, "Reset your password — VaultLance AI"],
+  [/^\/reset-password/, "Choose a new password — VaultLance AI"],
+  [/^\/playground\/return/, "Payment return — VaultLance AI"],
+  [/^\/playground/, "Playground — VaultLance AI"],
+  [/^\/dashboard\/vaults/, "Vaults — VaultLance AI"],
+  [/^\/dashboard\/ledger/, "Ledger — VaultLance AI"],
+  [/^\/dashboard\/payments/, "Payments — VaultLance AI"],
+  [/^\/dashboard\/settings/, "Settings — VaultLance AI"],
+  [/^\/dashboard/, "Overview — VaultLance AI"],
+  [/^\/vault\/new/, "New vault — VaultLance AI"],
+  [/^\/vault\//, "Audit room — VaultLance AI"],
+  [/^\/v\//, "Your vault — VaultLance AI"],
+];
+
+function useDocumentTitle(pathname: string) {
+  useEffect(() => {
+    const hit = TITLES.find(([pattern]) => pattern.test(pathname));
+    document.title = hit ? hit[1] : "VaultLance AI";
+  }, [pathname]);
+}
+
 function Shell() {
   /* One door for a lost session. A 401 has already been cleared by the http
      client; here the reader goes to /signin carrying the page they were on, so
@@ -43,6 +70,8 @@ function Shell() {
      already on /signin is what keeps this from looping. */
   const navigate = useNavigate();
   const location = useLocation();
+
+  useDocumentTitle(location.pathname);
 
   useEffect(() => {
     const leave = () => {

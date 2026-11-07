@@ -25,3 +25,6 @@ prisma7.config.ts
 skills-lock.json
 docs/ui-audit/shots/
 docs/ui-audit/evidence/
+
+docs/ux-audit/shots/
+docs/ux-audit/evidence/
