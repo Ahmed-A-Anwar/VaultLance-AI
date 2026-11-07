@@ -15,7 +15,7 @@ export function ManifestRow({ path, size, hash, state, released }: {
 }) {
   const releasedNow = released && (state === "RELEASED" || state === "PAID");
   return (
-    <div className="mrow" data-released={releasedNow ? "true" : "false"} data-locked={releasedNow ? "false" : "true"}>
+    <div className="mrow" role="listitem" data-released={releasedNow ? "true" : "false"} data-locked={releasedNow ? "false" : "true"}>
       <span className="mpath" title={path}>
         {releasedNow ? <strong>{path}</strong> : path}
       </span>
@@ -34,7 +34,7 @@ export function ManifestRow({ path, size, hash, state, released }: {
 export function ManifestList({ items, state, released }: { items: { path: string; size: number; hash: string }[]; state: MoneyState; released: boolean }) {
   return (
     <div className="panel" role="list" aria-label="Manifest">
-      <div className="mrow" aria-hidden="true" style={{ paddingTop: 6, paddingBottom: 6 }}>
+      <div className="mrow" role="presentation" aria-hidden="true" style={{ paddingTop: 6, paddingBottom: 6 }}>
         <span className="small" style={{ fontWeight: 600 }}>File</span>
         <span className="tiny" style={{ textAlign: "right" }}>Size</span>
         <span className="tiny">sha256</span>

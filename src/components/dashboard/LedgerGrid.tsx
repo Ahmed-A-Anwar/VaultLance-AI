@@ -153,7 +153,7 @@ export function LedgerGrid({ full = false, events, vaults }: { full?: boolean; e
           p.data ? (
             <span className="dash-ledger-event">
               <span className="dash-ledger-dot" style={{ background: TYPE_DOT[p.data.type] }} aria-hidden="true" />
-              <span className="dash-ledger-type">{p.data.type}</span>
+              <span className="dash-ledger-type" data-ellipsis>{p.data.type}</span>
             </span>
           ) : null,
       },
@@ -171,7 +171,7 @@ export function LedgerGrid({ full = false, events, vaults }: { full?: boolean; e
         cellRenderer: (p: ICellRendererParams<Row>) =>
           p.data?.paypalId ? (
             <span className="dash-ledger-pp">
-              <span className="dash-ledger-id">{p.data.paypalId}</span>
+              <span className="dash-ledger-id" data-ellipsis>{p.data.paypalId}</span>
               <button
                 type="button"
                 className="dash-copy"

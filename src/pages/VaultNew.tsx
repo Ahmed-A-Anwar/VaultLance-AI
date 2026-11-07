@@ -73,7 +73,7 @@ export default function VaultNew() {
               : <p><strong>Drop the deliverable zip.</strong></p>}
             <p className="tiny">Path, byte-size, sha-256 — one row each in the manifest preview. Keyboard: pick the file below.</p>
             {err && <p className="warn-reason" role="alert"><Cross style={{ width: 13, height: 13 }} /> {err}</p>}
-            <input id="zipfile" className="control" type="file" accept=".zip" data-testid="zip-input"
+            <input id="zipfile" className="control" type="file" accept=".zip" aria-label="Delivery zip file" data-testid="zip-input"
               onChange={(e) => e.target.files?.[0] && void readZip(e.target.files[0])} />
           </div>
 

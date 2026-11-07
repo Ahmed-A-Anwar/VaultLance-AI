@@ -1,0 +1,13 @@
+ui-sweep 11 cells × 4 viewports × 1 browsers
+anon       /demo                    issues so far 10
+client     /dashboard               issues so far 22
+client     /dashboard/vaults        issues so far 17
+client     /dashboard/ledger        issues so far 6
+client     /dashboard/payments      issues so far 19
+client     /dashboard/settings      issues so far 32
+freelancer /dashboard               issues so far 56
+freelancer /dashboard/vaults        issues so far 42
+freelancer /dashboard/ledger        issues so far 31
+freelancer /dashboard/payments      issues so far 37
+freelancer /dashboard/settings      issues so far 65
+ISSUES P0 0 · P1 33 · P2 208 · P3 0 · cells 44

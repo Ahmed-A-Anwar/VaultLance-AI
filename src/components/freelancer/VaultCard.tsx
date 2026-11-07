@@ -132,12 +132,12 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           <Wheel width="13" height="13" />
         </button>
 
-        <p className="fd-card-hint" title={HINT[phase]} aria-label={HINT[phase]}>
+        <p className="fd-card-hint" data-ellipsis title={HINT[phase]} aria-label={HINT[phase]}>
           {HINT[phase]}
         </p>
 
         {phase === "payout_failed" && vault.payoutReason && (
-          <p className="pay-reason" title={vault.payoutReason}>
+          <p className="pay-reason" data-ellipsis title={vault.payoutReason}>
             {vault.payoutReason}
           </p>
         )}

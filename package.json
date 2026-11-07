@@ -13,7 +13,8 @@
     "test:unit": "vitest run",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "e2e:smoke": "node --env-file=backend/.env --env-file=backend/.env.E2E scripts/e2e-smoke.mjs"
+    "e2e:smoke": "node --env-file=backend/.env --env-file=backend/.env.E2E scripts/e2e-smoke.mjs",
+    "ui:sweep": "node scripts/ui-sweep.mjs"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.5",
@@ -39,6 +40,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.52.0",
     "@tailwindcss/vite": "^4.1.7",
     "@types/qrcode": "^1.5.5",

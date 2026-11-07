@@ -243,7 +243,7 @@ export function PayoutHistory({
                 )}
               </div>
               {failed && (
-                <span className="pay-reason" title={p.data.failureReason}>
+                <span className="pay-reason" data-ellipsis title={p.data.failureReason}>
                   {p.data.failureReason}
                 </span>
               )}
@@ -272,7 +272,7 @@ export function PayoutHistory({
                   .then(() => toast({ message: "PayPal ID copied.", tone: "success" }));
               }}
             >
-              <span className="fd-mono">{p.value}</span>
+              <span className="fd-mono" data-ellipsis>{p.value}</span>
               <Copy width="12" height="12" aria-hidden="true" />
             </button>
           );

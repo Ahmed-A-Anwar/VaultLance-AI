@@ -139,7 +139,7 @@ export function VaultCard({
     >
       <div className="dash-vault-main">
         <div className="dash-vault-head">
-          <h3 className="dash-vault-project">{vault.project}</h3>
+          <h3 className="dash-vault-project" data-ellipsis>{vault.project}</h3>
           <StatusChip key={vault.status} status={vault.status} />
           {vault.status === "unlocked" && vault.waivedChecks && vault.waivedChecks.length > 0 ? (
             <span className="dash-chip" data-status="waived">

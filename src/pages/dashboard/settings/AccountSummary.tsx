@@ -33,7 +33,7 @@ export function AccountSummary({
           {initialsOf(profile.fullName)}
         </span>
         <div className="set-summary-text">
-          <p className="set-summary-name" data-testid="summary-name">
+          <p className="set-summary-name" data-ellipsis data-testid="summary-name">
             {profile.fullName}
           </p>
           <p className="set-summary-email" title={profile.email}>

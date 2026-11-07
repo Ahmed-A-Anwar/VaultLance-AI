@@ -73,6 +73,12 @@
   height: var(--dash-upper, 89px);
   align-items: center;
 }
+/* Below 1280 the golden-ratio split leaves the KPI row under 374px, so three
+   cards collapse to 66px and their labels clip to a sliver. The band stacks
+   instead; the ratio returns as soon as both columns fit. */
+@media (max-width: 1279px) {
+  .fd-band { grid-template-columns: minmax(0, 1fr); height: auto; }
+}
 .fd-greet {
   display: flex;
   flex-direction: column;

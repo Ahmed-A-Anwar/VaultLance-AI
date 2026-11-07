@@ -1,0 +1,307 @@
+{
+  "generatedAt": "2026-11-07T18:55:12.295Z",
+  "app": "http://127.0.0.1:5173",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "browsers": [
+    "chromium"
+  ],
+  "cells": [
+    {
+      "route": "/demo",
+      "state": "demo",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\demo-390-chromium.png"
+    },
+    {
+      "route": "/demo",
+      "state": "demo",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\demo-768-chromium.png"
+    },
+    {
+      "route": "/demo",
+      "state": "demo",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\demo-1024-chromium.png"
+    },
+    {
+      "route": "/demo",
+      "state": "demo",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\demo-1440-chromium.png"
+    },
+    {
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\vault-new-390-chromium.png"
+    },
+    {
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\vault-new-768-chromium.png"
+    },
+    {
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\vault-new-1024-chromium.png"
+    },
+    {
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\vault-new-1440-chromium.png"
+    }
+  ],
+  "counts": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 16,
+    "P3": 0
+  },
+  "issues": [
+    {
+      "id": "ui-1",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "The instrument 108x17",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-2",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "1576px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-3",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "649px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-4",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "The instrument 108x17",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-5",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "1576px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-6",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "649px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-7",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "1576px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-8",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "649px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-9",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "← The instrument 125x17",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-10",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.btn.full",
+      "detail": "Seal vault 358x42",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-11",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-12",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "← The instrument 125x17",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-13",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.btn.full",
+      "detail": "Seal vault 707x42",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-14",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-15",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-16",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    }
+  ]
+}

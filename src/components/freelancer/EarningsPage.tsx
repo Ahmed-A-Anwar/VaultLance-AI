@@ -224,7 +224,7 @@ export function EarningsPage({ vaults, events, loading, error, onRetry, onOpenVa
                   </button>
                   {open && (
                     <div className="fd-earn-row-more">
-                      <span className="fd-mono">{r.paypalId ?? "No PayPal ID"}</span>
+                      <span className="fd-mono" data-ellipsis>{r.paypalId ?? "No PayPal ID"}</span>
                       {r.paypalId && (
                         <button
                           type="button"

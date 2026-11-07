@@ -1686,6 +1686,13 @@
   .dash-cta {
     display: none; /* the phone puts the join action at the top of the list */
   }
+  /* a primary action on a phone is a 44px thumb target, not a 34px chip */
+  .dash-cta,
+  .dash-btn-primary,
+  .fd-btn-primary {
+    height: 44px;
+    min-height: 44px;
+  }
   .dash-btn.dash-join-cta {
     display: flex;
   }
