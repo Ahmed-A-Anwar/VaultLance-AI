@@ -20,6 +20,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   setAccessToken(null);
@@ -80,6 +81,32 @@ describe("vaultWrites", () => {
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(`http://api.test/api/vaults/${ID}/approve`);
     expect(JSON.parse(String(init.body))).toEqual({ overrideFailures: true });
+  });
+
+  it("gives a capture 60s before the browser aborts it", async () => {
+    vi.useFakeTimers();
+    const aborted: boolean[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            (init?.signal as AbortSignal).addEventListener("abort", () => {
+              aborted.push(true);
+              reject(new Error("aborted"));
+            });
+          })
+      )
+    );
+
+    const approval = decideVaultOnServer(ID, "approve");
+    const rejected = expect(approval).rejects.toThrow(/too long/);
+    await vi.advanceTimersByTimeAsync(59_000);
+    expect(aborted).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(1_100);
+    await rejected;
+    expect(aborted).toEqual([true]);
   });
 
   it("sends a bare POST to reject, and refuses an unreadable vault", async () => {

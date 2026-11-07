@@ -60,6 +60,8 @@ export async function decideVaultOnServer(
   const raw = await request<unknown>(`/vaults/${encodeURIComponent(id)}/${decision}`, {
     method: "POST",
     ...(body === undefined ? {} : { body }),
+    /* approving captures at PayPal, a live call that can outlive the default */
+    ...(decision === "approve" ? { timeoutMs: 60_000 } : {}),
   });
 
   const vault = toClientVault(raw);

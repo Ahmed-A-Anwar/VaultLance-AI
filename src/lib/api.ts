@@ -11,7 +11,7 @@ import { FX, realOn } from "../config/fx";
 import { API_BASE_URL, apiClient, isDemoMode } from "./apiClient";
 import * as authApi from "./authApi";
 import { decideVaultOnServer } from "./vaultWrites";
-import { request } from "./http";
+import { NetworkError, request } from "./http";
 import { normalizeInviteCode } from "./inviteCode";
 /* the freelancer surface mints invite codes in this browser; the client's
    join row redeems them through the same registry */
@@ -427,9 +427,20 @@ export async function approveVault(id: string, waivers: WaiverRequest[] = []): P
      timeout, a 401 and a 409 all arrive as the typed error the UI already
      handles; with it off the shipped call is untouched */
   const body = waivers.length > 0 ? { waivers } : undefined;
-  const v = realOn("vaultsWrite")
-    ? await decideVaultOnServer(id, "approve", body)
-    : await postAction(id, "approve", body);
+  let v: Vault;
+  try {
+    v = realOn("vaultsWrite")
+      ? await decideVaultOnServer(id, "approve", body)
+      : await postAction(id, "approve", body);
+  } catch (e) {
+    /* A capture can finish at PayPal after the browser gives up waiting. Read
+       the vault once before reporting failure, or the client is charged while
+       the room still says AUDITED. */
+    if (!(e instanceof NetworkError)) throw e;
+    const detail = await getVaultDetail(id).catch(() => null);
+    if (detail?.vault.status !== "unlocked") throw e;
+    v = detail.vault;
+  }
   emit("PAYMENT.CAPTURED", v.id, "Capture completed, funds moved", { amountUSD: v.amountUSD, paypalId: v.paypalOrderId });
   emit("FILES.UNLOCKED", v.id, "Delivery unlocked to the freelancer", { paypalId: v.paypalOrderId });
   return v;
