@@ -10,11 +10,16 @@
 
 ## Next
 
-1. Re-test signup against the deployed build after the push, including one cold start if the Fly
-   machine has autostopped.
-2. Optional: add the playground path and signed-URL expiry to the smoke-adjacent suite (both are
+1. Optional: add the playground path and signed-URL expiry to the smoke-adjacent suite (both are
    already covered by the full runner).
-3. Test data: all leftovers are prefixed `e2e-<timestamp>-`; no vault-delete endpoint exists.
+2. Test data: all leftovers are prefixed `e2e-<timestamp>-`; no vault-delete endpoint exists.
+
+## Deployed verification (2026-11-07T18:36Z)
+
+- Commit `983ab60` pushed to `main`; Vercel deployed it (entry chunk `index-A7a5rpRo.js` carries the
+  45s auth deadline).
+- Fly machine stopped, then a freelancer signed up through deployed `/signup`: **PASS**, 10.1s
+  click-to-answer — past the old 10s deadline. The machine woke and is running again.
 
 ## Commands
 

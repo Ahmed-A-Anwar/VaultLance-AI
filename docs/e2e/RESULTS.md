@@ -64,6 +64,11 @@ before PayPal by design.
 
 Verification after the fixes: frontend typecheck 0, unit **75/75**, security **20/20**, smoke **9/9**.
 
+Live proof of the cold-start fix: the Fly machine was stopped, then a freelancer signed up through
+the deployed `/signup` at **10.1s click-to-answer** (15.4s including page load). That is longer than
+the old 10s deadline, so the previous build would have shown “The server took too long” while the
+account was created. The deployed entry chunk carries the 45s deadline.
+
 ## Open items
 
 - Valid password-reset delivery remains **HUMAN** (no inbox / Supabase test link); the token path
