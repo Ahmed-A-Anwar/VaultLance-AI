@@ -28,6 +28,13 @@ export default function PlaygroundReturn() {
       setMessage("This tab has no playground session. Start again from /playground.");
       return;
     }
+    /* a return from an older playground run must not claim the current
+       session's vault by accident */
+    if (vault !== session.vaultId) {
+      setState("error");
+      setMessage("This PayPal return belongs to a different playground run. Start again from /playground.");
+      return;
+    }
 
     switchPlaygroundRole("client");
     let live = true;

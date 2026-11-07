@@ -639,6 +639,9 @@ export interface ChatMessage {
 
 export interface VaultDetail {
   vault: Vault;
+  /* the backend state behind the five UI states; the checks panel needs it to
+     know whether the API accepts a re-run (AWAITING_APPROVAL, not NEEDS_REVISION) */
+  rawStatus?: string;
   files: VaultFile[];
   checks: VaultCheck[];
   failedChecks: FailedCheck[];
@@ -845,6 +848,7 @@ export async function getVaultDetail(id: string): Promise<VaultDetail> {
       paypalOrderId: v.paypalOrderId || undefined,
       captureId: v.paypalCaptureId || undefined,
     },
+    rawStatus: String(v.status || "").toUpperCase(),
     files: (d.files || []).map((f: any) => ({
       id: f.id,
       name: f.name,
@@ -895,6 +899,7 @@ function demoVaultDetail(id: string): Promise<VaultDetail> {
     const settled = v.status === "audited" || v.status === "unlocked";
     return {
       vault: { ...v },
+      rawStatus: v.status === "audited" ? "AWAITING_APPROVAL" : "AUTHORIZED",
       files: seed.files.map((f) => ({ ...f })),
       checks: seed.checks.map((c) => ({ ...c, state: settled ? c.result : "queued", rows: c.rows.map((r) => ({ ...r })) })),
       failedChecks: [],
@@ -948,7 +953,12 @@ export async function runChecks(
     /* FX.real.audit runs the checks through the http client, so a timeout or a
        refused status reaches the room as the error it already renders */
     const run = realOn("audit")
-      ? await request<{ checks?: any[] }>(`/vaults/${id}/checks/run`, { method: "POST" })
+      ? await request<{ checks?: any[] }>(`/vaults/${id}/checks/run`, {
+          method: "POST",
+          /* the audit fetches each delivery and runs the real checks; two
+             production runs took ~11s, past the client's 10s default */
+          timeoutMs: 90_000,
+        })
       : await (async () => {
           const res = await fetch(`${API_BASE}/api/vaults/${id}/checks/run`, {
             method: "POST",

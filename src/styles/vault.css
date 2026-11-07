@@ -340,6 +340,10 @@
   text-align: center;
   margin-top: -4px;
 }
+/* the decision panel has room to breathe now that its row is content-sized */
+.room-decision .room-hint-sm {
+  margin-top: 0;
+}
 .room-amount {
   margin: 0;
   font-family: var(--room-display);
@@ -765,10 +769,34 @@
   }
 }
 
+.room-thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 21px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--hero-slate);
+}
+.room-thinking-text {
+  animation: roomThinkingIn 236ms var(--room-ease) both;
+}
+@keyframes roomThinkingIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .room-typing {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  flex: none;
   height: 21px;
 }
 .room-typing i {
@@ -1180,19 +1208,28 @@
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 4px 0 0;
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 13px;
   overflow-y: auto;
-  /* the fourth card meets the fold; fade it rather than cutting it square */
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent 100%);
-  scrollbar-width: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(14, 21, 32, 0.35) rgba(14, 21, 32, 0.04);
 }
 .room-check-list::-webkit-scrollbar {
-  display: none;
+  display: block;
+  width: 8px;
+}
+.room-check-list::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(14, 21, 32, 0.04);
+}
+.room-check-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(14, 21, 32, 0.35);
 }
 
 .room-check {
@@ -1407,7 +1444,9 @@
 
 .room-side {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 233px;
+  /* the failed-check decision adds two secondary actions; a fixed 233px row
+     clipped the last one, so let the panel take the height it needs */
+  grid-template-rows: minmax(0, 1fr) minmax(233px, auto);
   gap: var(--room-gap);
   min-height: 0;
 }
@@ -1415,8 +1454,8 @@
 .room-decision {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 13px 21px;
+  gap: 10px;
+  padding: 13px 21px 16px;
   overflow-y: auto;
   transition: border-color 382ms var(--room-ease), box-shadow 382ms var(--room-ease);
 }
@@ -1566,6 +1605,11 @@
 .room-void:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* stack the secondary actions at the same width as the primary action */
+.room-decision .room-void {
+  align-self: stretch;
+  width: 100%;
 }
 /* the three-second countdown under the confirm label */
 .room-void-bar {
@@ -2190,4 +2234,24 @@
 .fd-chip[data-phase="waived"] {
   color: var(--c-warn, #b7791f);
   border-color: color-mix(in srgb, var(--c-warn, #b7791f) 45%, transparent);
+}
+
+/* The playground's floating "switch role" pill is fixed over the room's
+   bottom-right corner, exactly where the revision and void buttons sit. Keep a
+   lane below the panels for it on desktop; on phones the fixed decision bar
+   already sits at the bottom, so leave that layout alone. */
+@media (min-width: 768px) {
+  body:has(.pg-float) .room {
+    padding-bottom: calc(var(--room-pad) + 55px);
+  }
+  body:has(.pg-float) .room-main {
+    height: calc(100svh - 55px - 89px - var(--room-pad) - 55px);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  body:has(.pg-float) .room-main {
+    height: auto;
+    min-height: calc(100svh - 55px - 89px - var(--room-pad) - 55px);
+  }
 }
