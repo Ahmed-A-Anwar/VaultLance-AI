@@ -68,6 +68,11 @@ const STATEMENTS = [
   `alter table vaults add column if not exists paypal_capture_id text`,
   `alter table vaults add column if not exists questions_used integer not null default 0`,
   `alter table users add column if not exists paypal_payout_email text`,
+  /* reserved playground identities and the data they own: both flags are how
+     reset recognises its own rows and refuses every other account's */
+  `alter table users add column if not exists is_playground boolean not null default false`,
+  `alter table vaults add column if not exists is_playground boolean not null default false`,
+  `alter table vaults add column if not exists playground_sample text`,
   `alter table vault_files add column if not exists unlocked boolean not null default false`,
   /* the failed report the waiver rule checks against, the waivers taken at
      approval, and the client's revision note */
@@ -82,6 +87,7 @@ const STATEMENTS = [
   `alter type ledger_event_type_enum add value if not exists 'AUDIT_COMPLETED'`,
   `alter type ledger_event_type_enum add value if not exists 'CHECK_WAIVED'`,
   `alter type ledger_event_type_enum add value if not exists 'REVISION_REQUESTED'`,
+  `alter type ledger_event_type_enum add value if not exists 'PLAYGROUND_RESET'`,
 ];
 
 export async function ensureMoneySchema(): Promise<boolean> {

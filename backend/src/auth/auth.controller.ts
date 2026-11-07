@@ -75,6 +75,7 @@ export class AuthController {
           fullName: user.full_name,
           role: user.role,
           avatarUrl: user.avatar_url,
+          isPlayground: Boolean(user.is_playground),
           createdAt: user.created_at,
         },
         "User profile retrieved"
@@ -96,6 +97,7 @@ export class AuthController {
           fullName: user.full_name,
           role: user.role,
           avatarUrl: user.avatar_url,
+          isPlayground: Boolean(user.is_playground),
           createdAt: user.created_at,
         },
         "Profile updated"

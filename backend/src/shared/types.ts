@@ -25,6 +25,8 @@ export interface AuthenticatedUser {
   role: UserRole;
   avatarUrl?: string | null;
   sessionId?: string;
+  /* only the two reserved playground accounts carry this */
+  isPlayground?: boolean;
 }
 
 declare global {

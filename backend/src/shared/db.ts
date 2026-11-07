@@ -10,6 +10,8 @@ export interface DbUserRecord {
   avatar_url?: string | null;
   /** where payouts are sent; empty falls back to the login email */
   paypal_payout_email?: string | null;
+  /* a reserved sandbox identity, never a customer account */
+  is_playground?: boolean;
   account_status: "ACTIVE" | "PENDING" | "SUSPENDED";
   created_at: Date;
   updated_at: Date;
@@ -30,6 +32,10 @@ export interface DbVaultRecord {
   failed_checks?: Array<{ id: string; name: string; detail?: string }>;
   waived_checks?: Array<{ checkId: string; name: string; reason?: string; waivedAt?: string; waivedBy?: string }>;
   revision_note?: string | null;
+  /* playground-only data; reset scopes on this and on every member being a
+     playground account, so it can never reach a customer's vault */
+  is_playground?: boolean;
+  playground_sample?: string | null;
 }
 
 export interface DbVaultMemberRecord {

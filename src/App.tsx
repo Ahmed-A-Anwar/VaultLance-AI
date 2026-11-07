@@ -2,18 +2,17 @@ import { lazy, Suspense, useEffect } from "react";
 import {
   RouterProvider,
   createBrowserRouter,
-  Navigate,
   Outlet,
   RouteObject,
   useLocation,
   useNavigate,
-  useSearchParams,
 } from "react-router-dom";
 import VaultLayout from "./layouts/VaultLayout";
 import { DashArea } from "./pages/dashboard/RoleGate";
 import { NotFoundPage } from "./pages/dashboard/RoleGate";
 import { clearSession } from "./lib/mockAuth";
 import { setUnauthorizedHandler } from "./lib/http";
+import PlaygroundBar from "./components/PlaygroundBar";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -28,26 +27,14 @@ const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const ClientFiles = lazy(() => import("./pages/ClientFiles"));
 const Console = lazy(() => import("./pages/Console"));
 const Demo = lazy(() => import("./pages/Demo"));
+const Playground = lazy(() => import("./pages/Playground"));
+const PlaygroundReturn = lazy(() => import("./pages/playground/Return"));
 /* the client dashboard. One shell for every area, so the rail and the strip
    never remount between its routes. The area each path renders comes from the
    route table (pages/dashboard/routeTable.tsx), not from the route tree. */
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
 
 const Fallback = () => <p role="status" style={{ padding: "var(--s-8)" }}>Loading…</p>;
-
-/* the old deep link: /playground?vault=<id> is the audit room at its own
-   address now, and /playground alone is still a placeholder */
-function Playground() {
-  const [params] = useSearchParams();
-  const vault = params.get("vault");
-  if (vault) return <Navigate to={`/vault/${vault}`} replace />;
-  return (
-    <main id="main" className="wrap" style={{ padding: "var(--s-20) var(--s-5)" }}>
-      <h1 style={{ fontSize: "1.5rem" }}>The playground moved.</h1>
-      <p className="small">Open a vault from the dashboard to run its audit.</p>
-    </main>
-  );
-}
 
 function Shell() {
   /* One door for a lost session. A 401 has already been cleared by the http
@@ -80,6 +67,7 @@ function Shell() {
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
+      <PlaygroundBar />
       <Suspense fallback={<Fallback />}>
         <Outlet />
       </Suspense>
@@ -102,6 +90,7 @@ const routes: RouteObject[] = [
   { path: "/vault/new", element: <VaultNew /> },
   { path: "/vault/:id", element: <AuditRoom /> },
   { path: "/playground", element: <Playground /> },
+  { path: "/playground/return", element: <PlaygroundReturn /> },
   { path: "/v/:token", element: <ClientPortal /> },
   { path: "/v/:token/files", element: <ClientFiles /> },
   { path: "/console", element: <Console /> },

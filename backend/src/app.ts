@@ -16,6 +16,7 @@ import manifestRoutes from "./manifests/manifest.routes.js";
 import ledgerRoutes from "./ledger/ledger.routes.js";
 import payoutRoutes from "./money/payout.routes.js";
 import aiRoutes from "./ai/ai.routes.js";
+import playgroundRoutes from "./playground/routes.js";
 import { paypalRouter } from "./paypal/paypal.routes.js";
 import { createWebhookRouter } from "./paypal/webhook.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -81,6 +82,7 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/manifests", manifestRoutes);
 app.use("/api/ledger", ledgerRoutes);
 app.use("/api/ai", aiRoutes); // diagnostic for the private AI service
+app.use("/api/playground", playgroundRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({

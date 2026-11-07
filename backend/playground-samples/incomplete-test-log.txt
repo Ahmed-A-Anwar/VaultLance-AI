@@ -1,0 +1,1 @@
+<testsuite name="northwind" tests="12" failures="3" errors="1" skipped="0" time="2.08"></testsuite>

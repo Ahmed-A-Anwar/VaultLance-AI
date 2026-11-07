@@ -289,6 +289,38 @@
   align-items: center;
   gap: 21px;
 }
+/* the judge path: a quiet third route under the two account CTAs, so it does
+   not compete with sign-up but is on the first screen */
+.hero-playground-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--hero-font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--hero-slate);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(138, 149, 161, 0.55);
+  padding-bottom: 1px;
+}
+.hero-playground-link > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hero-teal);
+  box-shadow: 0 0 0 3px rgba(18, 165, 181, 0.14);
+  flex: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-playground-link:hover {
+    color: var(--hero-ink);
+    border-bottom-color: var(--hero-brass);
+  }
+}
+.hero-playground-link:focus-visible {
+  outline: 2px solid var(--hero-teal);
+  outline-offset: 3px;
+}
 /* The CTA row sits on the golden line and the copy rides just above it, so the
    slack a short headline leaves falls above the headline instead of opening a
    hole between it and the body. The row is out of flow (its own top is the

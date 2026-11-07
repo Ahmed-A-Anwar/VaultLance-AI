@@ -47,6 +47,7 @@ export interface AuthResult {
     fullName: string;
     role: UserRole;
     avatarUrl?: string | null;
+    isPlayground?: boolean;
     createdAt: Date;
   };
   token: string;
@@ -450,7 +451,7 @@ export class AuthService {
     if (isSupabaseConfigured() && supabase) {
       const { data: profile, error } = await supabase
         .from("users")
-        .select("id, email, full_name, avatar_url, account_status, role")
+        .select("id, email, full_name, avatar_url, account_status, role, is_playground")
         .eq("id", payload.userId)
         .single();
 
@@ -482,6 +483,7 @@ export class AuthService {
         role,
         avatarUrl: profile.avatar_url,
         sessionId: payload.sessionId,
+        isPlayground: Boolean((profile as any).is_playground),
       };
     }
 
@@ -502,6 +504,40 @@ export class AuthService {
       role: user.role,
       avatarUrl: user.avatar_url,
       sessionId: payload.sessionId,
+      isPlayground: Boolean(user.is_playground),
+    };
+  }
+
+  /* Reserved playground accounts sign in through the playground door, not with
+     a password: the route has already resolved the two seeded identities and
+     this mints the same real session every other request validates. */
+  public async issueSessionFor(
+    user: { id: string; email: string; fullName: string; role: UserRole; isPlayground?: boolean },
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<AuthResult> {
+    const sessionId = crypto.randomUUID();
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      fullName: user.fullName,
+      sessionId,
+    });
+    await sessionStore.createSession(user.id, token, ipAddress, userAgent, sessionId);
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        avatarUrl: null,
+        isPlayground: Boolean(user.isPlayground),
+        createdAt: new Date(),
+      },
+      token,
+      sessionId,
+      expiresIn: "7d",
     };
   }
 
@@ -534,6 +570,7 @@ export class AuthService {
         role,
         avatar_url: profile.avatar_url,
         account_status: profile.account_status,
+        is_playground: Boolean(profile.is_playground),
         created_at: new Date(profile.created_at),
         updated_at: new Date(profile.updated_at),
       };

@@ -8,6 +8,7 @@
 
 import { forwardRef } from "react";
 import type { RefObject } from "react";
+import { Link } from "react-router-dom";
 
 export interface HeroCopyProps {
   headline: string;
@@ -82,6 +83,9 @@ export const HeroCopy = forwardRef<HTMLDivElement, HeroCopyProps>(function HeroC
             <span className="hero-btn-label">Sign in</span>
           </a>
         </div>
+        <Link className="hero-playground-link" to="/playground" data-testid="hero-playground">
+          <span aria-hidden="true" /> Open the live playground — two real sandbox roles, no signup
+        </Link>
       </div>
 
       <p className="hero-body" ref={bodyRef}>
