@@ -13,7 +13,6 @@ import {
   fundPlaygroundVault,
   loadPlaygroundSample,
   readPlaygroundSession,
-  refreshPlaygroundVault,
   resetPlayground,
   startPlayground,
   switchPlaygroundRole,
@@ -121,9 +120,8 @@ export default function Playground() {
   const approve = () =>
     guard("approve", async () => {
       chooseRole("client");
-      await approvePlaygroundVault();
-      const vault = await refreshPlaygroundVault();
-      if (vault) setView((current) => (current ? { ...current, status: vault.status } : current));
+      const status = await approvePlaygroundVault();
+      setView((current) => (current ? { ...current, status } : current));
       setNotice("Payment captured with the real approval route.");
     });
 

@@ -251,13 +251,52 @@ export async function finishPaypalReturn(): Promise<{ claimed: boolean; status?:
   return { claimed: true, status: "AWAITING_APPROVAL" };
 }
 
-export async function approvePlaygroundVault(): Promise<void> {
+async function readVaultStatus(vaultId: string): Promise<string | null> {
+  try {
+    const vault = await request<{ status: string }>(`/vaults/${vaultId}`, { timeoutMs: 30_000 });
+    return String(vault.status).toUpperCase();
+  } catch {
+    return null;
+  }
+}
+
+async function waitForPaid(vaultId: string): Promise<string> {
+  const deadline = Date.now() + 90_000;
+  let last = "";
+  while (Date.now() < deadline) {
+    const status = await readVaultStatus(vaultId);
+    if (status) last = status;
+    if (status === "PAID") return status;
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  throw new Error(`The capture is still ${last || "settling"}. Refresh the playground to see its final state.`);
+}
+
+export async function approvePlaygroundVault(): Promise<string> {
   const session = readPlaygroundSession();
   if (!session) throw new Error("Start the playground first.");
   setAccessToken(session.tokens.client);
-  await request(`/vaults/${session.vaultId}/approve`, {
-    method: "POST",
-    body: {},
-    timeoutMs: 60_000,
-  });
+
+  const approve = () =>
+    request(`/vaults/${session.vaultId}/approve`, {
+      method: "POST",
+      body: {},
+      timeoutMs: 60_000,
+    });
+
+  try {
+    await approve();
+  } catch (err) {
+    /* A lost response after the server captured is not a failed capture, and a
+       connection reset before the server saw it is safe to send once more. */
+    const current = (await readVaultStatus(session.vaultId)) ?? (await readVaultStatus(session.vaultId));
+    if (current === "PAID" || current === "CAPTURE_PENDING") return waitForPaid(session.vaultId);
+    if (current === "AWAITING_APPROVAL" && (err as { status?: number }).status === 0) {
+      await approve();
+    } else {
+      throw err;
+    }
+  }
+
+  return waitForPaid(session.vaultId);
 }
