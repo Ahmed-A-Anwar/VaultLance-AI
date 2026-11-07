@@ -204,7 +204,12 @@ export async function fundPlaygroundVault(): Promise<string> {
   const returnUrl = `${window.location.origin}/playground/return?vault=${session.vaultId}`;
   const order = await request<{ orderId: string; links?: Array<{ rel?: string; href?: string }> }>(
     `/vaults/${session.vaultId}/payment/order`,
-    { method: "POST", body: { returnUrl, cancelUrl: window.location.origin + "/playground" } }
+    {
+      method: "POST",
+      body: { returnUrl, cancelUrl: window.location.origin + "/playground" },
+      /* PayPal sandbox order creation is a live provider call */
+      timeoutMs: 60_000,
+    }
   );
   const link =
     order.links?.find((entry) => entry.rel === "payer-action" || entry.rel === "approve")?.href ||
@@ -219,10 +224,19 @@ export async function finishPaypalReturn(): Promise<{ claimed: boolean; status?:
   if (!session) throw new Error("This tab has no playground session.");
   setAccessToken(session.tokens.client);
 
-  const reconciled = await request<{ claimed: boolean; status?: string }>(
-    `/vaults/${session.vaultId}/payment/reconcile`,
-    { method: "POST", body: {} }
-  );
+  const reconcile = () =>
+    request<{ claimed: boolean; status?: string }>(
+      `/vaults/${session.vaultId}/payment/reconcile`,
+      { method: "POST", body: {}, timeoutMs: 60_000 }
+    );
+  /* reconcile is idempotent: if the first attempt times out after PayPal
+     actually recorded the hold, the retry reads the held state and continues */
+  let reconciled: { claimed: boolean; status?: string };
+  try {
+    reconciled = await reconcile();
+  } catch {
+    reconciled = await reconcile();
+  }
 
   /* A webhook can record the same hold before the browser comes back, in which
      case reconcile answers "nothing to do". The hold is still real: read the
@@ -233,7 +247,7 @@ export async function finishPaypalReturn(): Promise<{ claimed: boolean; status?:
     if (!held.includes(String(vault.status).toUpperCase())) return reconciled;
   }
 
-  await request(`/vaults/${session.vaultId}/checks/run`, { method: "POST" });
+  await request(`/vaults/${session.vaultId}/checks/run`, { method: "POST", timeoutMs: 90_000 });
   return { claimed: true, status: "AWAITING_APPROVAL" };
 }
 
@@ -241,5 +255,9 @@ export async function approvePlaygroundVault(): Promise<void> {
   const session = readPlaygroundSession();
   if (!session) throw new Error("Start the playground first.");
   setAccessToken(session.tokens.client);
-  await request(`/vaults/${session.vaultId}/approve`, { method: "POST", body: {} });
+  await request(`/vaults/${session.vaultId}/approve`, {
+    method: "POST",
+    body: {},
+    timeoutMs: 60_000,
+  });
 }
