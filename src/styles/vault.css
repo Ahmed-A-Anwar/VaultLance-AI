@@ -2255,3 +2255,11 @@
     min-height: calc(100svh - 55px - 89px - var(--room-pad) - 55px);
   }
 }
+
+/* On phones the fixed decision bar and the playground pill would otherwise
+   occupy the same bottom-right corner. Keep the pill in its own lane below. */
+@media (max-width: 767px) {
+  body:has(.pg-float) .room-mobile-decision {
+    bottom: 65px;
+  }
+}
