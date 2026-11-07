@@ -202,7 +202,12 @@ export async function fundPlaygroundVault(): Promise<string> {
   if (!session) throw new Error("Start the playground first.");
   setAccessToken(session.tokens.client);
   const returnUrl = `${window.location.origin}/playground/return?vault=${session.vaultId}`;
-  const order = await request<{ orderId: string; links?: Array<{ rel?: string; href?: string }> }>(
+  const order = await request<{
+    orderId: string;
+    links?: Array<{ rel?: string; href?: string }>;
+    claimed?: boolean;
+    status?: string;
+  }>(
     `/vaults/${session.vaultId}/payment/order`,
     {
       method: "POST",
@@ -211,6 +216,16 @@ export async function fundPlaygroundVault(): Promise<string> {
       timeoutMs: 60_000,
     }
   );
+
+  /* An earlier approval can already be recorded: the API answers `claimed`
+     with no payer link, and asking for one would strand the visitor. Finish the
+     hold (and its checks) from the idempotent return path instead. */
+  if (order.claimed) {
+    const status = await readVaultStatus(session.vaultId);
+    if (!status) throw new Error("The vault status could not be read after PayPal approved it.");
+    if (status === "AUTHORIZED") await finishPaypalReturn();
+    return `${window.location.origin}/playground?funded=1`;
+  }
   const link =
     order.links?.find((entry) => entry.rel === "payer-action" || entry.rel === "approve")?.href ||
     order.links?.find((entry) => typeof entry.href === "string" && entry.href.includes("paypal.com"))?.href;

@@ -24,6 +24,8 @@ export function ChecksPanel() {
   const [menu, setMenu] = useState(false);
   const [armed, setArmed] = useState(false);
   const seen = useRef(new Set<string>());
+  const listRef = useRef<HTMLUListElement>(null);
+  const checkRefs = useRef(new Map<string, HTMLLIElement>());
 
   /* on a phone the decision panel is a bar, so the void lives here */
   const voidHold = async () => {
@@ -51,16 +53,45 @@ export function ChecksPanel() {
     setAnnounce(`${fresh[fresh.length - 1].name}: ${DOT[fresh[fresh.length - 1].state]}. ${fresh[fresh.length - 1].detail}`);
   }, [checks]);
 
-  const canRun = status === "held";
+  /* follow the runner: when the next card starts, bring it into the list's
+     viewport. Only scroll when it is not already fully visible, so a short run
+     does not move the panel for no reason. */
+  useEffect(() => {
+    const active = checks.find((c) => c.state === "running");
+    if (!active) return;
+    const list = listRef.current;
+    const item = checkRefs.current.get(active.id);
+    if (!list || !item) return;
+
+    const listBox = list.getBoundingClientRect();
+    const itemBox = item.getBoundingClientRect();
+    if (itemBox.top >= listBox.top && itemBox.bottom <= listBox.bottom) return;
+
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    list.scrollTo({
+      top: Math.max(0, list.scrollTop + itemBox.top - listBox.top - 8),
+      behavior: reduce ? "auto" : "smooth",
+    });
+  }, [checks]);
+
+  /* the server accepts a run at AUTHORIZED, IN_PROGRESS, SUBMITTED, VERIFYING
+     and AWAITING_APPROVAL; the UI status alone folds NEEDS_REVISION and
+     CAPTURE_PENDING into "audited", where a run would be refused */
+  const rerunnable =
+    detail?.rawStatus === "AWAITING_APPROVAL" ||
+    detail?.rawStatus === "SUBMITTED" ||
+    detail?.rawStatus === "VERIFYING";
+  const canRun = status === "held" || rerunnable;
   const done = status === "audited" || status === "unlocked";
 
   const start = async () => {
     try {
-      await runAll();
-      const warned = (detail?.checks ?? []).filter((c) => c.result === "warn").length;
-      const passed = (detail?.checks ?? []).filter((c) => c.result === "pass").length;
+      seen.current.clear();
+      const results = await runAll();
+      const warned = results.filter((c) => c.result === "warn").length;
+      const passed = results.filter((c) => c.result === "pass").length;
       toast({
-        message: `Audit complete. ${passed} of ${detail?.checks.length ?? 0} passed${warned ? `, ${warned} warning` : ""}.`,
+        message: `Audit complete. ${passed} of ${results.length} passed${warned ? `, ${warned} warning` : ""}.`,
         tone: warned ? "info" : "success",
       });
     } catch (e) {
@@ -83,10 +114,28 @@ export function ChecksPanel() {
           className="room-run"
           onClick={() => void start()}
           disabled={!canRun || running}
-          title={done ? "The audit is already complete." : canRun ? undefined : "Authorize the payment first."}
+          title={
+            canRun
+              ? undefined
+              : status === "unlocked"
+                ? "The vault is already paid."
+                : status === "voided"
+                  ? "This vault is voided."
+                  : done
+                    ? "The checks are complete; this state cannot be re-run."
+                    : "Authorize the payment first."
+          }
         >
           {running ? <Spinner className="room-run-spin" width="14" height="14" /> : <Play width="13" height="13" />}
-          {running ? "Running…" : done ? "Re-run" : "Run all checks"}
+          {running
+            ? "Running…"
+            : canRun
+              ? done
+                ? "Re-run"
+                : "Run all checks"
+              : done
+                ? "Audit complete"
+                : "Run all checks"}
         </button>
 
         {(status === "held" || status === "audited") && (
@@ -119,12 +168,16 @@ export function ChecksPanel() {
         No checks run yet.
       </p>
 
-      <ul className="room-check-list">
+      <ul className="room-check-list" ref={listRef}>
         {checks.map((c) => {
           const expanded = open === c.id;
           return (
             <li
               key={c.id}
+              ref={(node) => {
+                if (node) checkRefs.current.set(c.id, node);
+                else checkRefs.current.delete(c.id);
+              }}
               className="room-check"
               data-state={c.state}
               data-open={expanded ? "true" : undefined}

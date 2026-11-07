@@ -30,6 +30,7 @@ const STATUS: Record<string, { label: string; tone: string }> = {
   SUBMITTED: { label: "Submitted", tone: "held" },
   VERIFYING: { label: "Checking", tone: "held" },
   AWAITING_APPROVAL: { label: "Checks complete", tone: "action" },
+  CAPTURE_PENDING: { label: "Capturing", tone: "held" },
   NEEDS_REVISION: { label: "Needs revision", tone: "warn" },
   PAID: { label: "Paid", tone: "paid" },
   CANCELLED: { label: "Voided", tone: "quiet" },

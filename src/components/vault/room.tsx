@@ -64,7 +64,7 @@ interface RoomValue {
   waivedChecks: WaivedCheck[];
   revisionNote: string | null;
   running: boolean;
-  runAll: () => Promise<void>;
+  runAll: () => Promise<VaultCheck[]>;
   progress: number;
 
   messages: Message[];
@@ -237,21 +237,48 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
   }, [id, vault, reload]);
 
   /* Opening a vault that is still waiting for a hold asks the server whether
-     PayPal already has the approval. This does not depend on the redirect, on a
-     session in the return window, or on the tab ever regaining focus. */
-  const reconciled = useRef(false);
+     PayPal already has the approval. A single check wasn't enough: an approval
+     can land ten seconds after the room opens, or in another tab while this one
+     sits idle. Keep asking while the vault is unfunded, and wake immediately on
+     focus so a return from PayPal never leaves the room stale. */
   useEffect(() => {
-    if (reconciled.current || !getAccessToken()) return;
-    if (vault?.status !== "awaiting_payment") return;
-    reconciled.current = true;
-    reconcilePaypalOrder(id)
-      .then((res) => {
-        if (res.claimed) reload();
-      })
-      .catch(() => {
-        /* nothing has been approved for this vault yet */
-      });
-  }, [id, vault, reload]);
+    if (!getAccessToken() || vault?.status !== "awaiting_payment") return;
+
+    let live = true;
+    let inFlight = false;
+
+    const check = async () => {
+      if (!live || inFlight) return;
+      inFlight = true;
+      try {
+        const res = await reconcilePaypalOrder(id);
+        /* reconcile answers with a status when the vault already moved on
+           (a webhook can claim the hold first); reload even then */
+        if (live && (res.claimed || res.status)) reload();
+      } catch {
+        /* no approval yet, or the order is not readable yet: try again */
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void check();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== "hidden") void check();
+    }, 8000);
+    const wake = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    window.addEventListener("focus", wake);
+    document.addEventListener("visibilitychange", wake);
+
+    return () => {
+      live = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", wake);
+      document.removeEventListener("visibilitychange", wake);
+    };
+  }, [id, vault?.status, reload]);
 
   /* coming back to a tab after approving in another window finishes the hold */
   useEffect(() => {
@@ -318,7 +345,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
   /* --------------------------------------------------------------- checks --- */
 
   const runAll = useCallback(async () => {
-    if (running) return;
+    if (running) return [];
     setRunning(true);
     setChecks((prev) => prev.map((c) => ({ ...c, state: "queued" })));
     try {
@@ -331,8 +358,10 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
           .filter((check) => check.result === "fail")
           .map((check) => ({ id: check.id, name: check.name, ...(check.detail ? { detail: check.detail } : {}) }))
       );
-      /* runChecks already marked the vault audited on the server */
+      /* runChecks already marked the vault audited on the server, and a run
+         always settles at AWAITING_APPROVAL, which is re-runnable */
       setVault((v) => (v ? { ...v, status: "audited" } : v));
+      setDetail((d) => (d ? { ...d, rawStatus: "AWAITING_APPROVAL" } : d));
       const passed = results.filter((r) => r.result === "pass").length;
       const warned = results.filter((r) => r.result === "warn").length;
       const failed = results.filter((r) => r.result === "fail").length;
@@ -343,6 +372,7 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
       const line = report?.text || fallbackLine;
       const messageId = pushAi(line, report?.sources || [], report?.cached || false);
       streamInto(messageId, line);
+      return results;
     } catch (e) {
       setChecks((prev) => prev.map((c) => (c.state === "running" ? { ...c, state: "queued" } : c)));
       throw e;

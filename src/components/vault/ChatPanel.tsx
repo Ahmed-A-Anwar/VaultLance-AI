@@ -8,6 +8,39 @@ import { useRoom } from "./room";
 import { useToast } from "../shared/Toasts";
 import { Bolt, Check, Copy, Lock, LockOpen, Send } from "./icons";
 
+const THINKING_LINES = [
+  "Checking the deliverables…",
+  "Analyzing the files…",
+  "Reviewing the evidence…",
+  "Verifying against the requirements…",
+  "Preparing the audit report…",
+];
+
+/* One staged line for the pending answer. It stops on the final step instead of
+   looping, so the bubble still says what the runner is waiting on. */
+function ThinkingLine() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (step >= THINKING_LINES.length - 1) return;
+    const timer = window.setTimeout(() => setStep((n) => n + 1), 1400);
+    return () => window.clearTimeout(timer);
+  }, [step]);
+
+  return (
+    <span className="room-thinking" role="status" aria-live="polite" aria-atomic="true">
+      <span className="room-typing" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span key={step} className="room-thinking-text">
+        {THINKING_LINES[step]}
+      </span>
+    </span>
+  );
+}
+
 const SOURCE_NOTE: Record<string, string> = {
   "TEST LOG": "Read from the delivered test-log.xml",
   "BROWSER TEST": "Playwright ran the staging build in a browser",
@@ -128,11 +161,7 @@ export function ChatPanel() {
 
               <div className="room-bubble" data-failed={m.failed ? "true" : undefined}>
                 {m.typing ? (
-                  <span className="room-typing" aria-label="The agent is typing">
-                    <i />
-                    <i />
-                    <i />
-                  </span>
+                  <ThinkingLine />
                 ) : (
                   <p className="room-bubble-text">
                     {m.text}

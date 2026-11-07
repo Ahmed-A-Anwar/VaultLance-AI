@@ -36,6 +36,7 @@ export async function createPaypalOrder(vaultId: string): Promise<PaypalOrder> {
   const raw = (await request<unknown>(`/vaults/${encodeURIComponent(vaultId)}/payment/order`, {
     method: "POST",
     body: {},
+    timeoutMs: 60_000,
   })) as Record<string, unknown> | null;
 
   const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
@@ -58,6 +59,7 @@ export async function reconcilePaypalOrder(vaultId: string): Promise<{ claimed: 
   const raw = (await request<unknown>(`/vaults/${encodeURIComponent(vaultId)}/payment/reconcile`, {
     method: "POST",
     body: {},
+    timeoutMs: 60_000,
   })) as Record<string, unknown> | null;
 
   return {
@@ -74,6 +76,7 @@ export async function authorizePaypalOrder(vaultId: string, orderId: string): Pr
   const raw = (await request<unknown>(`/vaults/${encodeURIComponent(vaultId)}/payment/authorize`, {
     method: "POST",
     body: { orderId },
+    timeoutMs: 60_000,
   })) as Record<string, unknown> | null;
 
   const authorizationId = typeof raw?.authorizationId === "string" ? raw.authorizationId : "";

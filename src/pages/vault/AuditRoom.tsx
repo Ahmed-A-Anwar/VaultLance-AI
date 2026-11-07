@@ -22,7 +22,9 @@ import { HoldButton } from "../../components/shared/HoldButton";
 import { ArrowLeft, Download } from "../../components/vault/icons";
 import { useToast } from "../../components/shared/Toasts";
 import { downloadVaultFile } from "../../lib/api";
+import { mockHoldAllowed } from "../../lib/apiClient";
 import { getAccessToken } from "../../lib/http";
+import { PayPalAuthorizeButton } from "../../components/shared/PayPalAuthorizeButton";
 import {
   approvalFromUrl,
   cleanPaypalQuery,
@@ -191,7 +193,7 @@ function MobileDecision({
   tab: "files" | "chat" | "checks";
   setTab: (t: "files" | "chat" | "checks") => void;
 }) {
-  const { detail, vault, status, busy, authorize, approve } = useRoom();
+  const { detail, vault, status, busy, authorize, approve, reload } = useRoom();
   const toast = useToast();
   const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   if (!vault || !status) return null;
@@ -213,21 +215,38 @@ function MobileDecision({
       </div>
 
       {status === "awaiting_payment" && (
-        <button
-          type="button"
-          className="room-primary room-primary-sm"
-          disabled={busy === "authorize"}
-          onClick={async () => {
-            try {
-              await authorize();
-              toast({ message: "Payment authorized. Funds held.", tone: "success" });
-            } catch (e) {
-              toast({ message: e instanceof Error ? e.message : "The authorization did not go through.", tone: "error" });
-            }
-          }}
-        >
-          {busy === "authorize" ? "Authorizing…" : "Authorize payment"}
-        </button>
+        <>
+          {vault && (
+            <PayPalAuthorizeButton
+              vaultId={vault.id}
+              amountUSD={vault.amountUSD}
+              disabled={busy !== ""}
+              onSuccess={() => {
+                void reload();
+              }}
+            />
+          )}
+          {/* the old mobile button called the legacy /authorize route, which
+              cannot hold money without a PayPal authorization; keep it only
+              for the offline demo */}
+          {mockHoldAllowed() && (
+            <button
+              type="button"
+              className="room-primary room-primary-sm"
+              disabled={busy === "authorize"}
+              onClick={async () => {
+                try {
+                  await authorize();
+                  toast({ message: "Payment authorized. Funds held.", tone: "success" });
+                } catch (e) {
+                  toast({ message: e instanceof Error ? e.message : "The authorization did not go through.", tone: "error" });
+                }
+              }}
+            >
+              {busy === "authorize" ? "Authorizing…" : "Authorize payment"}
+            </button>
+          )}
+        </>
       )}
 
       {status === "held" && (

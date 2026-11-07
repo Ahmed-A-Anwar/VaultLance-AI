@@ -6,6 +6,7 @@ import { __resetAiProviderForTests } from "../src/ai/provider.js";
 import { resetAuditUsageForTests } from "../src/audit/usage.js";
 import { resetAuditReportsForTests } from "../src/audit/routes.js";
 import { parseTestSummary, validateProbeUrl } from "../src/audit/checks.js";
+import { deterministicExplanation } from "../src/audit/ai.js";
 
 async function register(email: string): Promise<string> {
   const res = await request(app)
@@ -33,6 +34,25 @@ describe("deterministic audit guardrails", () => {
     expect(validateProbeUrl("https://10.0.0.4/").problem).toBe("private");
     expect(validateProbeUrl("https://[::1]/").problem).toBe("private");
     expect(validateProbeUrl("https://example.com/health").ok).toBe(true);
+  });
+
+  it("formats the deterministic fallback as paragraphs and bullets", () => {
+    const explanation = deterministicExplanation(
+      [
+        {
+          id: "chk_docs",
+          name: "Documentation",
+          result: "fail",
+          source: "FILE INDEX",
+          detail: "No README or document included",
+          rows: [],
+        },
+      ] as any,
+      "What failed?"
+    );
+
+    expect(explanation.text).toContain("\n\n");
+    expect(explanation.text).toContain("\n- FAIL · Documentation: No README or document included");
   });
 
   it("parses real summaries even when the log contains an injection", () => {
