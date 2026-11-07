@@ -34,7 +34,23 @@ const VIEWPORTS = arg("viewports", "390,768,1024,1280,1440,1920")
   .filter(Boolean)
   .map((width) => ({ width, height: width <= 390 ? 844 : width <= 768 ? 1024 : width <= 1024 ? 768 : width <= 1280 ? 720 : width <= 1440 ? 900 : 1080 }));
 const BROWSERS = arg("browsers", "chromium").split(",").map((b) => b.trim()).filter(Boolean);
-const ONLY = arg("routes", "");
+/* Git Bash rewrites a bare `/dashboard` argument into a Windows path before
+   node sees it, so a filter passed as --routes=/dashboard arrived as
+   C:/Program Files/Git/dashboard and matched nothing. Keep the route from the
+   first known segment, and accept a bare `dashboard` too. */
+const cleanRoute = (value) => {
+  let p = String(value || "").trim().replace(/\\/g, "/");
+  if (!p) return "";
+  for (const known of ["/dashboard", "/vault", "/playground", "/signup", "/signin", "/forgot-password", "/reset-password", "/demo", "/console", "/terms"]) {
+    const at = p.indexOf(known);
+    if (at > 0) return p.slice(at);
+  }
+  return p.startsWith("/") ? p : `/${p}`;
+};
+const ONLY = arg("routes", "")
+  .split(",")
+  .map(cleanRoute)
+  .filter(Boolean);
 const REPORT_ONLY = process.argv.includes("--report");
 const STRESS = process.argv.includes("--stress");
 
@@ -364,8 +380,15 @@ async function runCell(browser, browserName, viewport, cell) {
   }
 }
 
-const selected = CELLS.filter((c) => !ONLY || ONLY.split(",").some((p) => c.route.startsWith(p)));
-console.log(`ui-sweep ${selected.length} cells × ${VIEWPORTS.length} viewports × ${BROWSERS.length} browsers`);
+const selected = CELLS.filter((c) => !ONLY.length || ONLY.some((p) => c.route === p || c.route.startsWith(p)));
+if (ONLY.length && !selected.length) {
+  console.error(`no cell matches --routes=${ONLY.join(",")}`);
+  process.exitCode = 1;
+  process.exit(1);
+}
+console.log(
+  `ui-sweep ${selected.length} cells × ${VIEWPORTS.length} viewports × ${BROWSERS.length} browsers${ONLY.length ? ` (${ONLY.join(", ")})` : ""}`
+);
 for (const browserName of BROWSERS) {
   if (browserName === "firefox") {
     console.log("firefox skipped: browser binary not installed (not approved)");
