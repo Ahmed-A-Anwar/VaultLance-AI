@@ -333,12 +333,41 @@ export function NewVaultDrawer({
     }
   };
 
-  const copy = (text: string, message: string) => {
-    void navigator.clipboard?.writeText(text).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1000);
+  const copiedNow = () => {
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1000);
+  };
+
+  /* The clipboard API is refused on insecure origins and without permission in
+     some browsers, and a rejection used to leave the button doing nothing at all.
+     Fall back to selecting the text, then say so if even that fails. */
+  const copy = async (text: string, message: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error("no clipboard");
+      await navigator.clipboard.writeText(text);
+      copiedNow();
       toast({ message, tone: "success" });
-    });
+      return;
+    } catch {
+      /* try the selection fallback below */
+    }
+    try {
+      const box = document.createElement("textarea");
+      box.value = text;
+      box.setAttribute("readonly", "");
+      box.style.position = "fixed";
+      box.style.top = "0";
+      box.style.opacity = "0";
+      document.body.appendChild(box);
+      box.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(box);
+      if (!ok) throw new Error("copy refused");
+      copiedNow();
+      toast({ message, tone: "success" });
+    } catch {
+      toast({ message: "Couldn’t copy. Select the code and copy it by hand.", tone: "error" });
+    }
   };
 
   const stepIndex = done ? 3 : step - 1;
@@ -396,9 +425,15 @@ export function NewVaultDrawer({
                       {copied ? <Check width="13" height="13" /> : "⧉"}
                     </button>
                   </div>
-                  <button type="button" className="fd-btn fd-btn-secondary" onClick={() => copy(done.vault.inviteCode!, "Invite link copied.")}>
-                    Copy invite link
-                  </button>
+                  <button
+                      type="button"
+                      className="fd-btn fd-btn-secondary"
+                      onClick={() =>
+                        void copy(`${window.location.origin}/v/${done.vault.inviteCode!}`, "Invite link copied.")
+                      }
+                    >
+                      Copy invite link
+                    </button>
                 </>
               )}
             </div>

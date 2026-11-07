@@ -33,6 +33,12 @@ export interface AuthSessionPayload {
 
 const real = () => realOn("auth");
 
+/* Sign-in and registration are the first request after the Fly machine wakes,
+   and a cold start can outlast the 10s default long after the API itself has
+   answered: the account gets created while the browser has already given up.
+   These calls get a deadline that survives a cold start. */
+const AUTH_TIMEOUT_MS = 45_000;
+
 /** The API hands the token back once; it goes straight into memory. */
 function remember(payload: AuthSessionPayload): AuthSessionPayload {
   if (payload?.token) setAccessToken(payload.token);
@@ -54,6 +60,7 @@ export async function login(email: string, password: string): Promise<AuthSessio
       method: "POST",
       body: { email, password },
       skipUnauthorized: true,
+      timeoutMs: AUTH_TIMEOUT_MS,
     })
   );
 }
@@ -76,6 +83,7 @@ export async function register(input: RegisterInput): Promise<AuthSessionPayload
       method: "POST",
       body: input,
       skipUnauthorized: true,
+      timeoutMs: AUTH_TIMEOUT_MS,
     })
   );
 }

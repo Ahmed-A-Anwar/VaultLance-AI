@@ -4,6 +4,9 @@ test-results/
 playwright-report/
 screenshots/
 docs/hero-shots/
+docs/e2e/NEEDS-HUMAN.md
+docs/e2e/evidence/
+docs/e2e/traces/
 dev.log
 backup/
 .DS_Store
