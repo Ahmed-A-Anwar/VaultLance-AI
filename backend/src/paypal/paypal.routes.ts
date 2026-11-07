@@ -25,7 +25,7 @@ import {
 import { logger } from "../shared/logger.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { approveVault } from "../money/approve.service.js";
-import { rememberAuthorization, rememberOrder } from "../money/money.store.js";
+import { getAuthorizationId, rememberAuthorization, rememberOrder } from "../money/money.store.js";
 import { claimAuthorization } from "../money/claim.service.js";
 import { database } from "../shared/db.js";
 import type { VaultStatus } from "../shared/types.js";
@@ -188,6 +188,32 @@ paypalRouter.post("/:vaultId/payment/order", requireAuth, async (req, res, next)
     const vaultId = String(req.params.vaultId);
     const userId = req.user!.id;
     const vault = await getVaultAndVerifyAccess(userId, vaultId);
+
+    /* A room can still say AWAITING PAYMENT after PayPal has already held the
+       money. Minting a second order is refused by PayPal and strands the
+       buyer; hand back the hold that already exists instead. */
+    const currentStatus = String(vault.status || "").toUpperCase();
+    if (["AUTHORIZED", "AWAITING_APPROVAL", "CAPTURE_PENDING", "PAID"].includes(currentStatus)) {
+      const authorizationId = await getAuthorizationId(vaultId);
+      const existingOrderId = String(
+        (vault as any).paypal_order_id || (await findLatestOrderId(vaultId)) || ""
+      );
+      if (authorizationId && existingOrderId) {
+        return sendSuccess(
+          res,
+          {
+            vaultId,
+            orderId: existingOrderId,
+            authorizationId,
+            claimed: true,
+            status: "AUTHORIZED",
+            amount: Number(vault.amount),
+            currency: vault.currency || "USD",
+          },
+          "Payment already approved at PayPal; the hold is already recorded"
+        );
+      }
+    }
 
     // Validate eligible status for payment creation
     const eligibleStatuses: VaultStatus[] = [

@@ -121,6 +121,28 @@ describe("Milestone 2 – PayPal Sandbox Orders, Authorization, Capture & Webhoo
     }
   });
 
+  it("returns the existing hold instead of refusing a second order", async () => {
+    const vault = inMemoryStore.vaults.get(testVaultId);
+    if (!vault) throw new Error("test vault missing");
+    vault.status = "AUTHORIZED";
+    (vault as any).paypal_order_id = "ORDER-EXISTING";
+    (vault as any).paypal_authorization_id = "AUTH-EXISTING";
+
+    const res = await request(app)
+      .post(`/api/vaults/${testVaultId}/payment/order`)
+      .set("Authorization", `Bearer ${clientToken}`)
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toMatchObject({
+      orderId: "ORDER-EXISTING",
+      authorizationId: "AUTH-EXISTING",
+      claimed: true,
+      status: "AUTHORIZED",
+    });
+  });
+
   it("Step 5 & 6: capture is refused unless the vault is AWAITING_APPROVAL", async () => {
     /* the old capture route accepted AUTHORIZED and marked PAID without a
        verified capture; the money loop only captures after a client approval */
