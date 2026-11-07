@@ -174,7 +174,7 @@ export function EarningsGrid({ rows, loading, error, onRetry, onOpenVault, empty
                   .then(() => toast({ message: "PayPal ID copied.", tone: "success" }));
               }}
             >
-              <span className="fd-mono">{p.value}</span>
+              <span className="fd-mono" data-ellipsis>{p.value}</span>
               <Copy width="12" height="12" aria-hidden="true" />
             </button>
           );

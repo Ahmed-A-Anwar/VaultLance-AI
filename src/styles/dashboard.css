@@ -1798,3 +1798,11 @@
   }
 }
 
+
+/* tablets keep the 44px primary target; the phone block stops at 767 */
+@media (max-width: 768px) {
+  .dash-cta.dash-cta-primary {
+    height: 44px;
+    min-height: 44px;
+  }
+}

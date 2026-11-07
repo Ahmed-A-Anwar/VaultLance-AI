@@ -7,43 +7,52 @@ Run 2026-11-07. Harness: `scripts/ui-sweep.mjs` (`npm run ui:sweep`), chromium
 
 | Pass | Cells | P0 | P1 | P2 | P3 |
 |---|---|---|---|---|---|
-| Full matrix (chromium, 6 viewports, 21 routes) | 126 | 0 | 107 | 289 | 0 |
-| Affected cells after fixes (4 viewports, axe on) | 44 | 0 | 33 | 208 | 0 |
-| Final affected re-run (`/dashboard`, `/demo`, `/vault/new`) | 8 | **0** | **0** | 16 | 0 |
+| Full matrix, first pass (6 viewports, 21 routes) | 126 | 0 | 107 | 289 | 0 |
+| Full matrix, after the first fixes | 126 | **0** | **9** | 294 | 0 |
+| Affected cells, axe on (4 viewports) | 44 | 0 | 0 | 16 | 0 |
 
-The 107 → 0 drop is on the cells that were re-run, not on a second full matrix.
-A full 126-cell re-run is the next step (see RESUME).
+The last row covers `/dashboard`, `/demo` and `/vault/new` only. The nine P1s
+found in the second full matrix — a 34px "New vault" at 768px and two clipped
+PayPal ids on Earnings at 1280/1440 — were fixed afterwards, but the targeted
+re-run returned **0 cells** (the `--routes` filter matched nothing), so those
+nine are **fixed in code, not yet re-verified**. That filter bug is the first
+item in RESUME.
 
 ## Fixed (P1)
 
 | ID | Defect | Cause | Fix |
 |---|---|---|---|
-| ui-kpi | Freelancer KPI labels clipped to 17px at 768 and 50px at 1024 | `.fd-band` kept its 1.618fr/1fr split below 1280, leaving three 66px cards | stack `.fd-band` under 1280; ratio returns when both columns fit (`freelancer.css`) |
-| ui-tap-cta | "New vault" and "Audit now →" primary buttons 34px tall on phones | `.dash-cta`/`.dash-btn-primary` shipped desktop height at mobile | 44px height for primary actions at ≤767 (`dashboard.css`) |
-| ui-axe-zip | `/vault/new` file input had no accessible name (critical) | `#zipfile` had no label | `aria-label="Delivery zip file"` |
-| ui-axe-list | Manifest `role="list"` had non-listitem children (critical) | header row and rows lacked roles | header `role="presentation"`, each row `role="listitem"` |
-| ui-clip-ids | Ledger ids/type, PayPal ids and payout reasons clipped without an intended-ellipsis marker | ellipsis was intended but unmarked | `data-ellipsis` on ledger id/type, payout reason, PayPal ids, card hint, vault project, account name |
-| ui-clip-kpi | KPI label ellipsis hid the whole word | same band bug as ui-kpi | fixed by the band stack |
+| ui-kpi | Freelancer KPI labels clipped to 17px at 768 and 50px at 1024 | `.fd-band` kept its 1.618fr/1fr split below 1280, leaving three 66px cards | stack `.fd-band` under 1280; ratio returns when both columns fit |
+| ui-tap-cta | "New vault" / "Audit now →" primary actions 34px tall at ≤768 | desktop height shipped to phones | 44px at ≤767, and ≤768 for the freelancer CTA |
+| ui-axe-zip | `/vault/new` file input had no accessible name (critical) | `#zipfile` unlabelled | `aria-label="Delivery zip file"` |
+| ui-axe-list | Manifest `role="list"` had non-listitem children (critical) | header and rows had no roles | header `role="presentation"`, rows `role="listitem"` |
+| ui-clip-ids | Ledger ids/type, PayPal ids, payout reasons, card hints, vault project, account name clipped without an intended-ellipsis marker | ellipsis intended but unmarked | `data-ellipsis` on each |
+| ui-kpi-2 | KPI label ellipsis hid the whole word | same band bug | fixed by the band stack |
 
 ## Remaining
 
 | Severity | Issue | Why it remains |
 |---|---|---|
-| P2 | 16 in the final subset: control heights (34px vs the 55px spec), scrollable KPI strip not focusable, CLS up to 0.74 on the mobile overview, secondary chips/tabs below 44px | Compact dashboard controls are a deliberate system choice; changing all of them is a redesign, logged in DECISIONS. The KPI strip's keyboard access and the overview's data-load shift need a shared-component change and a separate measurement. |
+| P1 | 9: tablet CTA height, two Earnings ids | fixed in code after the run; targeted verification did not execute |
+| P2 | ~294: 34px compact controls, scrollable KPI strip not focusable, CLS up to 0.74 on the mobile overview, secondary chips/tabs under 44px | Compact dashboard controls are a deliberate system choice; changing them all is a redesign. Keyboard access and the overview load shift need a shared-component change plus measurement. |
 | P3 | none recorded | — |
 
 ## Not run (honest gaps)
 
-- **Firefox**: binary not installed; the install question was skipped. Blocked, not passed.
-- **Stress states** (80-char names, RTL/CJK/emoji, 254-char email, 60 vaults, 1,000 events, 500 files, failed image, slow load): matrix documents them; the sweep stubs two vaults and two events only.
+- **Firefox**: binary missing; install question skipped. Blocked, not passed.
+- **Stress states**: 80-char/unbroken names, RTL/CJK/emoji, 254-char email, 60 vaults, 1,000 events, 500 files, failed image, slow load — documented in matrix, not executed.
 - **Zoom 200%/400%, text-only 200%, forced colors, dark scheme, print receipts**: not executed.
-- **Reduced motion**: covered by existing `tests/reduced-motion.spec.ts` (listed, not re-run this pass).
-- **Whole-matrix regression after fixes**: only the affected cells were re-run.
-- **Eye review**: three screens reviewed (freelancer overview 390, client ledger 390, client payments 390). The ledger's tall empty card and the card content sitting under the bottom bar are noted, unfixed.
+- **Eye review**: three screens (freelancer overview 390, client ledger 390, client payments 390). The ledger's tall empty card and content under the bottom bar are noted, unfixed.
+- **Whole-matrix regression after the last two fixes**: not run.
+
+## Exit criteria
+
+**Not met.** Zero P0 across the matrix; nine P1 fixed but unverified, ~294 P2
+open; stress, zoom and Firefox cells outstanding.
 
 ## Verification
 
 - `npm run typecheck` 0
 - `npm run test:unit` 75/75 (14 files)
-- Playwright suite: 142 tests / 15 files, not re-run after these CSS/ARIA edits.
-- `npm run ui:sweep` exits 1 on any P0/P1; it now exits 0 on the re-run cells.
+- Playwright suite: 142 tests / 15 files — not re-run after these edits.
+- `npm run ui:sweep` exits 1 on any P0/P1.

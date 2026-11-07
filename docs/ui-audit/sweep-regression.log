@@ -1,0 +1,23 @@
+ui-sweep 21 cells × 6 viewports × 1 browsers
+anon       /                        issues so far 2
+anon       /signup                  issues so far 10
+anon       /signup?role=freelancer  issues so far 10
+anon       /signin                  issues so far 12
+anon       /forgot-password         issues so far 4
+anon       /reset-password          issues so far 2
+anon       /playground              issues so far 8
+anon       /demo                    issues so far 12
+anon       /vault/new               issues so far 10
+anon       /console                 issues so far 2
+anon       /terms                   issues so far 0
+client     /dashboard               issues so far 21
+client     /dashboard/vaults        issues so far 16
+client     /dashboard/ledger        issues so far 6
+client     /dashboard/payments      issues so far 21
+client     /dashboard/settings      issues so far 40
+freelancer /dashboard               issues so far 43
+freelancer /dashboard/vaults        issues so far 32
+freelancer /dashboard/ledger        issues so far 35
+freelancer /dashboard/payments      issues so far 41
+freelancer /dashboard/settings      issues so far 80
+ISSUES P0 0 · P1 9 · P2 294 · P3 0 · cells 126
