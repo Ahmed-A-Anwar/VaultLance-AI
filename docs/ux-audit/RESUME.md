@@ -17,7 +17,8 @@
    Portal header still claims HELD on a captured vault (decision needed).
 3. F5, F6: wrong password, expired reset, bad invite, upload reject, cancelled
    payment, payout retry, offline/slow, API 500/429/hang/malformed/401 via stubs.
-3. Full keyboard run of F1–F4; tab order per page; focus after route change.
+3. ~~Keyboard F1–F4~~ — walked; signup and route-change focus fixed. Landing's
+   nav is tabbable before the intro reveal (open, sev 2).
 4. `strings.md` extraction and the plain-language pass on authorize/capture/void.
 5. `MANUAL.md` screen-reader steps; zoom 200%/400%; forced colors.
 6. Report counts by severity, before/after.

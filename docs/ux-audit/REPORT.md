@@ -20,6 +20,8 @@ F5 (recovery) and F6 (account) were **not** walked.
 |---|---|---|
 | Per-route document titles (`src/App.tsx`) | every route shared "VaultLance AI — the sealed instrument" | `/signup` "Create your account", `/signin` "Sign in", `/playground` "Playground", dashboard "Overview", vault and audit-room titles mapped |
 | Portal row download (`src/components/ManifestRow.tsx`) | button fired no download while the page promised one | downloads a text stub named after the file, carrying path, size and sha256 |
+| Focus after signup (`src/pages/Signup.tsx`) | success card appeared with focus on `<body>` | focus moves to the success heading |
+| Focus after route change (`src/App.tsx`) | every navigation dropped focus to `<body>` | focus moves to the new page's `<main>` |
 
 Verified in the second run: the four titles above changed as expected; typecheck 0.
 
@@ -34,10 +36,17 @@ Verified in the second run: the four titles above changed as expected; typecheck
 
 ## Accessibility
 
-axe: **0 serious/critical** on `/playground`, `/signin` and the freelancer
-dashboard. Keyboard: the playground CTA is 4 tabs from the top of the landing.
-A full keyboard run of F1–F4, the accessibility-tree review and the 200%/400%
-zoom checks were **not** performed.
+axe: **0 serious/critical** on `/playground`, `/signin`, the freelancer dashboard,
+the client portal and the files page.
+
+**Keyboard-only F1–F4 walked** (`evidence/keyboard.json`). Fixes: signup success
+now focuses its heading (was `<body>`), and a route change now moves focus to the
+new page's `<main>` (was `<body>`, seen after approving). The drawer opens onto
+its Close control and Escape returns focus to the trigger. Still open: on the
+landing, Tab can reach the header's Sign up/Sign in before the intro reveal has
+faded them in (sev 2), and no skip-link / tab-order break was found below that.
+The accessibility-tree review, 200%/400% zoom and forced-colors checks were
+**not** performed.
 
 ## DECISIONS
 

@@ -120,6 +120,11 @@ export default function Signup() {
     []
   );
 
+  /* the success card replaces the form that held focus, so take focus with it */
+  useEffect(() => {
+    if (step === 3) doneRef.current?.focus();
+  }, [step]);
+
   /* one step per screen: the outgoing panel leaves left, the next arrives from
      the right, 0.382s each */
   const move = (next: Step, dir: 1 | -1 = 1) => {
@@ -133,7 +138,6 @@ export default function Signup() {
       stepRef.current = next;
       setStep(next);
       if (next === 2) requestAnimationFrame(() => nameRef.current?.focus());
-      if (next === 3) requestAnimationFrame(() => doneRef.current?.focus());
     };
     if (reduced) {
       swap();

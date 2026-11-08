@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import {
   RouterProvider,
   createBrowserRouter,
@@ -72,6 +72,20 @@ function Shell() {
   const location = useLocation();
 
   useDocumentTitle(location.pathname);
+
+  /* A route change unmounts the focused control, so focus falls to <body> and a
+     keyboard reader starts over. Hand it to the new page's main landmark. */
+  const firstPath = useRef(location.pathname);
+  useEffect(() => {
+    if (firstPath.current === location.pathname) return;
+    const id = window.setTimeout(() => {
+      const main = document.getElementById("main");
+      if (!main) return;
+      if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+      main.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [location.pathname]);
 
   useEffect(() => {
     const leave = () => {
