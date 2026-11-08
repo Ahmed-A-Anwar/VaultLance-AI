@@ -3,6 +3,27 @@ import { StateToken } from "./StateToken";
 import type { MoneyState } from "../lib/store";
 import { shortHash, fmtHashSize } from "../lib/money";
 
+/* The manifest only ever holds names, sizes and hashes, so the released row's
+   download is the stub the copy promises — a text file stating what it is. */
+function downloadStub(path: string, size: number, hash: string) {
+  const body = [
+    "VaultLance sample file",
+    `path: ${path}`,
+    `bytes: ${size}`,
+    `sha256: ${hash}`,
+    "",
+    "This is a stub generated from the sealed manifest, not the delivered source.",
+  ].join("\n");
+  const url = URL.createObjectURL(new Blob([body], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = path.split("/").pop() || "vaultlance-file.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /*
   Manifest row (shared). variants:
   - locked (client portal while SEALED/AUDITING/HELD): row is one unit, no
@@ -22,8 +43,7 @@ export function ManifestRow({ path, size, hash, state, released }: {
       <span className="mnum mono-num" aria-label={`${fmtHashSize(size)}`}>{fmtHashSize(size)}</span>
       <span className="mhash mono-num" aria-hidden="true">{shortHash(hash)}</span>
       <StateToken state={releasedNow ? "RELEASED" : "SEALED"} showWord={releasedNow} />
-      {releasedNow && (
-        <button className="dlbtn" type="button" aria-label={`Download ${path}`}>
+      {releasedNow && (                <button className="dlbtn" type="button" aria-label={`Download ${path}`} onClick={() => downloadStub(path, size, hash)}>
           <Download /> <span>Get</span>
         </button>
       )}

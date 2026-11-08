@@ -9,16 +9,17 @@ was created.
 |---|---|---|---|---|
 | F1 first visit | reached the playground, **not** an audit room | 2 | 5.2 s | 3 — playground vault link returns to `/` |
 | F2 new freelancer | **pass**: signup card in 1.01 s, dashboard, drawer in 109 ms | 4 | 26.2 s | 1 — success card routes to dashboard before the first vault |
+| F3 client | **pass**: join, interrogate, approve, download | 1 | 7.8 s | 0 — download fixed; header state open (2) |
 | F4 returning user | **pass**: sign-in → dashboard, action visible | 1 | 8.3 s (3.29 s sign-in) | 1 — no pending state |
 
-F3 (client pay/approve/download), F5 (recovery) and F6 (account) were **not
-walked** in this pass.
+F5 (recovery) and F6 (account) were **not** walked.
 
 ## Fixed
 
 | Fix | Before | After |
 |---|---|---|
 | Per-route document titles (`src/App.tsx`) | every route shared "VaultLance AI — the sealed instrument" | `/signup` "Create your account", `/signin` "Sign in", `/playground` "Playground", dashboard "Overview", vault and audit-room titles mapped |
+| Portal row download (`src/components/ManifestRow.tsx`) | button fired no download while the page promised one | downloads a text stub named after the file, carrying path, size and sha256 |
 
 Verified in the second run: the four titles above changed as expected; typecheck 0.
 
@@ -28,6 +29,7 @@ Verified in the second run: the four titles above changed as expected; typecheck
 |---|---|---|
 | 3 | Playground's vault link returns to the landing page | Flow defect; likely needs a product decision on the demo entry (DECISIONS) |
 | 2 | Frame loader owns first paint | Animation system; a text variant is a design decision |
+| 2 | Client portal header always states HELD/read-only, even on a captured vault | Money-state display; needs a decision |
 | 1 | Sign-in has no pending state (3.29 s) | Loading state is in scope; not implemented yet |
 
 ## Accessibility
@@ -45,7 +47,7 @@ signup answer need your call before changing.
 
 ## Honest summary
 
-Only three of six flows were walked. The one product-wide defect found — a single
+Only four of six flows were walked. The one product-wide defect found — a single
 page title for the whole app — is fixed and verified. The F2 "silent submit"
 reported in the first run was a probe defect, not a product one: the demo form
 does show its success card in about a second. Real devices, screen readers and

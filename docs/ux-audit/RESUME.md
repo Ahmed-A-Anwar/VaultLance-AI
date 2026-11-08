@@ -13,9 +13,10 @@
 
 1. ~~F2 demo submit~~ — it already answers in 1.01 s; the probe was wrong and is
    fixed. Flow passes.
-2. F3, F5, F6: client pay/approve/download; wrong password, expired reset,
-   bad invite, upload reject, cancelled payment, payout retry, offline/slow,
-   API 500/429/hang/malformed/401 via stubs.
+2. ~~F3 client~~ — passes (7.8 s); inert download fixed in `ManifestRow`.
+   Portal header still claims HELD on a captured vault (decision needed).
+3. F5, F6: wrong password, expired reset, bad invite, upload reject, cancelled
+   payment, payout retry, offline/slow, API 500/429/hang/malformed/401 via stubs.
 3. Full keyboard run of F1–F4; tab order per page; focus after route change.
 4. `strings.md` extraction and the plain-language pass on authorize/capture/void.
 5. `MANUAL.md` screen-reader steps; zoom 200%/400%; forced colors.
