@@ -11,8 +11,9 @@ was created.
 | F2 new freelancer | **pass**: signup card in 1.01 s, dashboard, drawer in 109 ms | 4 | 26.2 s | 1 — success card routes to dashboard before the first vault |
 | F3 client | **pass**: join, interrogate, approve, download | 1 | 7.8 s | 0 — download fixed; header state open (2) |
 | F4 returning user | **pass**: sign-in → dashboard, action visible | 1 | 8.3 s (3.29 s sign-in) | 1 — no pending state |
+| F5 recovery | **pass**: 7 error states, each with a working way out | — | — | 1 — 429 prints the API's own sentence |
 
-F5 (recovery) and F6 (account) were **not** walked.
+F6 (account) was **not** walked.
 
 ## Fixed
 
@@ -56,7 +57,7 @@ signup answer need your call before changing.
 
 ## Honest summary
 
-Only four of six flows were walked. The one product-wide defect found — a single
+Only five of six flows were walked. The one product-wide defect found — a single
 page title for the whole app — is fixed and verified. The F2 "silent submit"
 reported in the first run was a probe defect, not a product one: the demo form
 does show its success card in about a second. Real devices, screen readers and

@@ -15,8 +15,9 @@
    fixed. Flow passes.
 2. ~~F3 client~~ — passes (7.8 s); inert download fixed in `ManifestRow`.
    Portal header still claims HELD on a captured vault (decision needed).
-3. F5, F6: wrong password, expired reset, bad invite, upload reject, cancelled
-   payment, payout retry, offline/slow, API 500/429/hang/malformed/401 via stubs.
+3. ~~F5 recovery~~ — passes: wrong password, expired/invalid reset, dead PayPal
+   return, rejected upload, failed payout retry, stubbed 429 all recover.
+4. F6 account; then 500/hang/malformed/401 variants of the API refusal.
 3. ~~Keyboard F1–F4~~ — walked; signup and route-change focus fixed. Landing's
    nav is tabbable before the intro reveal (open, sev 2).
 4. `strings.md` extraction and the plain-language pass on authorize/capture/void.
