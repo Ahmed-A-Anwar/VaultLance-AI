@@ -1,31 +1,55 @@
 # Render blueprint for the Express API.
-# The Vercel frontend talks to it through VITE_API_URL (see docs/deploy-real-accounts.md).
+# The Vercel frontend talks to it through VITE_API_URL=/api (see docs/deploy-real-accounts.md).
+#
+# plan: starter is deliberate. Free instances sleep after 15 minutes with no
+# traffic and take ~60s to wake, which stalls PayPal webhooks; a paid instance
+# never sleeps. At $7/month the hackathon credits cover roughly seven months.
 services:
   - type: web
     name: vaultlance-api
     runtime: node
-    plan: free
+    plan: starter
+    region: frankfurt          # closest to the Fly cdg machine and EU Supabase
     rootDir: backend
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: APP_VERSION
+        value: render
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
         value: https://vault-lance-ai.vercel.app
-      # Supabase: accounts and vaults live here. Without these the API falls
-      # back to an in-memory store that a restart wipes.
+      # CORS has no wildcard fallback: list every origin that may call the API.
+      - key: FRONTEND_ORIGINS
+        value: https://vault-lance-ai.vercel.app,http://localhost:5173
+      # Supabase owns users, vaults and the private deliverables bucket.
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      # PayPal sandbox (order / authorize / capture). Optional for signup.
+      - key: SUPABASE_STORAGE_BUCKET
+        value: vault-deliverables
+      - key: DATABASE_URL
+        sync: false
+      # PayPal sandbox. The API pins every call to sandbox regardless.
+      - key: PAYPAL_ENV
+        value: sandbox
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
-      - key: PAYPAL_BASE_URL
-        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      # The audit engine still runs on Fly and is keyed; it has no public route
+      # without INTERNAL_API_KEY.
+      - key: AI_SERVICE_URL
+        value: https://vaultlance-ai-engine.fly.dev
+      - key: INTERNAL_API_KEY
+        sync: false
