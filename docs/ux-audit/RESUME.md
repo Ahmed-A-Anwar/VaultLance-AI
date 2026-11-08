@@ -11,7 +11,8 @@
 
 ## Next
 
-1. F2: make the demo submit answer (success or error), re-run.
+1. ~~F2 demo submit~~ — it already answers in 1.01 s; the probe was wrong and is
+   fixed. Flow passes.
 2. F3, F5, F6: client pay/approve/download; wrong password, expired reset,
    bad invite, upload reject, cancelled payment, payout retry, offline/slow,
    API 500/429/hang/malformed/401 via stubs.

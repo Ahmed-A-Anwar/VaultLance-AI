@@ -8,7 +8,7 @@ was created.
 | Flow | Result | Clicks | Time | Worst friction |
 |---|---|---|---|---|
 | F1 first visit | reached the playground, **not** an audit room | 2 | 5.2 s | 3 — playground vault link returns to `/` |
-| F2 new freelancer | **blocked**: submit gave no success and no error | 2 | 2.5 s | 4 — silent submit |
+| F2 new freelancer | **pass**: signup card in 1.01 s, dashboard, drawer in 109 ms | 4 | 26.2 s | 1 — success card routes to dashboard before the first vault |
 | F4 returning user | **pass**: sign-in → dashboard, action visible | 1 | 8.3 s (3.29 s sign-in) | 1 — no pending state |
 
 F3 (client pay/approve/download), F5 (recovery) and F6 (account) were **not
@@ -26,7 +26,6 @@ Verified in the second run: the four titles above changed as expected; typecheck
 
 | Sev | Issue | Why |
 |---|---|---|
-| 4 | Demo signup submit produces no success and no error | Needs the demo submit path instrumented; copy-only change but unverified |
 | 3 | Playground's vault link returns to the landing page | Flow defect; likely needs a product decision on the demo entry (DECISIONS) |
 | 2 | Frame loader owns first paint | Animation system; a text variant is a design decision |
 | 1 | Sign-in has no pending state (3.29 s) | Loading state is in scope; not implemented yet |
@@ -46,7 +45,8 @@ signup answer need your call before changing.
 
 ## Honest summary
 
-Only three of six flows were walked, one of them blocked at its first screen.
-The one product-wide defect found — a single page title for the whole app — is
-fixed and verified. Real devices, screen readers and real users were not
-available; the manual steps are listed in `MANUAL.md` (pending).
+Only three of six flows were walked. The one product-wide defect found — a single
+page title for the whole app — is fixed and verified. The F2 "silent submit"
+reported in the first run was a probe defect, not a product one: the demo form
+does show its success card in about a second. Real devices, screen readers and
+real users were not available; `MANUAL.md` is still to be written.

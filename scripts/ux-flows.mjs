@@ -141,16 +141,17 @@ async function f2() {
     await page.locator("#signup-paypal").fill("ada@example.test");
     const t = now();
     await page.getByTestId("signup-submit").click();
+    /* wait for the done panel or a visible alert, never for loose page copy */
     await page
-      .waitForFunction(
-        () => /Your freelancer vault is open|isn.t valid|already|try again|went wrong/i.test(document.body.innerText),
-        { timeout: 20_000 }
-      )
+      .locator(".signup-done-h, [role=alert]")
+      .first()
+      .waitFor({ state: "visible", timeout: 20_000 })
       .catch(() => {});
     f.submitMs = now() - t;
     f.clicks++;
     const afterSubmit = await page.locator("body").innerText();
     f.signedUp = /Your freelancer vault is open/i.test(afterSubmit);
+    f.alert = await page.locator("[role=alert]").first().innerText().catch(() => "");
     f.bodyAfterSubmit = afterSubmit.replace(/\s+/g, " ").slice(0, 300);
     f.steps.push(`signup ${f.signedUp ? "success" : "did not reach success"} in ${f.submitMs}ms`);
     await shot("f2-01-signed-up");
