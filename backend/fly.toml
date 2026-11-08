@@ -26,9 +26,12 @@ primary_region = "fra"
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  # Never scale to zero: the trial's 5-minute cap is a billing restriction,
+  # not an idle policy, so turning auto-stop off is what keeps the API warm
+  # once a payment method is on the org. min_machines_running stays 1 as a
+  # second guard for older flyctl versions that ignore auto_stop_machines.
+  auto_stop_machines = "off"
   auto_start_machines = true
-  # 1 = no cold start for judges; lower to 0 after the demo to save money.
   min_machines_running = 1
 
   [[http_service.checks]]
