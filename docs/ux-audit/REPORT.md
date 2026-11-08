@@ -12,8 +12,9 @@ was created.
 | F3 client | **pass**: join, interrogate, approve, download | 1 | 7.8 s | 0 — download fixed; header state open (2) |
 | F4 returning user | **pass**: sign-in → dashboard, action visible | 1 | 8.3 s (3.29 s sign-in) | 1 — no pending state |
 | F5 recovery | **pass**: 7 error states, each with a working way out | — | — | 1 — 429 prints the API's own sentence |
+| F6 account | **pass**: profile, password, sessions, delete blockers, sign out | 4 | — | 0 |
 
-F6 (account) was **not** walked.
+All six flows were walked.
 
 ## Fixed
 
@@ -57,8 +58,9 @@ signup answer need your call before changing.
 
 ## Honest summary
 
-Only five of six flows were walked. The one product-wide defect found — a single
-page title for the whole app — is fixed and verified. The F2 "silent submit"
-reported in the first run was a probe defect, not a product one: the demo form
-does show its success card in about a second. Real devices, screen readers and
-real users were not available; `MANUAL.md` is still to be written.
+All six flows were walked. Product defects found and fixed: one page title for
+the whole app, an inert manifest download, focus lost after signup and after
+routing. Two "failures" reported during the pass were probe defects, not product
+ones (the F2 silent submit and the F6 sign-out resurrection). Real devices,
+screen readers and real users were not available; `MANUAL.md` is still to be
+written, as is `strings.md`, and 200%/400% zoom was not checked.
