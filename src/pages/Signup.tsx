@@ -23,6 +23,7 @@ import {
 } from "../lib/validations/auth";
 import { isDemoMode } from "../lib/apiClient";
 import * as authApi from "../lib/authApi";
+import { updatePayoutProfile } from "../lib/api";
 import { writeSession } from "../lib/mockAuth";
 
 type Step = 1 | 2 | 3;
@@ -205,6 +206,11 @@ export default function Signup() {
         name: values.fullName,
         since: Date.now(),
       });
+      /* the form collects the payout address, so the account starts with it
+         rather than showing "not set" until the freelancer visits Settings */
+      if (values.role === "freelancer" && values.paypalEmail) {
+        await updatePayoutProfile({ paypalEmail: values.paypalEmail }).catch(() => {});
+      }
       setCreatedEmail(values.email);
       setIsSubmitting(false);
       setPhase("done");
@@ -228,6 +234,14 @@ export default function Signup() {
         since: Date.now(),
         token: session.token,
       });
+
+      /* register accepts only the account fields, so the payout address the
+         freelancer typed is saved to its own resource once the token exists */
+      if (backendRole === "FREELANCER" && values.paypalEmail) {
+        await updatePayoutProfile({ paypalEmail: values.paypalEmail }).catch(() => {
+          /* the account exists; Settings still offers the field */
+        });
+      }
 
       setCreatedEmail(session.user.email);
     } catch (err: any) {
