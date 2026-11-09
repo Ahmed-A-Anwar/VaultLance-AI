@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "e2e:smoke": "node --env-file=backend/.env --env-file=backend/.env.E2E scripts/e2e-smoke.mjs",
-    "ui:sweep": "node scripts/ui-sweep.mjs"
+    "ui:sweep": "node scripts/ui-sweep.mjs",
+    "analyze": "vite-bundle-visualizer -t raw-data -o docs/laws-audit/bundle.json"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.2.5",
@@ -51,6 +52,7 @@
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
+    "vite-bundle-visualizer": "^1.2.1",
     "vitest": "^5.1.0"
   }
 }
