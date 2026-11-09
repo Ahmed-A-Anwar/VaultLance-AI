@@ -77,6 +77,9 @@ export default function HeroButtons({
   /* the signin transition lives in the layout, which owns the vault and the
      route swap; this file only decides when the keypad has gone far enough */
   const { startSignin } = useVaultScene();
+  /* phones get the static vault first. The clip demo is interaction garnish and
+     costs 96 frame requests plus decode; it starts on a tap, not on arrival. */
+  const phone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
 
   useEffect(() => {
     const up = signupRef.current;
@@ -268,8 +271,12 @@ export default function HeroButtons({
        keypad is what the gate waits on, so it goes first with the whole pipe:
        the wheel starts when the gate opens (see runIntro), by which time the
        entrance still has seconds to run and nothing is competing for sockets. */
-    if (pad) later(() => whenIdle(requestPad), 150);
-    else if (wheel) later(() => whenIdle(requestWheel), 150);
+    /* the clips are interaction garnish, not first-screen content. Leave the
+       network and main thread alone until the copy has had time to paint; a
+       pointer that arrives earlier calls request* directly below. */
+    const CLIP_DELAY = 2500;
+    if (!phone && pad) later(() => whenIdle(requestPad), CLIP_DELAY);
+    else if (!phone && wheel) later(() => whenIdle(requestWheel), CLIP_DELAY);
 
     /* ---------- buttons ---------- */
     const lift = (el: HTMLElement, on: boolean) => {
@@ -493,6 +500,8 @@ export default function HeroButtons({
     const tookOver = () => hoveringUp || hoveringIn || wheelNav || padNav;
 
     const runIntro = async () => {
+      /* a phone has no room for the demo and no spare main thread for it */
+      if (phone) return;
       /* nothing demos itself behind the entry gate: the entrance only starts once
          the gate opens, so the beat is measured from the release, not the mount */
       while (!bootedRef.current) await sleep(100);

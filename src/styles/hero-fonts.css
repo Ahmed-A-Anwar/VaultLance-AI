@@ -1,11 +1,12 @@
 /* Hero fonts — self-hosted from public/fonts so index.html can preload the exact
-   files (no hashed URLs, no swap-driven layout shift). */
+   files. `swap`, not `block`: a slow face must never make the reading copy
+   invisible while the network catches up. */
 
 @font-face {
   font-family: "Hero Fraunces";
   font-style: normal;
   font-weight: 100 900;
-  font-display: block;
+  font-display: swap;
   src: url("/fonts/fraunces-latin-full-normal.woff2") format("woff2-variations");
 }
 
@@ -13,7 +14,7 @@
   font-family: "Hero Inter";
   font-style: normal;
   font-weight: 100 900;
-  font-display: block;
+  font-display: swap;
   src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
 }
 
@@ -21,6 +22,6 @@
   font-family: "Hero JetBrains Mono";
   font-style: normal;
   font-weight: 100 800;
-  font-display: block;
+  font-display: swap;
   src: url("/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2-variations");
 }

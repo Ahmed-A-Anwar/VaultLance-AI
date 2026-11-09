@@ -55,10 +55,14 @@ const T_SWAP_UP = 0.618;
 const isVertical = () => typeof window !== "undefined" && window.innerWidth < 768;
 
 /* the entry gate: once per tab session, on the landing route, and never when
-   motion is reduced (there is nothing to bank for a page that does not play) */
+   motion is reduced (there is nothing to bank for a page that does not play).
+   Phones skip it altogether: the curtain is a desktop-sized flourish, and on a
+   narrow first screen it is the thing between the visitor and the copy. */
 const BOOT_KEY = "vl-booted";
+const isPhone = () =>
+  typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
 const needsBoot = (reduced: boolean, pathname: string) => {
-  if (reduced || pathname !== "/") return false;
+  if (reduced || pathname !== "/" || isPhone()) return false;
   try {
     return window.sessionStorage.getItem(BOOT_KEY) !== "1";
   } catch {

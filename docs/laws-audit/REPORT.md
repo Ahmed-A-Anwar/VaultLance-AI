@@ -40,7 +40,7 @@ Scope: top screens, no new features, no money/state/auth/security-rule changes.
 
 | Screen | Result | Notes |
 |---|---|---|
-| Landing | **CHANGED / WARN** | LCP text no longer hidden; desktop 97, mobile 71; mobile LCP 4.4 s remains over budget |
+| Landing | **CHANGED / BLOCKED** | LCP text static and no longer hidden; desktop 97, mobile 70; mobile LCP 4.308 s modeled / 743 ms observed; over budget |
 | Sign up | PASS | Existing target/label work; no new copy or validation change |
 | Sign in | PASS | Existing target/label work; no new auth behavior |
 | Playground | PASS | Step rail and next-step primary action already in the prior commit |
@@ -63,8 +63,9 @@ The prior `main` commits contain the audit-room opening line, mobile run label, 
 
 ## Checks actually run
 
-- `npm run build` — exit 0.
-- `npm run test:unit` — 14 files, **75 tests passed**.
+- `npm run build` — exit 0 after the final LCP changes.
+- `npm run test:unit` — 14 files, **75 tests passed** after the final LCP changes.
+- Lighthouse 13.6 mobile local preview — performance **70**, LCP **4.308 s modeled / 743 ms observed**, FCP 810 ms, TBT 583 ms, CLS 0. Raw trace: `docs/laws-audit/lighthouse-lcp-final.json`.
 - `npm run e2e:smoke` — **9/9** live steps passed (health, two accounts, create/upload/lock/invite/join, locked download, stranger refusal).
 - Lighthouse 13.6.0, deployed baseline and local production preview; metrics in `BASELINE.md` and `PERF.md`.
 - Production preview route sweep: `/demo`, `/console`, `/v/legacy-token` → “Nothing here”; `/` → one `main#main`.
@@ -74,7 +75,8 @@ The prior `main` commits contain the audit-room opening line, mobile run label, 
 ## Not verified / limitations
 
 - The branch is **not deployed**; all post-fix performance numbers are local preview numbers.
-- Mobile LCP/TBT remain over budget.
+- Mobile LCP is **BLOCKED**: 4.308 s modeled, 743 ms observed; TBT is 583 ms. Seven measured attempts did not reach 2.5 s. The static-shell workaround was discarded; the React paragraph remains the final LCP node.
+- `npm run e2e:smoke` and the Playwright settings suite were not rerun after the final animation split; the earlier 9/9 smoke result predates these edits.
 - Supabase region/database RTT is unavailable without a sanitized host.
 - APIMatic is intentionally out of scope.
 - The full five-state audit room was not re-screenshotted in this pass; the prior room matrix and tests remain the evidence.

@@ -3,12 +3,15 @@
    VaultLayout and is never remounted by a route change. Coming back from
    /signup, the copy returns instead of replaying the intro. */
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { HeroCopy } from "./HeroCopy";
-import HeroButtons from "./HeroButtons";
 import { armHeroIntro, createHeroTimeline } from "./hero-timeline";
+
+/* the CTA wiring and its clip player are interaction code, not first-screen
+   content; this keeps their chunk out of the landing's first paint */
+const HeroButtons = lazy(() => import("./HeroButtons"));
 import { useVaultScene } from "../lib/vaultScene";
 
 const SIGNIN_HREF = "/signin";
@@ -30,11 +33,19 @@ export function Hero() {
     startSignup,
   } = useVaultScene();
 
+  const [buttonsReady, setButtonsReady] = useState(false);
   const copyRef = useRef<HTMLDivElement | null>(null);
   const headlineRef = useRef<HTMLHeadingElement | null>(null);
   const bodyRef = useRef<HTMLParagraphElement | null>(null);
   const ctaBlockRef = useRef<HTMLDivElement | null>(null);
   const buttonsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    /* after the first paint, not before it: the landing copy is the first screen;
+       the button controller and its clip player are the next frame's work */
+    const id = requestAnimationFrame(() => setButtonsReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   /* the way back: the copy is set to its exit pose before paint, then returns on
      the same beat the vault slides home */
@@ -155,16 +166,20 @@ export function Hero() {
         />
       </main>
 
-      <HeroButtons
-        signupRef={signupRef}
-        signinRef={signinRef}
-        fx={fx}
-        clips={clips}
-        booted={booted}
-        reducedMotion={reduced}
-        onSignup={startSignup}
-        signinHref={SIGNIN_HREF}
-      />
+      {buttonsReady && (
+        <Suspense fallback={null}>
+          <HeroButtons
+            signupRef={signupRef}
+            signinRef={signinRef}
+            fx={fx}
+            clips={clips}
+            booted={booted}
+            reducedMotion={reduced}
+            onSignup={startSignup}
+            signinHref={SIGNIN_HREF}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

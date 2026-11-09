@@ -9,8 +9,11 @@
 
 ## What is done in this branch
 
-- Hero page/headline/body no longer start at opacity 0.
-- Boot gate font wait capped at 1.5 s.
+- Hero page/headline/body no longer start at opacity 0; the copy is now fully static.
+- Boot gate font wait capped at 1.5 s; phones skip the gate entirely.
+- Hero faces use `font-display: swap`; only Inter is preloaded.
+- Phone clip demo/prefetch disabled; desktop clip prefetch delayed to 2.5 s.
+- `HeroButtons` and its clip player split into a lazy chunk.
 - Landing's nested `main` removed.
 - Mock 2FA and device list hidden outside a demo-enabled build.
 - `/demo`, `/console`, `/v/:token`, `/v/:token/files` gated out of production routes.
@@ -19,11 +22,8 @@
 
 ## What remains
 
-1. Mobile LCP is 4.4 s on local preview; desktop is 1.0 s. Try the next measured attempts:
-   - shorten or skip the first-run boot gate on slow connections;
-   - split/delay non-critical GSAP/entry work;
-   - re-run Lighthouse after each attempt.
-2. If mobile LCP remains over 2.5 s after three honest attempts, log **BLOCKED** with the trace rather than claiming success.
+1. Mobile LCP is **BLOCKED** at 4.308 s modeled / 743 ms observed on local preview; desktop is 1.0 s. Seven measured attempts did not reach 2.5 s. The static-shell experiment was discarded because the React paragraph remained the final LCP node.
+2. The next step is architectural: prerender the landing copy into the initial HTML or cut the 150.7 KiB main bundle (GSAP is still in it through `HeroVault`/`VaultLayout`). Do not claim the budget is met.
 3. Re-drive the five audit-room states at 390/1024/1440 before calling the room regression complete.
 4. Get a sanitized Supabase host/region if database RTT is required.
 5. Deploy only with explicit authorization; then run the same Lighthouse and route checks against the deployed preview/production and compare.
