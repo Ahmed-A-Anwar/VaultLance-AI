@@ -31,6 +31,7 @@ import {
   type LoginSession,
 } from "../../../lib/api";
 import { WRONG_CURRENT_PASSWORD } from "../../../lib/mockAuth";
+import { demoBuildEnabled } from "../../../lib/demoGate";
 
 const SPIN = 618;
 const SHAKE = 382;
@@ -76,6 +77,11 @@ const deviceIcon = (device: string) =>
 
 export function SecurityCard({ mfaOn, onMfaChange }: { mfaOn: boolean; onMfaChange: (on: boolean) => void }) {
   const push = useToast();
+  /* The two-factor sheet and the device list are mock surfaces: the browser
+     holds a fixed demo secret and the server keeps no session list. They are
+     only rendered in a demo-enabled build; production keeps the real password
+     change and nothing that pretends to be a security control. */
+  const demoControls = demoBuildEnabled();
 
   /* ---- password ---- */
   const [current, setCurrent] = useState("");
@@ -115,6 +121,7 @@ export function SecurityCard({ mfaOn, onMfaChange }: { mfaOn: boolean; onMfaChan
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!demoControls) return;
     let live = true;
     listSessions()
       .then((rows) => {
@@ -126,7 +133,7 @@ export function SecurityCard({ mfaOn, onMfaChange }: { mfaOn: boolean; onMfaChan
     return () => {
       live = false;
     };
-  }, []);
+  }, [demoControls]);
 
   const submitPassword = async () => {
     if (busy) return;
@@ -246,7 +253,12 @@ export function SecurityCard({ mfaOn, onMfaChange }: { mfaOn: boolean; onMfaChan
   };
 
   return (
-    <SectionCard id="security" title="Security" caption="PASSWORD, TWO-FACTOR AND DEVICES" className={shake ? "is-shake" : undefined}>
+    <SectionCard
+      id="security"
+      title="Security"
+      caption={demoControls ? "PASSWORD, TWO-FACTOR AND DEVICES" : "PASSWORD"}
+      className={shake ? "is-shake" : undefined}
+    >
       {/* ---- 1. password ---- */}
       <div className="set-block">
         <div className="set-block-head">
@@ -349,6 +361,8 @@ export function SecurityCard({ mfaOn, onMfaChange }: { mfaOn: boolean; onMfaChan
         </form>
       </div>
 
+      {demoControls && (
+        <>
       {/* ---- 2. two-factor ---- */}
       <div className="set-block">
         <div className="set-block-head set-block-row">
@@ -514,6 +528,8 @@ export function SecurityCard({ mfaOn, onMfaChange }: { mfaOn: boolean; onMfaChan
           </div>
         </div>
       </Modal>
+        </>
+      )}
     </SectionCard>
   );
 }
