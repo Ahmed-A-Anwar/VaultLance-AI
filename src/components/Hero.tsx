@@ -4,6 +4,7 @@
    /signup, the copy returns instead of replaying the intro. */
 
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { HeroCopy } from "./HeroCopy";
 import HeroButtons from "./HeroButtons";
@@ -116,6 +117,29 @@ export function Hero() {
 
   return (
     <>
+      {/* the one piece of chrome the landing was missing: who this is, what it
+          does, and a recognizable way to the other two public surfaces */}
+      <header className="site-nav">
+        <Link className="site-brand" to="/" aria-label="VaultLance AI, home" data-testid="site-brand">
+          <span className="site-mark" aria-hidden="true">V</span>
+          <span className="site-brand-text">
+            <span className="site-wordmark">VaultLance</span>
+            <span className="site-tagline">Escrow for digital deliverables</span>
+          </span>
+        </Link>
+        <nav className="site-links" aria-label="Site">
+          <span className="site-live">
+            <i aria-hidden="true" /> Sandbox live
+          </span>
+          <Link className="site-link" to="/playground">
+            Playground
+          </Link>
+          <Link className="site-link site-link-primary" to="/signin">
+            Sign in
+          </Link>
+        </nav>
+      </header>
+
       <main id="main" className="hero-layout">
         <HeroCopy
           ref={copyRef}

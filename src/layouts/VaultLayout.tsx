@@ -719,7 +719,7 @@ export default function VaultLayout() {
 
   return (
     <VaultSceneContext.Provider value={scene}>
-      <div className="hero-page" ref={pageRef}>
+      <div className={`hero-page${isDeck(pathname) ? " is-deck" : ""}`} ref={pageRef}>
         <div className="hero-shell">
           <div className="hero-stage-wrap" ref={wrapRef}>
             <div className="vault-shift" ref={shiftRef}>

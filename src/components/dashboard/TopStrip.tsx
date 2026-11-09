@@ -64,7 +64,8 @@ export function TopStrip({
             {primary.label}
           </button>
         ) : (
-          <button type="button" className="dash-cta" onClick={onJoin}>
+          <button type="button" className="dash-cta dash-cta-primary" onClick={onJoin}>
+            <Plus width="14" height="14" aria-hidden="true" />
             Join a vault
           </button>
         )}

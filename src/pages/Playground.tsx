@@ -142,6 +142,18 @@ export default function Playground() {
       : "Uncomplete sample: web-app archive and logo pack, no README, failing test log.";
   }, [view?.sampleKind]);
 
+  /* the stage's primary action is always the next move, not the same button in
+     every state: sample -> fund -> review -> capture */
+  const flowStep = !view?.sampleKind
+    ? 1
+    : view.status === "PAID"
+      ? 4
+      : canApprove
+        ? 3
+        : canFund
+          ? 2
+          : 3;
+
   return (
     <main className="pg" id="main">
       <a className="pg-skip" href="#pg-main">Skip to the playground</a>
@@ -184,6 +196,27 @@ export default function Playground() {
         </section>
 
         <section className="pg-stage" aria-busy={loading || busy !== ""}>
+          <ol className="pg-flow" aria-label="Playground steps">
+            {[
+              ["Load a sample", "Pick a delivery"],
+              ["Fund the hold", "PayPal sandbox"],
+              ["Review the checks", "Server verdict"],
+              ["Capture", "Unlock files"],
+            ].map(([label, hint], i) => {
+              const n = i + 1;
+              const state = flowStep > n ? "done" : flowStep === n ? "current" : "todo";
+              return (
+                <li key={label} data-state={state}>
+                  <span aria-hidden="true">{flowStep > n ? "✓" : n}</span>
+                  <div>
+                    <strong>{label}</strong>
+                    <small>{hint}</small>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
           <div className="pg-stage-head">
             <div>
               <p className="pg-mono">SEEDED VAULT</p>
@@ -216,19 +249,21 @@ export default function Playground() {
           <p className="pg-sample-line">{sampleLine}</p>
 
           <div className="pg-actions">
-            <button
-              type="button"
-              className="pg-btn pg-btn-primary"
-              data-testid="open-room"
-              disabled={!view}
-              onClick={openRoom}
-            >
-              {role === "client" ? "Open the client room" : "Open the freelancer dashboard"} <span aria-hidden="true">→</span>
-            </button>
+            {!view?.sampleKind && (
+              <button
+                type="button"
+                className="pg-btn pg-btn-primary"
+                data-testid="load-complete-primary"
+                disabled={busy === "sample"}
+                onClick={() => void load("complete")}
+              >
+                {busy === "sample" ? "Uploading…" : "Load a complete sample"} <span aria-hidden="true">→</span>
+              </button>
+            )}
             {canFund && (
               <button
                 type="button"
-                className="pg-btn"
+                className="pg-btn pg-btn-primary"
                 data-testid="fund-hold"
                 disabled={busy === "fund"}
                 onClick={() => void fund()}
@@ -247,7 +282,43 @@ export default function Playground() {
                 {busy === "approve" ? "Capturing…" : "Approve & capture payment"}
               </button>
             )}
+            {view?.sampleKind && !canFund && !canApprove && (
+              <button
+                type="button"
+                className="pg-btn pg-btn-primary"
+                data-testid="open-room"
+                onClick={openRoom}
+              >
+                {view.status === "PAID"
+                  ? "Open the paid room"
+                  : role === "client"
+                    ? "Open the client room"
+                    : "Open the freelancer dashboard"}{" "}
+                <span aria-hidden="true">→</span>
+              </button>
+            )}
+            {view?.sampleKind && (canFund || canApprove) && (
+              <button
+                type="button"
+                className="pg-btn pg-action-secondary"
+                data-testid="open-room"
+                onClick={openRoom}
+              >
+                Open the {role === "client" ? "client room" : "freelancer dashboard"}
+              </button>
+            )}
           </div>
+          {!view?.sampleKind && (
+            <button
+              type="button"
+              className="pg-linkbtn"
+              data-testid="load-incomplete-primary"
+              disabled={busy === "sample"}
+              onClick={() => void load("incomplete")}
+            >
+              Or load the failing sample and watch the checks reject it
+            </button>
+          )}
 
           {view?.status === "AWAITING_APPROVAL" && failed.length > 0 && (
             <p className="pg-note pg-note-warn">

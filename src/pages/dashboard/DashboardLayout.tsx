@@ -21,6 +21,7 @@ import { FREELANCER_BADGE, FREELANCER_NAV, NEW_VAULT_EVENT, freelancerTitleFor }
 import { FX } from "../../config/fx";
 import "../../styles/dashboard.css";
 import "../../styles/freelancer.css";
+import "../../styles/refine.css";
 
 const TITLES: Array<[string, string]> = [
   ["/dashboard/vaults", "Vaults"],

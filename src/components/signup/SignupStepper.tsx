@@ -175,6 +175,9 @@ export function SignupStepper({ variant, role, preview, phase, onDone, reduced }
   }, [phase, reduced]);
 
   if (variant === "compact") {
+    /* before a role is chosen there is no path to read, so the four nodes keep
+       generic labels: the shape of the process stays legible */
+    const generic = ["Role", "Account", "Verify", "Ready"];
     return (
       <div className="stepper-compact">
         <div className="stepper-compact-row" role="group" aria-label="Your path">
@@ -196,7 +199,7 @@ export function SignupStepper({ variant, role, preview, phase, onDone, reduced }
                 <span className="stepper-chip-dot" aria-hidden="true">
                   {done ? CHECK : i + 1}
                 </span>
-                {step && <span className="stepper-chip-label">{step.label}</span>}
+                <span className="stepper-chip-label">{step ? step.label : generic[i]}</span>
               </button>
             );
           })}
