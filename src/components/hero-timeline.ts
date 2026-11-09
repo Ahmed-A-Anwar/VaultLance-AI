@@ -28,15 +28,16 @@ export interface HeroTimeline {
 }
 
 /* The pose every entrance element starts from. Exported so the copy can be put
-   in it before its first paint: the entry gate may lift before the timeline is
-   built, and the finished headline must never be on screen before it arrives. */
-export function armHeroIntro({ page, stage, rim, body, buttons, headline }: HeroTimelineTargets) {
-  if (page) gsap.set(page, { opacity: 0 });
+   in it before its first paint. The headline and body keep opacity 1: they are
+   the largest text on the page and LCP should not wait for an entrance. Their
+   rise is positional; the stage and CTAs can still fade because they are not
+   the reading content. */
+export function armHeroIntro({ stage, rim, body, buttons, headline }: HeroTimelineTargets) {
   if (stage) gsap.set(stage, { y: 34, opacity: 0, scale: 0.97 });
   if (rim) gsap.set(rim, { opacity: 0 });
-  if (body) gsap.set(body, { y: 21, opacity: 0 });
+  if (body) gsap.set(body, { y: 21 });
   const lines = headline ? Array.from(headline.querySelectorAll<HTMLElement>(".h1-line")) : [];
-  if (lines.length) gsap.set(lines, { y: 34, opacity: 0 });
+  if (lines.length) gsap.set(lines, { y: 34 });
   if (buttons) gsap.set(buttons.querySelectorAll(".hero-btn"), { y: 21, opacity: 0 });
 }
 
@@ -68,15 +69,14 @@ export function createHeroTimeline({ targets, reducedMotion, parallax }: HeroTim
 
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-    if (page) tl.to(page, { opacity: 1, duration: 0.618 }, 0);
     tl.to(stage, { y: 0, opacity: 1, scale: 1, duration: 1.618, ease: "expo.out" }, 0);
     tl.to(rim, { opacity: 1, duration: 0.618, ease: "power2.out" }, 0.236);
     /* 0.618 / 0.854 / 1.090 — the last line lands at 1.708s, inside the idle
        gate at 2.618s, so the float never starts on a line still arriving */
     lines.forEach((el, i) => {
-      tl.to(el, { y: 0, opacity: 1, duration: 0.618, ease: "power3.out" }, 0.618 + i * 0.236);
+      tl.to(el, { y: 0, duration: 0.618, ease: "power3.out" }, 0.618 + i * 0.236);
     });
-    tl.to(body, { y: 0, opacity: 1, duration: 0.618 }, 1.0);
+    tl.to(body, { y: 0, duration: 0.618 }, 1.0);
     if (buttons) {
       tl.to(buttons.querySelectorAll(".hero-btn"), {
         y: 0,

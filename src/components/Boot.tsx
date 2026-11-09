@@ -81,13 +81,16 @@ export function Boot({ ready, clips, onEnter, onGone }: BootProps) {
     document.getElementById("boot-static")?.remove();
     document.documentElement.removeAttribute("data-boot");
 
-    /* the headline is set in the self-hosted display face: releasing before it
-       lands swaps the font mid-entrance */
-    document.fonts?.ready.then(() => {
+    /* The headline is set in the self-hosted display face. Wait for it, but not
+       indefinitely: a slow font may cost a moment of fallback type, while a
+       gate held for every font file costs the visitor the whole first screen. */
+    let fontTimer = 0;
+    const fontsReady = () => {
       fonts = true;
-    }).catch(() => {
-      fonts = true;
-    });
+      if (fontTimer) window.clearTimeout(fontTimer);
+    };
+    document.fonts?.ready.then(fontsReady).catch(fontsReady);
+    fontTimer = window.setTimeout(fontsReady, 1500);
 
     const release = (why: string) => {
       if (releasedRef.current) return;
@@ -144,6 +147,7 @@ export function Boot({ ready, clips, onEnter, onGone }: BootProps) {
     return () => {
       alive = false;
       window.clearInterval(id);
+      window.clearTimeout(fontTimer);
     };
   }, []);
 
