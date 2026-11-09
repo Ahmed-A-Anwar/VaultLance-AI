@@ -12,6 +12,7 @@ import { DashArea } from "./pages/dashboard/RoleGate";
 import { NotFoundPage } from "./pages/dashboard/RoleGate";
 import { clearSession } from "./lib/mockAuth";
 import { setUnauthorizedHandler } from "./lib/http";
+import { demoBuildEnabled } from "./lib/demoGate";
 import PlaygroundBar from "./components/PlaygroundBar";
 
 const Landing = lazy(() => import("./pages/Landing"));
@@ -118,6 +119,18 @@ function Shell() {
   );
 }
 
+/* Seeded demo and legacy surfaces are routes only in a build that explicitly
+   permits demo mode. A production visitor gets the ordinary 404 instead of a
+   fabricated signed-in portal, console, or demo replay. */
+const demoRoutes: RouteObject[] = demoBuildEnabled()
+  ? [
+      { path: "/v/:token", element: <ClientPortal /> },
+      { path: "/v/:token/files", element: <ClientFiles /> },
+      { path: "/console", element: <Console /> },
+      { path: "/demo", element: <Demo /> },
+    ]
+  : [];
+
 const routes: RouteObject[] = [
   /* the vault mounts once here and both routes render inside it */
   {
@@ -134,10 +147,7 @@ const routes: RouteObject[] = [
   { path: "/vault/:id", element: <AuditRoom /> },
   { path: "/playground", element: <Playground /> },
   { path: "/playground/return", element: <PlaygroundReturn /> },
-  { path: "/v/:token", element: <ClientPortal /> },
-  { path: "/v/:token/files", element: <ClientFiles /> },
-  { path: "/console", element: <Console /> },
-  { path: "/demo", element: <Demo /> },
+  ...demoRoutes,
   /* the dashboard: a guarded shell with one area per path, keyed by the route
      table. The wildcard keeps unknown /dashboard paths inside the shell. */
   {
