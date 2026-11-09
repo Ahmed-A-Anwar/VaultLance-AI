@@ -92,13 +92,19 @@ The live Fly machine is in `cdg`; `backend/fly.toml` says `primary_region = "fra
 
 No golden-ratio token, spacing value, colour, type size, or motion duration changed. The only time values changed are the phone gate being skipped and the deferred clip prefetch; both are documented here because they affect first paint.
 
-## D14 — Mobile LCP is BLOCKED, not met
+## D14 — Prerender the mobile landing copy
 
-Final local Lighthouse mobile result: **LCP 4.308 s modeled, 743 ms observed; TBT 583 ms; performance 70**. The baseline was 4.552 s / 66. Seven measured attempts did not reach the 2.5 s budget. The final LCP node is still the React `p.hero-body`, rendered from the 150.7 KiB main bundle; GSAP remains in that bundle through `HeroVault`/`VaultLayout`.
+A static copy shell in `index.html` was tried first and discarded: its paragraph was narrower than the React one, so the later React paint replaced it as the LCP.
 
-A static copy shell in `index.html` painted at 156 ms, but the React paragraph painted later with a larger area (48,077 px vs 37,927 px) and replaced it. The shell was removed rather than kept as an ineffective duplicate.
+The final implementation is a real prerender. A Vite `transformIndexHtml` plugin renders the shared `HeroCopy` component with `StaticRouter` and `renderToStaticMarkup`; `index.html` carries the resulting markup in an absolute, mobile-only shell on `/`. The shell is above the app during handoff, and React removes it two frames after its first commit. `src/main.tsx` delays the mobile landing mount by two frames so the static paint is recorded before React can replace it.
 
-Claiming the target is met would be false. The next step is an architecture change (prerender the landing copy or cut the main bundle), not another animation tweak.
+Before: mobile LCP waited for the 150.7 KiB main bundle (4.308 s modeled). After: the prerendered `p.hero-body` is the LCP at **753.5 ms modeled / 456 ms observed**, score **85**. Desktop remains on the React path: 887.4 ms, score 98.
+
+No golden-ratio token, spacing value, colour, type size, or motion duration changed. The shell is markup and handoff only.
+
+## D15 — TBT remains over budget
+
+The same final run reports **TBT 573 ms** against a 200 ms budget. The main bundle is still 150.9 KiB gzip and carries GSAP through `HeroVault`/`VaultLayout`; the prerender fixes LCP, not main-thread work. This is recorded as the next performance target rather than folded into the LCP pass.
 
 ## D12 — No new features
 

@@ -17,7 +17,7 @@ Scope: top screens, no new features, no money/state/auth/security-rule changes.
 | Law | Status | Evidence in this pass |
 |---|---|---|
 | Aesthetic-Usability | PASS | One coherent instrument vocabulary; Lighthouse accessibility 100 on both presets; CLS ≤ 0.001 |
-| Doherty | **CHANGED** | Hero copy paints immediately; font gate capped at 1.5 s; local mobile LCP 4.4 s (still over budget), desktop 1.0 s |
+| Doherty | **CHANGED** | Hero copy paints from the prerendered shell; font gate capped at 1.5 s; local mobile LCP 753.5 ms, desktop 887.4 ms; mobile TBT 573 ms remains over budget |
 | Fitts | **CHANGED** | 44px phone targets and one primary action in the room; shared tap manipulation; prior room/refine CSS committed |
 | Hick | PASS | Site nav exposes two public routes; room states expose one primary decision; secondary actions sit behind More |
 | Jakob | **CHANGED** | Conventional site nav/wordmark; mock security controls removed from production; demo routes fall through to 404 |
@@ -40,7 +40,7 @@ Scope: top screens, no new features, no money/state/auth/security-rule changes.
 
 | Screen | Result | Notes |
 |---|---|---|
-| Landing | **CHANGED / BLOCKED** | LCP text static and no longer hidden; desktop 97, mobile 70; mobile LCP 4.308 s modeled / 743 ms observed; over budget |
+| Landing | **CHANGED / PASS** | Prerendered mobile HeroCopy; mobile LCP 753.5 ms, score 85; desktop LCP 887.4 ms, score 98; TBT 573 ms remains over budget |
 | Sign up | PASS | Existing target/label work; no new copy or validation change |
 | Sign in | PASS | Existing target/label work; no new auth behavior |
 | Playground | PASS | Step rail and next-step primary action already in the prior commit |
@@ -65,7 +65,9 @@ The prior `main` commits contain the audit-room opening line, mobile run label, 
 
 - `npm run build` — exit 0 after the final LCP changes.
 - `npm run test:unit` — 14 files, **75 tests passed** after the final LCP changes.
-- Lighthouse 13.6 mobile local preview — performance **70**, LCP **4.308 s modeled / 743 ms observed**, FCP 810 ms, TBT 583 ms, CLS 0. Raw trace: `docs/laws-audit/lighthouse-lcp-final.json`.
+- Lighthouse 13.6 mobile local preview — performance **85**, LCP **753.5 ms**, observed LCP/FCP **456 ms**, TBT 573 ms, CLS 0. Raw trace: `docs/laws-audit/lighthouse-lcp-prerendered.json`.
+- Lighthouse 13.6 desktop local preview — performance **98**, LCP **887.4 ms**, TBT 9 ms, CLS 0.00025. Raw trace: `docs/laws-audit/lighthouse-desktop-prerendered.json`.
+- Route check at 412 px: `/` has one `main#main` and no leftover shell; `/signup` and `/playground` have one main and no shell; `/demo` is the production 404.
 - `npm run e2e:smoke` — **9/9** live steps passed (health, two accounts, create/upload/lock/invite/join, locked download, stranger refusal).
 - Lighthouse 13.6.0, deployed baseline and local production preview; metrics in `BASELINE.md` and `PERF.md`.
 - Production preview route sweep: `/demo`, `/console`, `/v/legacy-token` → “Nothing here”; `/` → one `main#main`.
@@ -75,7 +77,8 @@ The prior `main` commits contain the audit-room opening line, mobile run label, 
 ## Not verified / limitations
 
 - The branch is **not deployed**; all post-fix performance numbers are local preview numbers.
-- Mobile LCP is **BLOCKED**: 4.308 s modeled, 743 ms observed; TBT is 583 ms. Seven measured attempts did not reach 2.5 s. The static-shell workaround was discarded; the React paragraph remains the final LCP node.
+- Mobile LCP now passes locally at **753.5 ms**; TBT remains **573 ms**, over the 200 ms budget.
+- The prerendered shell is removed after handoff, so Lighthouse has no final DOM node for the LCP element; Playwright recorded the static paragraph at 592 ms (55,050 px) on the same build.
 - `npm run e2e:smoke` and the Playwright settings suite were not rerun after the final animation split; the earlier 9/9 smoke result predates these edits.
 - Supabase region/database RTT is unavailable without a sanitized host.
 - APIMatic is intentionally out of scope.

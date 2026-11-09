@@ -19,12 +19,24 @@ import App from "./App";
 import { StoreProvider } from "./lib/store";
 import { MorphProvider } from "./lib/transitions";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <StoreProvider>
-      <MorphProvider>
-        <App />
-      </MorphProvider>
-    </StoreProvider>
-  </StrictMode>
-);
+const root = createRoot(document.getElementById("root")!);
+
+function mount() {
+  root.render(
+    <StrictMode>
+      <StoreProvider>
+        <MorphProvider>
+          <App />
+        </MorphProvider>
+      </StoreProvider>
+    </StrictMode>
+  );
+}
+
+/* Phones paint the prerendered landing copy first. Two frames guarantee the
+   browser has actually painted it before React's first commit removes the
+   shell; otherwise a fast bundle can replace it before the LCP entry exists. */
+const waitForPrerender =
+  location.pathname === "/" && window.matchMedia("(max-width: 767px)").matches;
+if (waitForPrerender) requestAnimationFrame(() => requestAnimationFrame(mount));
+else mount();

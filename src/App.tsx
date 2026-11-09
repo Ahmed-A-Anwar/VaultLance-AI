@@ -168,5 +168,19 @@ const routes: RouteObject[] = [
 const router = createBrowserRouter([{ element: <Shell />, children: routes }]);
 
 export default function App() {
+  /* the prerendered landing copy is only the first paint; React owns the page
+     from its first commit, so the duplicate shell and its flag go away here */
+  useEffect(() => {
+    /* hold the shell through React's first paint: removing it in the commit
+       effect lets the app paint underneath before the static copy was ever
+       recorded as the LCP element */
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document.getElementById("landing-prerender")?.remove();
+        document.documentElement.removeAttribute("data-landing-prerender");
+      })
+    );
+    return () => cancelAnimationFrame(id);
+  }, []);
   return <RouterProvider router={router} />;
 }

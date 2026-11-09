@@ -14,6 +14,7 @@
 - Hero faces use `font-display: swap`; only Inter is preloaded.
 - Phone clip demo/prefetch disabled; desktop clip prefetch delayed to 2.5 s.
 - `HeroButtons` and its clip player split into a lazy chunk.
+- Mobile landing copy prerendered from the shared `HeroCopy` at build time; React removes the shell after handoff.
 - Landing's nested `main` removed.
 - Mock 2FA and device list hidden outside a demo-enabled build.
 - `/demo`, `/console`, `/v/:token`, `/v/:token/files` gated out of production routes.
@@ -22,8 +23,8 @@
 
 ## What remains
 
-1. Mobile LCP is **BLOCKED** at 4.308 s modeled / 743 ms observed on local preview; desktop is 1.0 s. Seven measured attempts did not reach 2.5 s. The static-shell experiment was discarded because the React paragraph remained the final LCP node.
-2. The next step is architectural: prerender the landing copy into the initial HTML or cut the 150.7 KiB main bundle (GSAP is still in it through `HeroVault`/`VaultLayout`). Do not claim the budget is met.
+1. Mobile LCP now **passes locally** at 753.5 ms (observed 456 ms, score 85); desktop is 887.4 ms (score 98). The prerender is the change that moved it.
+2. TBT remains **573 ms**, over the 200 ms budget. The main bundle is 150.9 KiB gzip and still carries GSAP through `HeroVault`/`VaultLayout`; reducing main-thread work is the next performance target.
 3. Re-drive the five audit-room states at 390/1024/1440 before calling the room regression complete.
 4. Get a sanitized Supabase host/region if database RTT is required.
 5. Deploy only with explicit authorization; then run the same Lighthouse and route checks against the deployed preview/production and compare.

@@ -24,6 +24,18 @@
       })();
     </script>
     <style>
+      /* The mobile landing shell is prerendered from HeroCopy. It is absolute so
+         the handoff to React cannot add a second page height or shift layout. */
+      #landing-prerender { display: none; }
+      html[data-landing-prerender="1"] #landing-prerender {
+        display: block;
+        position: absolute;
+        inset: 0;
+        z-index: 50;
+      }
+      @media (min-width: 768px) {
+        html[data-landing-prerender="1"] #landing-prerender { display: none; }
+      }
       #boot-static { display: none; }
       html[data-boot="1"] #boot-static {
         position: fixed;
@@ -102,6 +114,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="landing-prerender" aria-hidden="true">
+      <!--landing-copy-->
+    </div>
     <div id="boot-static" aria-hidden="true">
       <div class="bs-inner">
         <p class="bs-word">VAULTLANCE AI</p>
@@ -126,6 +141,15 @@
         <p class="bs-meta">BANKING FRAMES</p>
       </div>
     </div>
+    <script>
+      (function () {
+        try {
+          if (location.pathname === "/") {
+            document.documentElement.setAttribute("data-landing-prerender", "1");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
