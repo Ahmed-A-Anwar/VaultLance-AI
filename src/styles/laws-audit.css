@@ -1,0 +1,30 @@
+/* laws-audit.css — the cross-screen finishing layer for the UX-law pass.
+
+   It does not replace a page's look. It fixes shared interaction details that
+   are easy to miss when each screen is reviewed alone:
+
+   - Fitts: every interactive control uses tap manipulation, so a phone does not
+     spend 300ms deciding whether a tap was a double-tap zoom.
+   - Accessibility: a focus ring exists on every interactive control, including
+     the components that do not set their own.
+   - Jakob / Aesthetic-Usability: section links land below the fixed chrome
+     rather than underneath it. */
+
+:where(a, button, input, select, textarea, [role="button"], [role="tab"], [role="switch"]) {
+  touch-action: manipulation;
+}
+
+:where(a, button, input, select, textarea, [role="button"], [role="tab"], [role="switch"]):focus-visible {
+  outline: 2px solid var(--hero-teal, #12a5b5);
+  outline-offset: 3px;
+}
+
+html {
+  scroll-padding-top: 89px;
+}
+
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: 21px;
+  }
+}
