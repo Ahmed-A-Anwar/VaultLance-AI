@@ -1,0 +1,190 @@
+/* room-refine.css — the last pass on the audit room.
+
+   It keeps the room's instrument look and fixes the things that made the next
+   move harder than it needed to be:
+
+   - Fitts: the back control, tabs, run/re-run, copy, file actions and the fixed
+     decision bar all get at least a 40px target (44px on a phone).
+   - Hick / Occam: one primary action per state. The held vault runs its checks
+     from the decision, not from a disabled approve button beside a second run
+     button; the phone's fixed bar does the same in one tap.
+   - Proximity: at stacked tablet widths the decision sits directly under the
+     phase strip, above the evidence, so the action is visible without a scroll.
+   - Clarity: check details can use two lines instead of one truncated line, and
+     the phone's suggestion/footer rows stop clipping. */
+
+/* --------------------------------------------------------------- targets --- */
+
+.room-back {
+  min-height: 40px;
+}
+.room-run,
+.room-more,
+.room-void,
+.room-review-cancel,
+.room-review-revision {
+  min-height: 40px;
+}
+.room-file-toggle {
+  width: 34px;
+  height: 34px;
+}
+.room-dl {
+  min-height: 30px;
+  padding: 0 10px;
+}
+.room-suggest {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.room-suggest-chip {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 14px;
+  text-align: left;
+  white-space: normal;
+}
+.room-suggest-chip:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.room-copy {
+  width: 40px;
+  height: 40px;
+}
+
+/* one honest line of detail, or two when the column is narrow */
+.room-check-top {
+  align-items: flex-start;
+}
+.room-check-detail {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.35;
+  padding-top: 1px;
+}
+
+/* ---------------------------------------------------------- stacked tablet */
+
+/* Below 1280 the room is a files strip over chat + side. Put the decision
+   first there: it is the state's primary action, and at 768px height the old
+   order pushed it under the fold. The checks list keeps the rest and scrolls. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .room-side {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .room-decision {
+    grid-row: 1;
+    align-self: start;
+  }
+  .room-checks {
+    grid-row: 2;
+  }
+}
+
+/* ------------------------------------------------------------------ phone */
+
+@media (max-width: 767px) {
+  .room-back {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .room-tabs {
+    padding: 5px 13px 7px;
+  }
+  .room-tab {
+    height: 44px;
+  }
+
+  /* two readable columns: the longest question and the shortest both fit */
+  .room-suggest {
+    padding: 8px 0 4px;
+  }
+  .room-suggest-chip {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  /* the footnote is a sentence, not a ticker; the fixed decision bar owns the
+     bottom of a phone screen, so the line waits for the desktop */
+  /* leave the composer and AUDIT CLOSED footer clear of the fixed bar */
+  .room-chat {
+    padding: 13px 13px 24px;
+  }
+  .room-chat .room-note {
+    display: none;
+  }
+
+  .room-more,
+  .room-file-toggle {
+    width: 44px;
+    height: 44px;
+  }
+  .room-checks .room-run {
+    min-height: 44px;
+  }
+  .room-check-detail {
+    font-size: 13px;
+  }
+  .room-src {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .room-files .room-dl {
+    min-height: 40px;
+  }
+  .room-file-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* the fixed bar owns the only "download all" on a phone */
+  .room-files .room-download-all {
+    display: none;
+  }
+
+  /* the fixed bar is the one place the phone decides */
+  .room-mobile-decision .room-primary-sm,
+  .room-mobile-decision .room-run,
+  .room-mobile-decision .room-hold-sm {
+    min-height: 44px;
+  }
+  .room-mobile-decision .room-run {
+    padding: 0 16px;
+  }
+
+  /* the toast stack clears the fixed decision bar, not the viewport edge */
+  .room ~ .dash-toasts {
+    bottom: calc(89px + env(safe-area-inset-bottom) + 13px);
+  }
+
+  /* the status is a word, not a reason to clip the project name */
+  .room-title-wrap {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .room-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .room-bar .dash-chip {
+    flex: none;
+    padding: 0 8px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+}

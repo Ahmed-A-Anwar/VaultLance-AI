@@ -13,7 +13,7 @@ import { PayPalAuthorizeButton } from "../shared/PayPalAuthorizeButton";
 import { useToast } from "../shared/Toasts";
 import { useRoom } from "./room";
 import { downloadVaultFile, type WaiverRequest } from "../../lib/api";
-import { mockHoldAllowed } from "../../lib/apiClient";
+import { isDemoMode, mockHoldAllowed } from "../../lib/apiClient";
 import { Copy, Check } from "./icons";
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -34,6 +34,8 @@ export function DecisionPanel() {
     waivedChecks,
     revisionNote,
     detail,
+    runAll,
+    running,
   } = useRoom();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
@@ -94,6 +96,24 @@ export function DecisionPanel() {
         message: e instanceof Error ? e.message : "The authorization did not go through.",
         tone: "error",
         action: { label: "Retry", run: () => void fireAuthorize() },
+      });
+    }
+  }
+
+  async function fireChecks() {
+    try {
+      const results = await runAll();
+      const passed = results.filter((c) => c.result === "pass").length;
+      const warned = results.filter((c) => c.result === "warn").length;
+      toast({
+        message: `Audit complete. ${passed} of ${results.length} passed${warned ? `, ${warned} warning` : ""}.`,
+        tone: warned ? "info" : "success",
+      });
+    } catch (e) {
+      toast({
+        message: e instanceof Error ? e.message : "The checks did not finish.",
+        tone: "error",
+        action: { label: "Retry", run: () => void fireChecks() },
       });
     }
   }
@@ -206,7 +226,7 @@ export function DecisionPanel() {
         <>
           <p className="room-amount">{usd.format(amount)}</p>
           <p className="room-hint">Nothing is spent. PayPal holds the amount until you decide.</p>
-          {vault?.id && (
+          {!isDemoMode() && vault?.id && (
             <PayPalAuthorizeButton
               vaultId={vault.id}
               amountUSD={amount}
@@ -272,14 +292,27 @@ export function DecisionPanel() {
             </>
           ) : (
             <>
-              <HoldButton
-                className="room-hold"
-                onConfirm={() => void fireApprove([])}
-                pending={busy === "approve"}
-                disabled={status !== "audited" || busy === "reject"}
-                label={status === "held" ? "Approve & pay" : "Hold to approve & pay"}
-              />
-              {status === "held" && <p className="room-hint room-hint-sm">Run the audit first.</p>}
+              {status === "held" ? (
+                <>
+                  <button
+                    type="button"
+                    className="room-primary"
+                    onClick={() => void fireChecks()}
+                    disabled={running || busy !== ""}
+                  >
+                    {running ? "Running checks…" : "Run the audit checks"}
+                  </button>
+                  <p className="room-hint room-hint-sm">Approval unlocks when the checks finish.</p>
+                </>
+              ) : (
+                <HoldButton
+                  className="room-hold"
+                  onConfirm={() => void fireApprove([])}
+                  pending={busy === "approve"}
+                  disabled={busy === "reject"}
+                  label="Hold to approve & pay"
+                />
+              )}
             </>
           )}
 

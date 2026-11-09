@@ -109,6 +109,7 @@ export function ChecksPanel() {
         <h2 id="room-checks-h" className="room-h">
           Checks
         </h2>
+        {status !== "held" && (
         <button
           type="button"
           className="room-run"
@@ -135,8 +136,9 @@ export function ChecksPanel() {
                 : "Run all checks"
               : done
                 ? "Audit complete"
-                : "Run all checks"}
+                : "Run all checks"          }
         </button>
+        )}
 
         {(status === "held" || status === "audited") && (
           <div className="room-more-wrap">

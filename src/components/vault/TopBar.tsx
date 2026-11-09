@@ -19,7 +19,7 @@ export function TopBar({
 }) {
   return (
     <header className="room-bar" data-enter="bar">
-      <Link to="/dashboard" className="room-back">
+      <Link to="/dashboard" className="room-back" aria-label="Back to dashboard">
         <ArrowLeft className="room-back-icon" width="16" height="16" />
         <span className="room-back-text">Back to dashboard</span>
       </Link>

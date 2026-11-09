@@ -22,7 +22,7 @@ import { HoldButton } from "../../components/shared/HoldButton";
 import { ArrowLeft, Download } from "../../components/vault/icons";
 import { useToast } from "../../components/shared/Toasts";
 import { downloadVaultFile } from "../../lib/api";
-import { mockHoldAllowed } from "../../lib/apiClient";
+import { isDemoMode, mockHoldAllowed } from "../../lib/apiClient";
 import { getAccessToken } from "../../lib/http";
 import { PayPalAuthorizeButton } from "../../components/shared/PayPalAuthorizeButton";
 import {
@@ -32,6 +32,7 @@ import {
   rememberApprovedOrder,
 } from "../../lib/paypalReturn";
 import "../../styles/vault.css";
+import "../../styles/room-refine.css";
 
 const CODE: Record<string, string> = {
   v_logo_pack: "0001",
@@ -138,7 +139,7 @@ function Room({ id }: { id: string }) {
   if (loading || !vault || !status) return <RoomSkeleton />;
 
   return (
-    <div className="room" ref={root}>
+    <div className="room" data-status={status} ref={root}>
       <a className="room-skip" href="#room-chat-h">
         Skip to the audit chat
       </a>
@@ -178,7 +179,7 @@ function Room({ id }: { id: string }) {
         </div>
       </main>
 
-      <MobileDecision tab={tab} setTab={setTab} />
+      <MobileDecision setTab={setTab} />
 
       {detail && <span className="dash-sr" aria-live="polite">{`${vault.project}, ${status.replace("_", " ")}`}</span>}
     </div>
@@ -187,13 +188,11 @@ function Room({ id }: { id: string }) {
 
 /* the phone's always-visible decision bar: the same actions, one line high */
 function MobileDecision({
-  tab,
   setTab,
 }: {
-  tab: "files" | "chat" | "checks";
   setTab: (t: "files" | "chat" | "checks") => void;
 }) {
-  const { detail, vault, status, busy, authorize, approve, reload } = useRoom();
+  const { detail, vault, status, busy, authorize, approve, reload, runAll, running } = useRoom();
   const toast = useToast();
   const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   if (!vault || !status) return null;
@@ -207,16 +206,39 @@ function MobileDecision({
     }
   };
 
+  const runChecks = async () => {
+    setTab("checks");
+    try {
+      const results = await runAll();
+      const passed = results.filter((c) => c.result === "pass").length;
+      const warned = results.filter((c) => c.result === "warn").length;
+      toast({
+        message: `Audit complete. ${passed} of ${results.length} passed${warned ? `, ${warned} warning` : ""}.`,
+        tone: warned ? "info" : "success",
+      });
+    } catch (e) {
+      toast({ message: e instanceof Error ? e.message : "The checks did not finish.", tone: "error" });
+    }
+  };
+
   return (
     <aside className="room-mobile-decision" aria-label="Decision">
       <div className="room-mobile-amount">
-        <span className="room-mono">{status === "unlocked" ? "PAID" : status === "voided" ? "VOIDED" : "HELD"}</span>
+        <span className="room-mono">
+          {status === "unlocked"
+            ? "PAID"
+            : status === "voided"
+              ? "VOIDED"
+              : status === "awaiting_payment"
+                ? "TO FUND"
+                : "HELD"}
+        </span>
         <strong className="room-mobile-figure">{usd.format(vault.amountUSD)}</strong>
       </div>
 
       {status === "awaiting_payment" && (
         <>
-          {vault && (
+          {!isDemoMode() && vault && (
             <PayPalAuthorizeButton
               vaultId={vault.id}
               amountUSD={vault.amountUSD}
@@ -250,8 +272,8 @@ function MobileDecision({
       )}
 
       {status === "held" && (
-        <button type="button" className="room-run" onClick={() => setTab("checks")}>
-          {tab === "checks" ? "Run the checks" : "Open the checks"}
+        <button type="button" className="room-run" onClick={() => void runChecks()} disabled={running}>
+          {running ? "Running checks…" : "Run the checks"}
         </button>
       )}
 

@@ -94,7 +94,7 @@ const uid = (p: string) => `${p}_${(seq++).toString(36)}`;
 const CHAR_MS = 25; /* 40 characters a second */
 
 const OPENING =
-  "I can inspect this delivery. Ask me anything, or run all checks from the panel on the right.";
+  "I can inspect this delivery. Ask me anything, or run the audit checks.";
 
 export function RoomProvider({ id, children }: { id: string; children: ReactNode }) {
   const [detail, setDetail] = useState<VaultDetail | null>(null);
