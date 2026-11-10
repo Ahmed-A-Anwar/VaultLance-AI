@@ -140,102 +140,94 @@ export class VaultDomainService {
     if (isSupabaseConfigured() && supabase) {
       const client = supabase;
 
-      // Resolve the vault IDs from the user's own ownership/membership rows.
-      // Never accept vault IDs from the caller for this list.
-      const [ownedResult, memberResult] = await Promise.all([
-        client.from("vaults").select("id").eq("freelancer_id", userId),
-        client.from("vault_members").select("vault_id").eq("user_id", userId),
+      // Resolve the user's memberships and owned vaults in parallel. Each root
+      // read embeds the members, profiles, files and ledger events, so the
+      // common path is two Supabase round trips instead of three.
+      const vaultSelect =
+        "*, vault_members(*, users!vault_members_user_id_fkey(id,email,full_name)), vault_files(*), ledger_events(vault_id, metadata, created_at)";
+      const [memberVaultsResult, ownedVaultsResult] = await Promise.all([
+        client
+          .from("vault_members")
+          .select(`vault_id, vaults!inner(${vaultSelect})`)
+          .eq("user_id", userId),
+        client.from("vaults").select(vaultSelect).eq("freelancer_id", userId),
       ]);
 
-      const userVaultIds = new Set<string>();
-      (ownedResult.data || []).forEach((v) => userVaultIds.add(String(v.id)));
-      (memberResult.data || []).forEach((m) => userVaultIds.add(String(m.vault_id)));
-      const vaultIds = Array.from(userVaultIds);
-      if (vaultIds.length === 0) return [];
+      const vaultsById = new Map<string, any>();
+      for (const row of (memberVaultsResult.data || []) as any[]) {
+        const vault = row.vaults;
+        if (vault?.id) vaultsById.set(String(vault.id), vault);
+      }
+      for (const vault of (ownedVaultsResult.data || []) as any[]) {
+        if (vault?.id) vaultsById.set(String(vault.id), vault);
+      }
+      const vaults = Array.from(vaultsById.values());
+      if (vaults.length === 0) return [];
+      const vaultIds = vaults.map((vault) => String(vault.id));
 
-      // One read per collection instead of getVaultById() per vault. The old
-      // path issued members, a user query per member, files, captures and
-      // ledger reads for every vault in series, which was the dashboard's
-      // bottleneck.
-      const [vaultResult, memberRowsResult, fileResult, captureResult, ledgerResult] =
-        await Promise.all([
-          client.from("vaults").select("*").in("id", vaultIds),
-          client
-            .from("vault_members")
-            .select("id, vault_id, user_id, role, invitation_status, joined_at, created_at")
-            .in("vault_id", vaultIds),
-          client.from("vault_files").select("*").in("vault_id", vaultIds),
-          client.from("vault_captures").select("*").in("vault_id", vaultIds),
-          client
-            .from("ledger_events")
-            .select("vault_id, metadata, created_at")
-            .in("vault_id", vaultIds)
-            .order("created_at", { ascending: false })
-            .limit(1000),
-        ]);
-
-      const memberRows = (memberRowsResult.data || []) as any[];
-      const memberUserIds = Array.from(
-        new Set(memberRows.map((m) => String(m.user_id)).filter(Boolean))
-      );
-      const { data: userRows } = memberUserIds.length
-        ? await client.from("users").select("id, email, full_name").in("id", memberUserIds)
-        : { data: [] as any[] };
-      const usersById = new Map((userRows || []).map((u: any) => [String(u.id), u]));
+      // vault_captures has no PostgREST relationship to vaults, so it remains
+      // one small follow-up read after the root rows are known.
+      const { data: captureRows } = await client
+        .from("vault_captures")
+        .select("*")
+        .in("vault_id", vaultIds);
 
       const membersByVault = new Map<string, VaultMemberItem[]>();
-      for (const m of memberRows) {
-        const u = usersById.get(String(m.user_id));
-        const member: VaultMemberItem = {
-          id: m.id,
-          userId: m.user_id,
-          email: u?.email,
-          fullName: u?.full_name,
-          role: m.role,
-          invitationStatus: m.invitation_status,
-          joinedAt: m.joined_at ? new Date(m.joined_at) : undefined,
-          createdAt: new Date(m.created_at),
-        };
-        const list = membersByVault.get(String(m.vault_id)) || [];
-        list.push(member);
-        membersByVault.set(String(m.vault_id), list);
-      }
-
       const filesByVault = new Map<string, VaultFileItem[]>();
-      for (const f of (fileResult.data || []) as any[]) {
-        const file: VaultFileItem = {
-          id: f.id,
-          fileName: f.file_name,
-          storagePath: f.storage_path,
-          mimeType: f.mime_type,
-          fileSize: Number(f.file_size),
-          sha256Hash: f.sha256_hash,
-          createdAt: new Date(f.created_at),
-        };
-        const list = filesByVault.get(String(f.vault_id)) || [];
-        list.push(file);
-        filesByVault.set(String(f.vault_id), list);
+      const ledgerByVault = new Map<string, any[]>();
+      for (const vault of vaults) {
+        const id = String(vault.id);
+        const memberRows = Array.isArray(vault.vault_members) ? vault.vault_members : [];
+        membersByVault.set(
+          id,
+          memberRows.map((m: any) => {
+            const profile = Array.isArray(m.users) ? m.users[0] : m.users;
+            return {
+              id: m.id,
+              userId: m.user_id,
+              email: profile?.email,
+              fullName: profile?.full_name,
+              role: m.role,
+              invitationStatus: m.invitation_status,
+              joinedAt: m.joined_at ? new Date(m.joined_at) : undefined,
+              createdAt: new Date(m.created_at),
+            };
+          })
+        );
+
+        filesByVault.set(
+          id,
+          (Array.isArray(vault.vault_files) ? vault.vault_files : []).map((f: any) => ({
+            id: f.id,
+            fileName: f.file_name,
+            storagePath: f.storage_path,
+            mimeType: f.mime_type,
+            fileSize: Number(f.file_size),
+            sha256Hash: f.sha256_hash,
+            createdAt: new Date(f.created_at),
+          }))
+        );
+
+        // Keep at most the twenty latest events per vault, matching getVaultById.
+        ledgerByVault.set(
+          id,
+          (Array.isArray(vault.ledger_events) ? vault.ledger_events : [])
+            .slice()
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )
+            .slice(0, 20)
+        );
       }
 
       const capturesByVault = new Map<string, any>();
-      for (const capture of (captureResult.data || []) as any[]) {
+      for (const capture of (captureRows || []) as any[]) {
         const key = String(capture.vault_id);
         if (!capturesByVault.has(key)) capturesByVault.set(key, capture);
       }
 
-      // Keep at most the twenty latest events per vault, matching getVaultById.
-      const ledgerByVault = new Map<string, any[]>();
-      for (const event of (ledgerResult.data || []) as any[]) {
-        const key = event.vault_id ? String(event.vault_id) : "";
-        if (!key) continue;
-        const list = ledgerByVault.get(key) || [];
-        if (list.length < 20) {
-          list.push(event);
-          ledgerByVault.set(key, list);
-        }
-      }
-
-      return ((vaultResult.data || []) as any[])
+      return vaults
         .map((vault) => {
           const id = String(vault.id);
           return this.toVaultDto(
