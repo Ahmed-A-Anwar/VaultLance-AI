@@ -137,13 +137,16 @@ export class VaultDomainService {
     return this.getVaultById(dto.freelancerId, entity.id);
   }
 
-  public async getVaultsForUser(userId: string): Promise<VaultDTO[]> {
+  public async getVaultsForUser(
+    userId: string,
+    onSource?: (source: "direct" | "fallback") => void
+  ): Promise<VaultDTO[]> {
     if (isSupabaseConfigured() && supabase) {
       const client = supabase;
 
       /* The direct database read is one round trip. If DATABASE_URL is absent
          or the query fails, fall back to the PostgREST reads below. */
-      const direct = await readVaultList(userId);
+      const direct = await readVaultList(userId, onSource);
       if (direct) return this.toVaultList(direct.vaults, direct.captures);
 
       // Resolve the user's memberships and owned vaults in parallel. Each root

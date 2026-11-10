@@ -66,6 +66,7 @@ app.get("/health", (_req, res) => {
     service: "VaultPay / VaultLance API",
     timestamp: new Date().toISOString(),
     databaseHealthy: database.isHealthy(),
+    revision: process.env.RENDER_GIT_COMMIT || null,
   });
 });
 

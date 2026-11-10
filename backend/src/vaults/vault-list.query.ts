@@ -6,6 +6,8 @@ export interface VaultListData {
   captures: any[];
 }
 
+export type VaultListSource = "direct" | "fallback";
+
 /*
  * One round trip for the whole dashboard list. The raw rows keep the same
  * nested shape PostgREST returns, so the DTO mapping above stays the single
@@ -114,17 +116,28 @@ export function warmVaultListPool(): void {
  * null so the caller can use the PostgREST path; it never exposes a partial
  * list or a database error to the browser.
  */
-export async function readVaultList(userId: string): Promise<VaultListData | null> {
+export async function readVaultList(
+  userId: string,
+  onSource?: (source: VaultListSource) => void
+): Promise<VaultListData | null> {
   const db = getPool();
-  if (!db) return null;
-  if (Date.now() < directUnavailableUntil) return null;
+  if (!db) {
+    onSource?.("fallback");
+    return null;
+  }
+  if (Date.now() < directUnavailableUntil) {
+    onSource?.("fallback");
+    return null;
+  }
 
   try {
     const result = await db.query(LIST_SQL, [userId]);
     const row = result.rows[0];
     if (!row || !Array.isArray(row.vaults) || !Array.isArray(row.captures)) {
+      onSource?.("fallback");
       return null;
     }
+    onSource?.("direct");
     return { vaults: row.vaults, captures: row.captures };
   } catch (error) {
     const code = (error as { code?: string }).code ?? "UNKNOWN";
@@ -135,6 +148,7 @@ export async function readVaultList(userId: string): Promise<VaultListData | nul
       /* Never log the connection string or the user id. */
       logger.warn(`[vaults] direct list query failed (${code}); using PostgREST`);
     }
+    onSource?.("fallback");
     return null;
   }
 }

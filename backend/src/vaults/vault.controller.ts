@@ -28,7 +28,16 @@ export class VaultController {
     try {
       if (!req.user) throw new UnauthorizedError();
       const prefetched = res.locals.vaultsPromise as Promise<any> | undefined;
+      const started = res.locals.vaultListStartedAt as number | undefined;
+      const meta = res.locals.vaultListMeta as { source?: string } | undefined;
       const vaults = await (prefetched ?? vaultDomainService.getVaultsForUser(req.user.id));
+      if (typeof started === "number") {
+        const source = meta?.source ?? "unknown";
+        res.setHeader(
+          "Server-Timing",
+          `vault-list;desc="${source}";dur=${Math.round(performance.now() - started)}`
+        );
+      }
       return sendSuccess(res, vaults, "Vaults retrieved successfully");
     } catch (err) {
       next(err);

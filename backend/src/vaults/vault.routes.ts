@@ -23,7 +23,12 @@ const prefetchVaultList = (req: any, res: any, next: any) => {
   if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
     try {
       const payload = verifyToken(authHeader.slice(7).trim());
-      const promise = vaultDomainService.getVaultsForUser(payload.userId);
+      const meta = { source: "unknown" };
+      res.locals.vaultListMeta = meta;
+      res.locals.vaultListStartedAt = performance.now();
+      const promise = vaultDomainService.getVaultsForUser(payload.userId, (source) => {
+        meta.source = source;
+      });
       promise.catch(() => {});
       res.locals.vaultsPromise = promise;
     } catch {
