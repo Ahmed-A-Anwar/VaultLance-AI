@@ -27,7 +27,8 @@ export class VaultController {
   public async list(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) throw new UnauthorizedError();
-      const vaults = await vaultDomainService.getVaultsForUser(req.user.id);
+      const prefetched = res.locals.vaultsPromise as Promise<any> | undefined;
+      const vaults = await (prefetched ?? vaultDomainService.getVaultsForUser(req.user.id));
       return sendSuccess(res, vaults, "Vaults retrieved successfully");
     } catch (err) {
       next(err);

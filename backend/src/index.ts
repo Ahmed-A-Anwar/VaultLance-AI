@@ -7,6 +7,7 @@ import { ensureSessionSchema } from "./auth/session.schema.js";
 import { ensureAuditSchema } from "./audit/schema.js";
 import { startSweeper } from "./money/sweeper.js";
 import { runAzureStartupProbe } from "./ai/provider.js";
+import { warmVaultListPool } from "./vaults/vault-list.query.js";
 
 const PORT = config.port;
 
@@ -19,6 +20,9 @@ assertSandboxPayPal();
 await ensureMoneySchema();
 await ensureSessionSchema();
 await ensureAuditSchema();
+
+/* Open the direct database connection before the first dashboard request. */
+warmVaultListPool();
 
 app.listen(PORT, () => {
   logger.info(`VaultPay API ${APP_VERSION} running on port ${PORT} [env: ${config.env}]`);

@@ -75,7 +75,7 @@ function getPool(): DbPool | null {
     pool = new PoolCtor({
       connectionString,
       max: 2,
-      idleTimeoutMillis: 30_000,
+      idleTimeoutMillis: 300_000,
       connectionTimeoutMillis: 3_000,
       statement_timeout: 5_000,
       /* Supabase requires TLS. Respect an explicit sslmode; otherwise use TLS
@@ -90,6 +90,14 @@ function getPool(): DbPool | null {
   }
 
   return pool;
+}
+
+/** Open the pool while the process is starting so the first dashboard read
+    does not pay the TLS/connection setup as well as the query. */
+export function warmVaultListPool(): void {
+  const db = getPool();
+  if (!db) return;
+  void db.query("select 1", []).catch(() => {});
 }
 
 /**
