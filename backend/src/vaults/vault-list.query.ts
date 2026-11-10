@@ -6,7 +6,7 @@ export interface VaultListData {
   captures: any[];
 }
 
-export type VaultListSource = "direct" | "fallback";
+export type VaultListSource = "direct" | "fallback" | "cache";
 
 /*
  * One round trip for the whole dashboard list. The raw rows keep the same

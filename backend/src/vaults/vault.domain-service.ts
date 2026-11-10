@@ -14,7 +14,13 @@ import type { VaultDTO, VaultMemberItem, VaultFileItem } from "./vault.types.js"
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { getCapture } from "../money/money.store.js";
 import { platformFeeCents } from "../money/money.types.js";
-import { readVaultList } from "./vault-list.query.js";
+import { readVaultList, type VaultListSource } from "./vault-list.query.js";
+import {
+  getVaultListCache,
+  invalidateVaultListCache,
+  setVaultListCache,
+  vaultListCacheGeneration,
+} from "./vault-list.cache.js";
 
 export interface CreateVaultDTO {
   freelancerId: string;
@@ -102,6 +108,7 @@ export class VaultDomainService {
         created_at: new Date().toISOString(),
       }]);
 
+      invalidateVaultListCache();
       return this.getVaultById(dto.freelancerId, entity.id);
     }
 
@@ -134,20 +141,34 @@ export class VaultDomainService {
     };
     database.store.members.set(memberId, memberRecord);
 
+    invalidateVaultListCache();
     return this.getVaultById(dto.freelancerId, entity.id);
   }
 
   public async getVaultsForUser(
     userId: string,
-    onSource?: (source: "direct" | "fallback") => void
+    onSource?: (source: VaultListSource) => void
   ): Promise<VaultDTO[]> {
+    const readGeneration = vaultListCacheGeneration();
+    const cached = getVaultListCache(userId);
+    if (cached) {
+      onSource?.("cache");
+      return cached;
+    }
+
     if (isSupabaseConfigured() && supabase) {
       const client = supabase;
 
       /* The direct database read is one round trip. If DATABASE_URL is absent
          or the query fails, fall back to the PostgREST reads below. */
       const direct = await readVaultList(userId, onSource);
-      if (direct) return this.toVaultList(direct.vaults, direct.captures);
+      if (direct) {
+        return this.cacheVaultList(
+          userId,
+          this.toVaultList(direct.vaults, direct.captures),
+          readGeneration
+        );
+      }
 
       // Resolve the user's memberships and owned vaults in parallel. Each root
       // read embeds the members, profiles, files and ledger events, so the
@@ -175,9 +196,13 @@ export class VaultDomainService {
         if (vault?.id) vaultsById.set(String(vault.id), vault);
       }
 
-      return this.toVaultList(
-        Array.from(vaultsById.values()),
-        (captureResult.data || []) as any[]
+      return this.cacheVaultList(
+        userId,
+        this.toVaultList(
+          Array.from(vaultsById.values()),
+          (captureResult.data || []) as any[]
+        ),
+        readGeneration
       );
     }
 
@@ -206,7 +231,16 @@ export class VaultDomainService {
       }
     }
 
-    return results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return this.cacheVaultList(
+      userId,
+      results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      readGeneration
+    );
+  }
+
+  private cacheVaultList(userId: string, vaults: VaultDTO[], readGeneration: number): VaultDTO[] {
+    setVaultListCache(userId, vaults, readGeneration);
+    return vaults;
   }
 
   private toVaultList(vaults: any[], captureRows: any[]): VaultDTO[] {
@@ -501,6 +535,7 @@ export class VaultDomainService {
         })
         .eq("id", dto.vaultId);
 
+      invalidateVaultListCache();
       return this.getVaultById(dto.userId, dto.vaultId);
     }
 
@@ -542,6 +577,7 @@ export class VaultDomainService {
     vault.status = entity.status;
     vault.updated_at = entity.updatedAt;
 
+    invalidateVaultListCache();
     return this.getVaultById(dto.userId, dto.vaultId);
   }
 
@@ -608,6 +644,7 @@ export class VaultDomainService {
           .eq("id", dto.vaultId);
       }
 
+      invalidateVaultListCache();
       return this.getVaultById(dto.freelancerId, dto.vaultId);
     }
 
@@ -660,6 +697,7 @@ export class VaultDomainService {
       vault.updated_at = new Date();
     }
 
+    invalidateVaultListCache();
     return this.getVaultById(dto.freelancerId, dto.vaultId);
   }
 
@@ -714,6 +752,7 @@ export class VaultDomainService {
           .eq("id", dto.vaultId);
       }
 
+      invalidateVaultListCache();
       return this.getVaultById(dto.clientId, dto.vaultId);
     }
 
@@ -752,6 +791,7 @@ export class VaultDomainService {
       vault.updated_at = new Date();
     }
 
+    invalidateVaultListCache();
     return this.getVaultById(dto.clientId, dto.vaultId);
   }
 }

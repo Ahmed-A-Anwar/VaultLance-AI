@@ -10,6 +10,7 @@ import { logger } from "../shared/logger.js";
 import { database } from "../shared/db.js";
 import { isSupabaseConfigured, supabase } from "../shared/supabaseClient.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
+import { invalidateVaultListCache } from "../vaults/vault-list.cache.js";
 import { getLockedManifest } from "../vaults/submit.routes.js";
 import type { VaultStatus } from "../shared/types.js";
 import {
@@ -110,6 +111,7 @@ async function setStatus(vaultId: string, status: VaultStatus): Promise<void> {
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", vaultId);
     if (error) throw new BadRequestError(`Failed to update vault: ${error.message}`, "UPDATE_FAILED");
+    invalidateVaultListCache();
     return;
   }
   const local = database.store.vaults.get(vaultId);
@@ -117,6 +119,7 @@ async function setStatus(vaultId: string, status: VaultStatus): Promise<void> {
     local.status = status;
     local.updated_at = new Date();
   }
+  invalidateVaultListCache();
 }
 
 function fileMeta(bytes: number): string {

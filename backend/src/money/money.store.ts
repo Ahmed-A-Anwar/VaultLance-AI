@@ -13,6 +13,7 @@ import { toCents } from "./money.types.js";
 import { AppError } from "../shared/errors.js";
 import { logger } from "../shared/logger.js";
 import type { CaptureRecord, PayoutRecord, VaultMoney } from "./money.types.js";
+import { invalidateVaultListCache } from "../vaults/vault-list.cache.js";
 
 const memoryCaptures = new Map<string, CaptureRecord>();
 const memoryPayouts = new Map<string, PayoutRecord>();
@@ -35,6 +36,7 @@ async function writeVaultColumn(vaultId: string, patch: Record<string, string>):
     logger.error(`[money] could not write ${column} for vault ${vaultId}: ${error.message}`);
     throw new AppError(`Could not save the PayPal id (${column}); try again.`, 500, "MONEY_WRITE_FAILED");
   }
+  invalidateVaultListCache();
 }
 
 export const memory = {
@@ -81,24 +83,29 @@ export async function casStatus(vaultId: string, from: string, to: string): Prom
       .eq("id", vaultId)
       .eq("status", from)
       .select("id");
-    return !error && Array.isArray(data) && data.length === 1;
+    const moved = !error && Array.isArray(data) && data.length === 1;
+    if (moved) invalidateVaultListCache();
+    return moved;
   }
   const row = database.store.vaults.get(vaultId);
   if (!row || String(row.status) !== from) return false;
   row.status = to as any;
   row.updated_at = new Date();
+  invalidateVaultListCache();
   return true;
 }
 
 export async function setStatus(vaultId: string, to: string): Promise<void> {
   if (live()) {
     await supabase!.from("vaults").update({ status: to, updated_at: new Date().toISOString() }).eq("id", vaultId);
+    invalidateVaultListCache();
     return;
   }
   const row = database.store.vaults.get(vaultId);
   if (row) {
     row.status = to as any;
     row.updated_at = new Date();
+    invalidateVaultListCache();
   }
 }
 
@@ -112,6 +119,7 @@ export async function rememberAuthorization(vaultId: string, authorizationId: st
   const row = database.store.vaults.get(vaultId);
   if (row) (row as any).paypal_authorization_id = authorizationId;
   memoryAuthorizations.set(vaultId, authorizationId);
+  invalidateVaultListCache();
 }
 
 export async function rememberOrder(vaultId: string, orderId: string): Promise<void> {
@@ -121,6 +129,7 @@ export async function rememberOrder(vaultId: string, orderId: string): Promise<v
   }
   const row = database.store.vaults.get(vaultId);
   if (row) (row as any).paypal_order_id = orderId;
+  invalidateVaultListCache();
 }
 
 /* The receipt reads the capture id off the vault row, not off vault_captures:
@@ -134,6 +143,7 @@ export async function rememberCapture(vaultId: string, captureId: string): Promi
   }
   const row = database.store.vaults.get(vaultId);
   if (row) (row as any).paypal_capture_id = captureId;
+  invalidateVaultListCache();
 }
 
 export async function getAuthorizationId(vaultId: string): Promise<string | null> {
@@ -156,6 +166,7 @@ export async function getAuthorizationId(vaultId: string): Promise<string | null
 export async function markFilesUnlocked(vaultId: string): Promise<void> {
   if (live()) {
     await supabase!.from("vault_files").update({ unlocked: true }).eq("vault_id", vaultId);
+    invalidateVaultListCache();
     return;
   }
   /* the in-memory file rows carry no flag; PAID is the gate */
@@ -178,11 +189,13 @@ export async function saveCaptureOnce(record: CaptureRecord): Promise<{ created:
       },
     ]);
     const existing = await getCapture(record.vaultId);
+    invalidateVaultListCache();
     return { created: !error, record: existing || record };
   }
   const existing = memoryCaptures.get(record.vaultId);
   if (existing) return { created: false, record: existing };
   memoryCaptures.set(record.vaultId, record);
+  invalidateVaultListCache();
   return { created: true, record };
 }
 
@@ -299,9 +312,11 @@ export async function appendLedger(
       },
     ]);
     if (error) logger.error(`[money] ledger write failed for ${eventType}: ${error.message}`);
+    invalidateVaultListCache();
     return;
   }
   memoryLedger.push({ vault_id: vaultId, event_type: eventType, actor_id: actorId, metadata: { note, amountCents, ...extra } });
+  invalidateVaultListCache();
 }
 
 /** Payout rows for the vaults this freelancer owns, statuses only. */

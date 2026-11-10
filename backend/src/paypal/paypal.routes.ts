@@ -24,6 +24,7 @@ import {
 } from "../shared/errors.js";
 import { logger } from "../shared/logger.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
+import { invalidateVaultListCache } from "../vaults/vault-list.cache.js";
 import { approveVault } from "../money/approve.service.js";
 import { getAuthorizationId, rememberAuthorization, rememberOrder } from "../money/money.store.js";
 import { claimAuthorization } from "../money/claim.service.js";
@@ -177,6 +178,7 @@ async function recordLedgerEvent(
       },
     ]);
   }
+  invalidateVaultListCache();
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -376,6 +378,7 @@ paypalRouter.post("/:vaultId/payment/authorize", requireAuth, async (req, res, n
         tx.updatedAt = new Date();
       }
     }
+    invalidateVaultListCache();
 
     // Ledger event for funds authorized
     await recordLedgerEvent(
@@ -555,6 +558,7 @@ paypalRouter.post("/:id/void", requireAuth, async (req, res, next) => {
         v.updated_at = new Date();
       }
     }
+    invalidateVaultListCache();
 
     await recordLedgerEvent(
       vaultId,

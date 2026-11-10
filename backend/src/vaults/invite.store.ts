@@ -8,6 +8,7 @@
 import crypto from "crypto";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { database } from "../shared/db.js";
+import { invalidateVaultListCache } from "./vault-list.cache.js";
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const TTL_DAYS = 7;
@@ -134,6 +135,7 @@ export async function addClientMember(vaultId: string, userId: string): Promise<
         .from("vault_members")
         .update({ invitation_status: "ACCEPTED", joined_at: new Date().toISOString() })
         .eq("id", existing.id);
+      invalidateVaultListCache();
       return;
     }
 
@@ -148,6 +150,7 @@ export async function addClientMember(vaultId: string, userId: string): Promise<
         created_at: new Date().toISOString(),
       },
     ]);
+    invalidateVaultListCache();
     return;
   }
 
@@ -155,6 +158,7 @@ export async function addClientMember(vaultId: string, userId: string): Promise<
     if (member.vault_id === vaultId && member.user_id === userId) {
       member.invitation_status = "ACCEPTED";
       member.joined_at = new Date();
+      invalidateVaultListCache();
       return;
     }
   }
@@ -167,4 +171,5 @@ export async function addClientMember(vaultId: string, userId: string): Promise<
     joined_at: new Date(),
     created_at: new Date(),
   });
+  invalidateVaultListCache();
 }

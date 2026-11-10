@@ -12,6 +12,7 @@ import { AppError, ForbiddenError, NotFoundError } from "../shared/errors.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { database } from "../shared/db.js";
+import { invalidateVaultListCache } from "./vault-list.cache.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -44,6 +45,7 @@ router.get("/:id/files/:fileId/download", async (req, res, next) => {
       fileName = data.file_name;
       if (data.unlocked === false) {
         await supabase.from("vault_files").update({ unlocked: true }).eq("id", fileId);
+        invalidateVaultListCache();
       }
     } else {
       const file = database.store.files.get(fileId);

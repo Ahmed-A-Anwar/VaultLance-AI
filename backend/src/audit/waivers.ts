@@ -9,6 +9,7 @@
 import { database } from "../shared/db.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { logger } from "../shared/logger.js";
+import { invalidateVaultListCache } from "../vaults/vault-list.cache.js";
 
 export interface FailedCheck {
   id: string;
@@ -70,6 +71,7 @@ async function writeState(
          returns, but approval will not be able to waive an id it cannot read. */
       logger.error(`[audit] could not save the audit state for ${vaultId}: ${error.message}`);
     }
+    invalidateVaultListCache();
     return;
   }
 
@@ -78,6 +80,7 @@ async function writeState(
   for (const [key, value] of Object.entries(patch)) {
     (vault as any)[key] = value;
   }
+  invalidateVaultListCache();
 }
 
 export async function getFailedChecks(vaultId: string): Promise<FailedCheck[]> {

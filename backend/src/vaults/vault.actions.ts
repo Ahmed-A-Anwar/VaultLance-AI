@@ -36,6 +36,7 @@ import {
 } from "../money/money.store.js";
 import type { VaultStatus } from "../shared/types.js";
 import { VaultStateMachine } from "./vault.state-machine.js";
+import { invalidateVaultListCache } from "./vault-list.cache.js";
 import {
   getFailedChecks,
   recordWaivers,
@@ -108,6 +109,7 @@ async function updateVaultStatus(vaultId: string, newStatus: VaultStatus) {
       vault.updated_at = new Date();
     }
   }
+  invalidateVaultListCache();
 }
 
 async function insertLedgerEvent(
@@ -132,6 +134,7 @@ async function insertLedgerEvent(
       },
     ]);
   }
+  invalidateVaultListCache();
 }
 
 async function getFullVault(vaultId: string) {

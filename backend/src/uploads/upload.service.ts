@@ -6,6 +6,7 @@ import { ZipSecurityValidator } from "./zip.validator.js";
 import { dataIsolationService } from "../authorization/isolation.service.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../shared/errors.js";
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
+import { invalidateVaultListCache } from "../vaults/vault-list.cache.js";
 
 export interface ProcessedUploadResult {
   fileId: string;
@@ -89,6 +90,7 @@ export class UploadService {
       }]);
     }
 
+    invalidateVaultListCache();
     return {
       fileId: uniqueId,
       vaultId,
