@@ -65,6 +65,13 @@ interface DbPool {
 
 let pool: DbPool | null = null;
 let lastFailureLog = 0;
+let directUnavailableUntil = 0;
+
+/* A failed direct connection used to cost the full three seconds before the
+   PostgREST fallback answered. The fallback is already the safe path; keep the
+   failed attempt short, and stop retrying it for a minute after it fails. */
+const DIRECT_CONNECT_TIMEOUT_MS = 1_000;
+const DIRECT_RETRY_AFTER_MS = 60_000;
 
 function getPool(): DbPool | null {
   const connectionString = process.env.DATABASE_URL;
@@ -76,7 +83,7 @@ function getPool(): DbPool | null {
       connectionString,
       max: 2,
       idleTimeoutMillis: 300_000,
-      connectionTimeoutMillis: 3_000,
+      connectionTimeoutMillis: DIRECT_CONNECT_TIMEOUT_MS,
       statement_timeout: 5_000,
       /* Supabase requires TLS. Respect an explicit sslmode; otherwise use TLS
          without relying on the pooler's certificate chain. */
@@ -97,7 +104,9 @@ function getPool(): DbPool | null {
 export function warmVaultListPool(): void {
   const db = getPool();
   if (!db) return;
-  void db.query("select 1", []).catch(() => {});
+  void db.query("select 1", []).catch(() => {
+    directUnavailableUntil = Date.now() + DIRECT_RETRY_AFTER_MS;
+  });
 }
 
 /**
@@ -108,6 +117,7 @@ export function warmVaultListPool(): void {
 export async function readVaultList(userId: string): Promise<VaultListData | null> {
   const db = getPool();
   if (!db) return null;
+  if (Date.now() < directUnavailableUntil) return null;
 
   try {
     const result = await db.query(LIST_SQL, [userId]);
@@ -119,6 +129,7 @@ export async function readVaultList(userId: string): Promise<VaultListData | nul
   } catch (error) {
     const code = (error as { code?: string }).code ?? "UNKNOWN";
     const now = Date.now();
+    directUnavailableUntil = now + DIRECT_RETRY_AFTER_MS;
     if (now - lastFailureLog > 60_000) {
       lastFailureLog = now;
       /* Never log the connection string or the user id. */
