@@ -6,7 +6,7 @@
    The client path is unchanged: Rail and TopStrip render without their role
    props, so they fall back to the defaults they shipped with. */
 
-import { useEffect, useMemo, useRef } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Rail } from "../../components/dashboard/Rail";
 import { TopStrip } from "../../components/dashboard/TopStrip";
@@ -16,7 +16,6 @@ import { SessionProvider, useSession } from "../../components/dashboard/session"
 import { ToastProvider } from "../../components/shared/Toasts";
 import { DevPanel } from "../../components/dashboard/DevPanel";
 import { FreelancerView } from "./Freelancer";
-import { FreelancerDashboard } from "./freelancer/FreelancerDashboard";
 import { FREELANCER_BADGE, FREELANCER_NAV, NEW_VAULT_EVENT, freelancerTitleFor } from "./freelancer/roles";
 import { FX } from "../../config/fx";
 import "../../styles/dashboard.css";
@@ -38,6 +37,23 @@ export function titleFor(pathname: string): string {
 
 /* the strip's vault search earns its place only where vaults are listed */
 const NO_SEARCH = new Set(["/dashboard/ledger", "/dashboard/payments", "/dashboard/settings"]);
+
+/* The freelancer surface is only reachable for that role. Importing it here
+   eagerly put its data, payments and earnings chunks in front of every client's
+   dashboard as well. */
+const FreelancerDashboard = lazy(() =>
+  import("./freelancer/FreelancerDashboard").then((m) => ({ default: m.FreelancerDashboard }))
+);
+
+/* Keep the shell on screen while its area chunk arrives; the outer route
+   boundary would otherwise hold the page the reader just left. */
+function AreaFallback() {
+  return (
+    <p className="dash-mono dim" role="status" style={{ padding: "var(--dash-pad)" }}>
+      Loading dashboard…
+    </p>
+  );
+}
 
 function Surface() {
   const { session, signOut } = useSession();
@@ -117,21 +133,23 @@ function Surface() {
             : {})}
         />
         <main id="main" className="dash-body">
-          {isFreelancer ? (
-            FX.freelancerDashboard ? (
-              /* the freelancer chrome owns the data provider and the drawers and
-                 persists across routes; the area itself comes from the route
-                 table via Outlet, so /dashboard/settings no longer falls back
-                 to the Overview (routeTable.tsx keys every path by role) */
-              <FreelancerDashboard email={session.email}>
-                <Outlet />
-              </FreelancerDashboard>
+          <Suspense fallback={<AreaFallback />}>
+            {isFreelancer ? (
+              FX.freelancerDashboard ? (
+                /* the freelancer chrome owns the data provider and the drawers and
+                   persists across routes; the area itself comes from the route
+                   table via Outlet, so /dashboard/settings no longer falls back
+                   to the Overview (routeTable.tsx keys every path by role) */
+                <FreelancerDashboard email={session.email}>
+                  <Outlet />
+                </FreelancerDashboard>
+              ) : (
+                <FreelancerView email={session.email} />
+              )
             ) : (
-              <FreelancerView email={session.email} />
-            )
-          ) : (
-            <Outlet />
-          )}
+              <Outlet />
+            )}
+          </Suspense>
         </main>
       </div>
 

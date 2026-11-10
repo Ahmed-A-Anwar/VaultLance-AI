@@ -11,6 +11,7 @@ import gsap from "gsap";
 import { Link, useNavigate } from "react-router-dom";
 import { useVaultScene } from "../lib/vaultScene";
 import { emailError, passwordError, signIn } from "../lib/mockAuth";
+import { preloadDashboard } from "./dashboard/preload";
 import { FX } from "../config/fx";
 import "../styles/signin.css";
 import "../styles/refine.css";
@@ -90,6 +91,18 @@ export default function Signin() {
       alive.current = false;
       if (rejectTimer.current) window.clearTimeout(rejectTimer.current);
     };
+  }, []);
+
+  /* The dashboard route is lazy, and a navigation that has to fetch its chunk
+     keeps this form on screen under the new URL. Start the fetch after the form
+     has entered so it is not competing with the keypad's own first frames. */
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void preloadDashboard().catch(() => {
+        /* a prefetch failure is not a sign-in failure */
+      });
+    }, 1200);
+    return () => window.clearTimeout(id);
   }, []);
 
   /* the flat CSS keypad stands in when the clip cannot run: reduced motion, or
@@ -172,6 +185,11 @@ export default function Signin() {
       return;
     }
 
+    /* the shell and this role's Overview are already downloading (or done);
+       wait for them so the route can render on the change instead of holding
+       this form while React waits for the lazy route */
+    const dashboardReady = preloadDashboard(result.role);
+
     /* accepted: the strip says so while the clip runs the code entry, and the
        route changes when it lands (or on the 2.618s beat if it cannot) */
     setStatus("accepted");
@@ -180,6 +198,8 @@ export default function Signin() {
     /* stop the keypad's background frame downloads before asking the router for
        the dashboard bundle; otherwise the bundle can be starved by them */
     padRelease();
+    await dashboardReady.catch(() => undefined);
+    if (!alive.current) return;
     navigate("/dashboard");
   };
 
