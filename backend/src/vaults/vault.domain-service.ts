@@ -145,12 +145,16 @@ export class VaultDomainService {
       // common path is two Supabase round trips instead of three.
       const vaultSelect =
         "*, vault_members(*, users!vault_members_user_id_fkey(id,email,full_name)), vault_files(*), ledger_events(vault_id, metadata, created_at)";
-      const [memberVaultsResult, ownedVaultsResult] = await Promise.all([
+      const [memberVaultsResult, ownedVaultsResult, captureResult] = await Promise.all([
         client
           .from("vault_members")
           .select(`vault_id, vaults!inner(${vaultSelect})`)
           .eq("user_id", userId),
         client.from("vaults").select(vaultSelect).eq("freelancer_id", userId),
+        // vault_captures has no PostgREST relationship to vaults. It is a small
+        // table, so one parallel unfiltered read is cheaper than a second
+        // network round trip; only rows for this user's vaults reach the DTOs.
+        client.from("vault_captures").select("*"),
       ]);
 
       const vaultsById = new Map<string, any>();
@@ -163,14 +167,6 @@ export class VaultDomainService {
       }
       const vaults = Array.from(vaultsById.values());
       if (vaults.length === 0) return [];
-      const vaultIds = vaults.map((vault) => String(vault.id));
-
-      // vault_captures has no PostgREST relationship to vaults, so it remains
-      // one small follow-up read after the root rows are known.
-      const { data: captureRows } = await client
-        .from("vault_captures")
-        .select("*")
-        .in("vault_id", vaultIds);
 
       const membersByVault = new Map<string, VaultMemberItem[]>();
       const filesByVault = new Map<string, VaultFileItem[]>();
@@ -222,7 +218,7 @@ export class VaultDomainService {
       }
 
       const capturesByVault = new Map<string, any>();
-      for (const capture of (captureRows || []) as any[]) {
+      for (const capture of (captureResult.data || []) as any[]) {
         const key = String(capture.vault_id);
         if (!capturesByVault.has(key)) capturesByVault.set(key, capture);
       }
