@@ -34,16 +34,7 @@ import {
 import "../../styles/vault.css";
 import "../../styles/room-refine.css";
 
-const CODE: Record<string, string> = {
-  v_logo_pack: "0001",
-  v_booking_app: "0002",
-  v_brand_guide: "0003",
-  v_landing_page: "0004",
-};
-
-const codeFor = (id: string) => CODE[id] ?? id.replace(/[^0-9a-z]/gi, "").slice(-4).toUpperCase();
-
-function Room({ id }: { id: string }) {
+function Room() {
   const { detail, vault, status, loading, error, reload, approvedPending } = useRoom();
   const [tab, setTab] = useState<"files" | "chat" | "checks">("chat");
   const root = useRef<HTMLDivElement>(null);
@@ -144,12 +135,7 @@ function Room({ id }: { id: string }) {
         Skip to the audit chat
       </a>
 
-      <TopBar
-        project={vault.project}
-        freelancer={vault.freelancer}
-        status={status}
-        code={codeFor(id)}
-      />
+      <TopBar project={vault.project} freelancer={vault.freelancer} />
 
       <PhaseStepper status={status} />
 
@@ -374,7 +360,7 @@ export default function AuditRoom() {
   return (
     <ToastProvider>
       <RoomProvider id={id}>
-        <Room id={id} />
+        <Room />
       </RoomProvider>
     </ToastProvider>
   );

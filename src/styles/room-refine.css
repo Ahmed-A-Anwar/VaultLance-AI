@@ -122,10 +122,6 @@
   .room-chat {
     padding: 13px 13px 24px;
   }
-  .room-chat .room-note {
-    display: none;
-  }
-
   .room-more,
   .room-file-toggle {
     width: 44px;

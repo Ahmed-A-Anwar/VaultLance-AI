@@ -284,8 +284,6 @@ export function ChatPanel() {
           </button>
         </form>
       )}
-
-      <p className="room-note room-mono">CHECKS RUN ON THE SERVER · EVERY ANSWER CITED</p>
     </section>
   );
 }
