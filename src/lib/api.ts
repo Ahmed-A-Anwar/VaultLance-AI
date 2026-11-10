@@ -1306,6 +1306,13 @@ export async function getSettings(): Promise<AccountSettings> {
   const s = load();
 
   if (!isDemoMode()) {
+    /* Start the freelancer payout read while /auth/me is in flight. A client
+       never sends it; if the session's role hint was stale, the fallback below
+       still fetches it after the profile says freelancer. */
+    const payoutPromise: Promise<{ paypalEmail?: string | null }> | null =
+      accountRole() === "freelancer"
+        ? request<{ paypalEmail?: string | null }>("/auth/me/payout-profile").catch(() => ({ paypalEmail: null }))
+        : null;
     const res = await apiClient.me.get();
     if (!res.success || !res.data) {
       throw new ApiError("network", res.message || "Your account could not be loaded.");
@@ -1317,7 +1324,9 @@ export async function getSettings(): Promise<AccountSettings> {
     let paypalEmail: string | null = null;
     if (role === "freelancer") {
       try {
-        const payout = await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile");
+        const payout = payoutPromise
+          ? await payoutPromise
+          : await request<{ paypalEmail?: string | null }>("/auth/me/payout-profile");
         paypalEmail = payout.paypalEmail ?? null;
       } catch {
         paypalEmail = null;

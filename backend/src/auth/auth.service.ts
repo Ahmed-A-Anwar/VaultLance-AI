@@ -569,23 +569,25 @@ export class AuthService {
   /* ------------------------------------------------------------------ */
   /*  GET CURRENT USER                                                  */
   /* ------------------------------------------------------------------ */
-  public async getCurrentUser(userId: string): Promise<DbUserRecord> {
+  public async getCurrentUser(userId: string, currentRole?: UserRole): Promise<DbUserRecord> {
     // ── Supabase path ──────────────────────────────────────────────
     if (isSupabaseConfigured() && supabase) {
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      /* The caller's validated session already carries the current profile role.
+         When it does, the admin auth lookup is redundant; when it does not, run
+         it beside the profile read instead of after it. */
+      const [profileResult, authResult] = await Promise.all([
+        supabase.from("users").select("*").eq("id", userId).single(),
+        currentRole ? Promise.resolve(null) : supabase.auth.admin.getUserById(userId),
+      ]);
+      const { data: profile, error } = profileResult;
 
       if (error || !profile) {
         throw new NotFoundError("User not found.", "USER_NOT_FOUND");
       }
 
-      // Also get the role from auth.users metadata
-      const { data: authData } = await supabase.auth.admin.getUserById(userId);
       const role: UserRole =
-        (authData?.user?.user_metadata?.role as UserRole) || "CLIENT";
+        currentRole ||
+        ((authResult?.data?.user?.user_metadata?.role as UserRole) || "CLIENT");
 
       return {
         id: profile.id,

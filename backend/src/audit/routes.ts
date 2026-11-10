@@ -27,7 +27,7 @@ import {
   MAX_QUESTION_CHARS,
 } from "./usage.js";
 import { appendAuditMessages, listAuditMessages } from "./messages.js";
-import { getFailedChecks, getRevisionNote, getWaivedChecks, recordFailedChecks } from "./waivers.js";
+import { recordFailedChecks } from "./waivers.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -43,13 +43,20 @@ export function resetAuditReportsForTests(): void {
 
 async function getVaultRecord(userId: string, vaultId: string): Promise<any> {
   if (isSupabaseConfigured() && supabase) {
-    const { data: vault, error } = await supabase.from("vaults").select("*").eq("id", vaultId).single();
+    /* The vault and the caller's membership are independent reads. The owner
+       check can be answered from the vault row alone, but the member read still
+       runs alongside it so a client does not pay two serial round trips. */
+    const [vaultResult, memberResult] = await Promise.all([
+      supabase.from("vaults").select("*").eq("id", vaultId).single(),
+      supabase
+        .from("vault_members")
+        .select("user_id")
+        .eq("vault_id", vaultId)
+        .eq("user_id", userId),
+    ]);
+    const { data: vault, error } = vaultResult;
     if (error || !vault) throw new NotFoundError("Vault not found.", "VAULT_NOT_FOUND");
-    const { data: members } = await supabase
-      .from("vault_members")
-      .select("user_id")
-      .eq("vault_id", vaultId)
-      .eq("user_id", userId);
+    const members = memberResult.data;
     if (vault.freelancer_id !== userId && !(members && members.length > 0)) {
       throw new ForbiddenError("You do not have access to this vault.", "ACCESS_DENIED");
     }
@@ -87,10 +94,12 @@ async function loadFiles(vaultId: string): Promise<AuditFile[]> {
 async function runChecks(
   vaultId: string,
   vault: any,
-  requestedStagingUrl?: unknown
+  requestedStagingUrl?: unknown,
+  prepared?: { files: AuditFile[]; manifest: Awaited<ReturnType<typeof getLockedManifest>> }
 ): Promise<{ checks: AuditCheck[]; manifest: Awaited<ReturnType<typeof getLockedManifest>> }> {
-  const files = await loadFiles(vaultId);
-  const manifest = await getLockedManifest(vaultId);
+  const [files, manifest] = prepared
+    ? [prepared.files, prepared.manifest]
+    : await Promise.all([loadFiles(vaultId), getLockedManifest(vaultId)]);
   const stagingUrl =
     typeof requestedStagingUrl === "string"
       ? requestedStagingUrl
@@ -132,15 +141,29 @@ router.get("/:id/audit-detail", async (req, res, next) => {
   try {
     if (!req.user) throw new ForbiddenError("Not authenticated.", "AUTH_REQUIRED");
     const vaultId = String(req.params.id);
+    const started = Date.now();
     const vault = await getVaultRecord(req.user.id, vaultId);
-    const files = await loadFiles(vaultId);
-    const { checks } = await runChecks(vaultId, vault);
-    const messages = await listAuditMessages(vaultId);
-    const [failedChecks, waivedChecks, revisionNote] = await Promise.all([
-      getFailedChecks(vaultId),
-      getWaivedChecks(vaultId),
-      getRevisionNote(vaultId),
+    const vaultMs = Date.now() - started;
+    const readStarted = Date.now();
+    /* Files, the locked manifest and the conversation are independent. Read
+       them together, then pass the file list and manifest into the checks so
+       the endpoint does not query either one a second time. */
+    const [files, manifest, messages] = await Promise.all([
+      loadFiles(vaultId),
+      getLockedManifest(vaultId),
+      listAuditMessages(vaultId),
     ]);
+    const readsMs = Date.now() - readStarted;
+    const checkStarted = Date.now();
+    const { checks } = await runChecks(vaultId, vault, undefined, { files, manifest });
+    const checksMs = Date.now() - checkStarted;
+    /* getVaultRecord already selected the whole row: the failed report, waivers,
+       revision note and question count are on it. Reading them through four
+       separate queries was the slowest part of opening a room. */
+    const failedChecks = Array.isArray(vault.failed_checks) ? vault.failed_checks : [];
+    const waivedChecks = Array.isArray(vault.waived_checks) ? vault.waived_checks : [];
+    const revisionNote = typeof vault.revision_note === "string" ? vault.revision_note : null;
+    const questionCount = Number(vault.questions_used);
     const settled = ["AWAITING_APPROVAL", "SUBMITTED", "VERIFYING", "PAID", "COMPLETED", "UNLOCKED"].includes(
       String(vault.status)
     );
@@ -149,6 +172,10 @@ router.get("/:id/audit-detail", async (req, res, next) => {
       "Are there any issues with the delivery?",
       files.some((f) => /\.zip$/i.test(f.name)) ? "What's inside the archive?" : "Is the build ready to ship?",
     ];
+    res.set(
+      "Server-Timing",
+      `vault;dur=${vaultMs}, reads;dur=${readsMs}, checks;dur=${checksMs}, total;dur=${Date.now() - started}`
+    );
     return sendSuccess(
       res,
       {
@@ -185,7 +212,7 @@ router.get("/:id/audit-detail", async (req, res, next) => {
         waivedChecks,
         revisionNote,
         suggestions,
-        questionsUsed: await getQuestionsUsed(vaultId),
+        questionsUsed: Number.isFinite(questionCount) ? questionCount : 0,
         questionLimit: QUESTION_LIMIT,
       },
       "Audit detail loaded"

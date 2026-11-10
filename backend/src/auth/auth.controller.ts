@@ -66,7 +66,7 @@ export class AuthController {
         throw new UnauthorizedError("Not authenticated");
       }
 
-      const user = await authService.getCurrentUser(req.user.id);
+      const user = await authService.getCurrentUser(req.user.id, req.user.role);
       return sendSuccess(
         res,
         {

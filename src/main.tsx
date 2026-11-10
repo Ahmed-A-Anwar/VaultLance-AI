@@ -19,6 +19,17 @@ import App from "./App";
 import { StoreProvider } from "./lib/store";
 import { MorphProvider } from "./lib/transitions";
 
+/* Start the two direct-entry route chunks beside the shell instead of after the
+   router resolves them. React.lazy dedupes with these imports, so the route
+   still owns the component; this only removes a chunk waterfall. */
+const directPath = location.pathname;
+if (directPath.startsWith("/dashboard/settings")) {
+  void import("./pages/dashboard/DashboardLayout");
+  void import("./pages/dashboard/settings/SettingsPage");
+} else if (directPath.startsWith("/vault/") && directPath !== "/vault/new") {
+  void import("./pages/vault/AuditRoom");
+}
+
 const root = createRoot(document.getElementById("root")!);
 
 function mount() {
