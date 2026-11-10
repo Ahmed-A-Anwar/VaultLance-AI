@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "e2e:smoke": "node --env-file=backend/.env --env-file=backend/.env.E2E scripts/e2e-smoke.mjs",
+    "benchmark:routes": "node --env-file=backend/.env.E2E scripts/benchmark-routes.mjs",
     "ui:sweep": "node scripts/ui-sweep.mjs",
     "analyze": "vite-bundle-visualizer -t raw-data -o docs/laws-audit/bundle.json"
   },

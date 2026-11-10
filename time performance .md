@@ -206,6 +206,53 @@ These are the same pages and account, but the two samples ran under different ne
 
 The vault-list server work itself was **493 ms** in the earlier check and **361 ms** in this one. The larger page-level swings occurred in the network/API path around that server read; the vault query itself measured in the same range.
 
+## Repeatable route benchmark
+
+`npm run benchmark:routes` is the repeatable sweep. It measures direct loads for every dashboard route (`/dashboard`, vaults, payments, ledger, settings), the two auth pages and one existing PAID audit room, plus warm in-app rail transitions, the real sign-in handoff and the vault-list cache probe. It reuses the existing E2E client account and is read-only against vault content: it opens pages and never creates or changes a vault, file, payment or ledger row.
+
+```bash
+npm run benchmark:routes -- --runs=3 --write-report
+```
+
+Options: `--runs=N` (1–9, default 3), `--json=.tmp/routes.json`, `--app=<url>`, `--api=<url>`, `--report=<path>`. The script lives at `scripts/benchmark-routes.mjs` and defaults to the production app and API. Credentials come from `backend/.env.E2E` through the npm script; tokens, passwords and vault ids are never printed.
+
+`--write-report` replaces only the block between the two markers below, so the rest of this document is preserved.
+
+<!-- route-benchmark:start -->
+- **Run:** `npm run benchmark:routes -- --runs=3 --write-report`
+- **Measured:** 2026-11-10T23:04:40.721Z
+- **App:** https://vault-lance-ai.vercel.app
+- **API:** https://vaultlance-ai-1.onrender.com/api (revision `14fdf70f11bc921c7b5e0130c2323ba394f44d2c`)
+- **Account:** client, 16 vaults (4 PAID)
+- **Viewport:** 1440 × 1000, Chromium headless
+- **Errors:** 0 page errors
+
+| Route | Direct median | Direct range | Warm median | Warm range |
+|---|---:|---:|---:|---:|
+| **Sign in** `/signin` | 1,701 ms | 1,563–1,718 ms | — | — |
+| **Sign up** `/signup` | 1,699 ms | 1,667–1,942 ms | — | — |
+| **Dashboard** `/dashboard` | 4,613 ms | 4,182–5,786 ms | 505 ms | 489–549 ms |
+| **Vaults** `/dashboard/vaults` | 4,228 ms | 4,122–4,635 ms | 467 ms | 456–526 ms |
+| **Payments** `/dashboard/payments` | 9,246 ms | 7,791–43,770 ms | 4,370 ms | 4,044–4,420 ms |
+| **Ledger** `/dashboard/ledger` | 3,301 ms | 3,107–4,904 ms | 413 ms | 369–517 ms |
+| **Settings** `/dashboard/settings` | 3,704 ms | 3,639–3,907 ms | 1,496 ms | 1,402–2,036 ms |
+| **Audit room** `/vault/:id` | 4,723 ms | 4,660–5,036 ms | — | — |
+
+Warm runs are in-app rail transitions in one signed-in tab; direct runs are fresh contexts. The sign-in rows measure the page load only.
+
+| Sign-in handoff | Median | Range |
+|---|---:|---:|
+| Submit → `/dashboard` URL | 5,050 ms | 4,975–5,368 ms |
+| URL → dashboard shell | 50 ms | 30–52 ms |
+| URL → sign-in form gone | 53 ms | 35–55 ms |
+| URL → all vault cards | 2,282 ms | 2,282–2,299 ms |
+
+| Vault-list probe | Server-Timing |
+|---|---|
+| First read | `vault-list;desc="direct";dur=362` |
+| Second read (800 ms later) | `vault-list;desc="cache";dur=186` |
+<!-- route-benchmark:end -->
+
 ## Supporting measurements
 
 ### Landing Lighthouse history (reference only)
