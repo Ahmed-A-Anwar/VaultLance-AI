@@ -16,7 +16,7 @@ The target is a usable first screen and a decision that acknowledges input insid
 | Initial JS | ≤ 250 KiB gzip | 150.7 KiB | 150.9 KiB | PASS |
 | Route transition | ≤ 400 ms | not measured | not measured | UNMEASURED |
 
-The deployed and local columns are not a controlled A/B: the deployed build is older, the network is different, and the local preview has no edge latency. The local column proves the current code's shape; it does not prove production performance.
+The deployed baseline and local columns are not a controlled A/B: the baseline was older, the network is different, and the local preview has no edge latency. The current build has also been measured live: the stable mobile run at `45a1c4b` recorded **972 ms LCP**, score **84**, TBT **568 ms**, and CLS **0**. A first cold-cache run measured 3.65 s and is treated as an outlier.
 
 ## What the baseline showed
 
@@ -64,9 +64,13 @@ The Lighthouse DOM audit is empty for the LCP node because the shell is removed 
 
 Desktop Lighthouse also improved: **LCP 887.4 ms**, performance **98**, TBT 9 ms, CLS 0.00025.
 
+## Live production result
+
+The deployed build at `45a1c4b` was measured against `https://vault-lance-ai.vercel.app` with the same Lighthouse 13.6 mobile settings. The repeat run recorded **LCP 972 ms**, performance **84**, TBT **568 ms**, and CLS **0**; Playwright saw the prerendered `p.hero-body` at **876 ms / 55,050 px**. This confirms the local LCP gain survived deployment. A first cold-cache run measured 3.65 s; it is not the stable result.
+
 ## Remaining bottleneck
 
-Mobile LCP is solved for this local build, but **TBT is still 573 ms** (budget 200 ms). The main bundle remains 150.9 KiB gzip and carries GSAP through `HeroVault`/`VaultLayout`; the lazy `HeroButtons` chunk and the prerendered shell do not remove that initial execution cost. The next performance target is main-thread work, not first paint.
+Mobile LCP is solved locally and live, but **TBT is still 573 ms locally / 568 ms live** (budget 200 ms). The main bundle remains 150.9 KiB gzip and carries GSAP through `HeroVault`/`VaultLayout`; the lazy `HeroButtons` chunk and the prerendered shell do not remove that initial execution cost. The next performance target is main-thread work, not first paint.
 
 The API's 0.85 s warm response and cold-start outliers are external to this frontend pass; the UI should show useful shell/state without waiting for `/health`.
 
@@ -103,4 +107,4 @@ npx vite-bundle-visualizer -t raw-data -o docs/laws-audit/bundle.json
 
 ## When to stop
 
-The requested mobile LCP budget is met locally: **753.5 ms**, after the measured attempts above. TBT remains over budget and is recorded separately; do not claim a deployed gain until the app is deployed and measured again.
+The requested mobile LCP budget is met locally at **753.5 ms** and live at **972 ms**, after the measured attempts above. TBT remains over budget and is recorded separately. Repeat the live run before judging a cold-cache outlier.

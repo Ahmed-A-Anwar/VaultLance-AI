@@ -68,6 +68,9 @@ The prior `main` commits contain the audit-room opening line, mobile run label, 
 - Lighthouse 13.6 mobile local preview — performance **85**, LCP **753.5 ms**, observed LCP/FCP **456 ms**, TBT 573 ms, CLS 0. Raw trace: `docs/laws-audit/lighthouse-lcp-prerendered.json`.
 - Lighthouse 13.6 desktop local preview — performance **98**, LCP **887.4 ms**, TBT 9 ms, CLS 0.00025. Raw trace: `docs/laws-audit/lighthouse-desktop-prerendered.json`.
 - Route check at 412 px: `/` has one `main#main` and no leftover shell; `/signup` and `/playground` have one main and no shell; `/demo` is the production 404.
+- Live production at `45a1c4b`: frontend 200 with the prerendered shell; `/signup` and `/playground` 200; `/demo` production 404; Fly `/health` 200 with `databaseHealthy: true`.
+- Live Lighthouse 13.6 mobile: LCP **972 ms**, score **84**, TBT **568 ms**, CLS **0**. A first cold-cache run measured 3.65 s; the repeat is the stable result.
+- Live Playwright: the prerendered `p.hero-body` is visible at 610 ms and is LCP at **876 ms / 55,050 px**; React `main` mounts by 1.2 s with no page errors.
 - `npm run e2e:smoke` — **9/9** live steps passed (health, two accounts, create/upload/lock/invite/join, locked download, stranger refusal).
 - Lighthouse 13.6.0, deployed baseline and local production preview; metrics in `BASELINE.md` and `PERF.md`.
 - Production preview route sweep: `/demo`, `/console`, `/v/legacy-token` → “Nothing here”; `/` → one `main#main`.
@@ -76,9 +79,8 @@ The prior `main` commits contain the audit-room opening line, mobile run label, 
 
 ## Not verified / limitations
 
-- The branch is **not deployed**; all post-fix performance numbers are local preview numbers.
-- Mobile LCP now passes locally at **753.5 ms**; TBT remains **573 ms**, over the 200 ms budget.
-- The prerendered shell is removed after handoff, so Lighthouse has no final DOM node for the LCP element; Playwright recorded the static paragraph at 592 ms (55,050 px) on the same build.
+- The branch is deployed at `45a1c4b`; live mobile LCP is **972 ms**. Mobile TBT remains **568 ms**, over the 200 ms budget.
+- The prerendered shell is removed after handoff, so Lighthouse has no final DOM node for the LCP element; Playwright recorded the static paragraph at 592 ms locally and 876 ms live (55,050 px).
 - `npm run e2e:smoke` and the Playwright settings suite were not rerun after the final animation split; the earlier 9/9 smoke result predates these edits.
 - Supabase region/database RTT is unavailable without a sanitized host.
 - APIMatic is intentionally out of scope.
