@@ -14,6 +14,7 @@ import type { VaultDTO, VaultMemberItem, VaultFileItem } from "./vault.types.js"
 import { supabase, isSupabaseConfigured } from "../shared/supabaseClient.js";
 import { getCapture } from "../money/money.store.js";
 import { platformFeeCents } from "../money/money.types.js";
+import { readVaultList } from "./vault-list.query.js";
 
 export interface CreateVaultDTO {
   freelancerId: string;
@@ -140,9 +141,14 @@ export class VaultDomainService {
     if (isSupabaseConfigured() && supabase) {
       const client = supabase;
 
+      /* The direct database read is one round trip. If DATABASE_URL is absent
+         or the query fails, fall back to the PostgREST reads below. */
+      const direct = await readVaultList(userId);
+      if (direct) return this.toVaultList(direct.vaults, direct.captures);
+
       // Resolve the user's memberships and owned vaults in parallel. Each root
       // read embeds the members, profiles, files and ledger events, so the
-      // common path is two Supabase round trips instead of three.
+      // fallback path is also as few round trips as PostgREST allows.
       const vaultSelect =
         "*, vault_members(*, users!vault_members_user_id_fkey(id,email,full_name)), vault_files(*), ledger_events(vault_id, metadata, created_at)";
       const [memberVaultsResult, ownedVaultsResult, captureResult] = await Promise.all([
@@ -165,76 +171,11 @@ export class VaultDomainService {
       for (const vault of (ownedVaultsResult.data || []) as any[]) {
         if (vault?.id) vaultsById.set(String(vault.id), vault);
       }
-      const vaults = Array.from(vaultsById.values());
-      if (vaults.length === 0) return [];
 
-      const membersByVault = new Map<string, VaultMemberItem[]>();
-      const filesByVault = new Map<string, VaultFileItem[]>();
-      const ledgerByVault = new Map<string, any[]>();
-      for (const vault of vaults) {
-        const id = String(vault.id);
-        const memberRows = Array.isArray(vault.vault_members) ? vault.vault_members : [];
-        membersByVault.set(
-          id,
-          memberRows.map((m: any) => {
-            const profile = Array.isArray(m.users) ? m.users[0] : m.users;
-            return {
-              id: m.id,
-              userId: m.user_id,
-              email: profile?.email,
-              fullName: profile?.full_name,
-              role: m.role,
-              invitationStatus: m.invitation_status,
-              joinedAt: m.joined_at ? new Date(m.joined_at) : undefined,
-              createdAt: new Date(m.created_at),
-            };
-          })
-        );
-
-        filesByVault.set(
-          id,
-          (Array.isArray(vault.vault_files) ? vault.vault_files : []).map((f: any) => ({
-            id: f.id,
-            fileName: f.file_name,
-            storagePath: f.storage_path,
-            mimeType: f.mime_type,
-            fileSize: Number(f.file_size),
-            sha256Hash: f.sha256_hash,
-            createdAt: new Date(f.created_at),
-          }))
-        );
-
-        // Keep at most the twenty latest events per vault, matching getVaultById.
-        ledgerByVault.set(
-          id,
-          (Array.isArray(vault.ledger_events) ? vault.ledger_events : [])
-            .slice()
-            .sort(
-              (a: any, b: any) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )
-            .slice(0, 20)
-        );
-      }
-
-      const capturesByVault = new Map<string, any>();
-      for (const capture of (captureResult.data || []) as any[]) {
-        const key = String(capture.vault_id);
-        if (!capturesByVault.has(key)) capturesByVault.set(key, capture);
-      }
-
-      return vaults
-        .map((vault) => {
-          const id = String(vault.id);
-          return this.toVaultDto(
-            vault,
-            membersByVault.get(id) || [],
-            filesByVault.get(id) || [],
-            capturesByVault.get(id) || null,
-            ledgerByVault.get(id) || []
-          );
-        })
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return this.toVaultList(
+        Array.from(vaultsById.values()),
+        (captureResult.data || []) as any[]
+      );
     }
 
     database.store.checkFailure();
@@ -263,6 +204,78 @@ export class VaultDomainService {
     }
 
     return results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  private toVaultList(vaults: any[], captureRows: any[]): VaultDTO[] {
+    if (vaults.length === 0) return [];
+
+    const membersByVault = new Map<string, VaultMemberItem[]>();
+    const filesByVault = new Map<string, VaultFileItem[]>();
+    const ledgerByVault = new Map<string, any[]>();
+    for (const vault of vaults) {
+      const id = String(vault.id);
+      const memberRows = Array.isArray(vault.vault_members) ? vault.vault_members : [];
+      membersByVault.set(
+        id,
+        memberRows.map((m: any) => {
+          const profile = Array.isArray(m.users) ? m.users[0] : m.users;
+          return {
+            id: m.id,
+            userId: m.user_id,
+            email: profile?.email,
+            fullName: profile?.full_name,
+            role: m.role,
+            invitationStatus: m.invitation_status,
+            joinedAt: m.joined_at ? new Date(m.joined_at) : undefined,
+            createdAt: new Date(m.created_at),
+          };
+        })
+      );
+
+      filesByVault.set(
+        id,
+        (Array.isArray(vault.vault_files) ? vault.vault_files : []).map((f: any) => ({
+          id: f.id,
+          fileName: f.file_name,
+          storagePath: f.storage_path,
+          mimeType: f.mime_type,
+          fileSize: Number(f.file_size),
+          sha256Hash: f.sha256_hash,
+          createdAt: new Date(f.created_at),
+        }))
+      );
+
+      // Keep at most the twenty latest events per vault, matching getVaultById.
+      ledgerByVault.set(
+        id,
+        (Array.isArray(vault.ledger_events) ? vault.ledger_events : [])
+          .slice()
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )
+          .slice(0, 20)
+      );
+    }
+
+    const capturesByVault = new Map<string, any>();
+    for (const capture of captureRows) {
+      const key = String(capture.vault_id);
+      if (!capturesByVault.has(key)) capturesByVault.set(key, capture);
+    }
+
+    return vaults
+      .map((vault) => {
+        const id = String(vault.id);
+        return this.toVaultDto(
+          vault,
+          membersByVault.get(id) || [],
+          filesByVault.get(id) || [],
+          capturesByVault.get(id) || null,
+          ledgerByVault.get(id) || []
+        );
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   public async getVaultById(userId: string, vaultId: string): Promise<VaultDTO> {
