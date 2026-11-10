@@ -15,6 +15,7 @@ import { WalletIcon } from "./icons";
 import { MoneyCard } from "./MoneyCard";
 import { StepsCard } from "./StepsCard";
 import { useToast } from "../shared/Toasts";
+import { useDashData } from "../dashboard/data";
 import { formatCents } from "../../lib/fees";
 import { gridTheme } from "../freelancer/gridTheme";
 import {
@@ -23,9 +24,8 @@ import {
   daysLeft,
   downloadReceipt,
   holdProgress,
-  listHolds,
-  listReceipts,
-  type Hold,
+  holdsFrom,
+  receiptsFrom,
   type Receipt,
 } from "./paymentsApi";
 
@@ -43,38 +43,20 @@ export function ClientPayments() {
   const toast = useToast();
   const tabsId = useId();
   const [tab, setTab] = useState<Tab>("holds");
-  const [holds, setHolds] = useState<Hold[] | null>(null);
-  const [receipts, setReceipts] = useState<Receipt[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const alive = useRef(true);
+  const { vaults, events, vaultsLoading, ledgerLoading, vaultsError, ledgerError, reload } = useDashData();
   const wrapRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<GridApi | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [h, r] = await Promise.all([listHolds(), listReceipts()]);
-      if (!alive.current) return;
-      setHolds(h);
-      setReceipts(r);
-      setError(null);
-    } catch (e) {
-      if (!alive.current) return;
-      setError(e instanceof Error ? e.message : "The payments service didn’t answer.");
-    }
-  }, []);
+  /* The dashboard already reads this account's vaults and ledger for the shell.
+     Holds and receipts are two views of those same rows, so the page derives
+     them here instead of asking the API for both lists a second and third time. */
+  const holds = useMemo(() => holdsFrom(vaults, events), [vaults, events]);
+  const receipts = useMemo(() => receiptsFrom(vaults, events), [vaults, events]);
+  const loading = vaultsLoading || ledgerLoading;
+  const error = vaultsError?.message ?? ledgerError?.message ?? null;
 
-  useEffect(() => {
-    alive.current = true;
-    setLoading(true);
-    void load().finally(() => alive.current && setLoading(false));
-    return () => {
-      alive.current = false;
-    };
-  }, [load]);
-
-  const totals = useMemo(() => clientTotals(holds ?? [], receipts ?? []), [holds, receipts]);
-  const shown = loading && holds === null ? null : totals;
+  const totals = useMemo(() => clientTotals(holds, receipts), [holds, receipts]);
+  const shown = loading ? null : totals;
 
   /* the receipts grid only measures once it is on screen */
   const fit = useCallback(() => {
@@ -249,15 +231,12 @@ export function ClientPayments() {
               <button
                 type="button"
                 className="fd-btn fd-btn-primary pay-btn-sm"
-                onClick={() => {
-                  setLoading(true);
-                  void load().finally(() => setLoading(false));
-                }}
+                onClick={() => reload()}
               >
                 Retry
               </button>
             </div>
-          ) : loading && !holds ? (
+          ) : loading && holds.length === 0 ? (
             <div className="pay-grid-skel" aria-busy="true" aria-label={`Loading ${tabLabel}`}>
               {[0, 1, 2].map((i) => (
                 <span key={i} className="fd-skel pay-hold-skel" style={{ animationDelay: `${i * 61.8}ms` }} />
@@ -265,7 +244,7 @@ export function ClientPayments() {
             </div>
           ) : tab === "holds" ? (
             <div id={`${tabsId}-holds-panel`} role="tabpanel" aria-labelledby={`${tabsId}-holds-tab`} tabIndex={0}>
-              {(holds ?? []).length === 0 ? (
+              {holds.length === 0 ? (
                 <div className="fd-empty pay-empty">
                   <span className="fd-empty-mark" aria-hidden="true">
                     <VaultGlyph width="144" height="144" />
@@ -274,7 +253,7 @@ export function ClientPayments() {
                 </div>
               ) : (
                 <ul className="pay-holds">
-                  {(holds ?? []).map((hold) => {
+                  {holds.map((hold) => {
                     const left = daysLeft(hold);
                     const urgent = left <= HONOR_DAYS;
                     return (
@@ -313,7 +292,7 @@ export function ClientPayments() {
             </div>
           ) : (
             <div id={`${tabsId}-receipts-panel`} role="tabpanel" aria-labelledby={`${tabsId}-receipts-tab`} tabIndex={0}>
-              {(receipts ?? []).length === 0 ? (
+              {receipts.length === 0 ? (
                 <div className="fd-empty pay-empty">
                   <span className="fd-empty-mark" aria-hidden="true">
                     <VaultGlyph width="144" height="144" />
@@ -327,11 +306,11 @@ export function ClientPayments() {
                     ref={wrapRef}
                     role="group"
                     aria-label="Receipts"
-                    style={{ height: 34 + Math.min(Math.max((receipts ?? []).length, 1), 6) * 55 }}
+                    style={{ height: 34 + Math.min(Math.max(receipts.length, 1), 6) * 55 }}
                   >
                     <AgGridReact<Receipt>
                       theme={gridTheme}
-                      rowData={receipts ?? []}
+                      rowData={receipts}
                       columnDefs={columns}
                       headerHeight={34}
                       rowHeight={55}
@@ -345,7 +324,7 @@ export function ClientPayments() {
 
                   {/* under 768 the grid becomes these 89px cards */}
                   <ul className="pay-mlist" aria-label="Receipts">
-                    {(receipts ?? []).map((r) => (
+                    {receipts.map((r) => (
                       <li key={r.id} className="pay-mcard">
                         <span className="pay-mcard-top">
                           <span className="pay-mcard-title">{r.project}</span>

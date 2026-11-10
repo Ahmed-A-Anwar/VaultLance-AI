@@ -5,8 +5,10 @@
 
    The two roles read two stores, and that is deliberate: the freelancer's
    payouts come from the freelancer's own vaults, the client's holds and
-   receipts from the client's own ledger. The shapes and the arithmetic live in
-   paymentsModel, which imports nothing that touches the network.
+   receipts from the client's own vaults and ledger. Those client reads are the
+   ones the dashboard shell already makes, so ClientPayments derives both views
+   from that data instead of repeating the pair. The shapes and the arithmetic
+   live in paymentsModel, which imports nothing that touches the network.
 
    Reads carry 300–618ms of latency and, behind FX.mockErrors, fail 5% of the
    time so the error and retry paths stay reachable. */
@@ -16,14 +18,7 @@ import { isDemoMode } from "../../lib/apiClient";
 import { retryPayoutOnServer } from "../../lib/vaultWrites";
 import { request } from "../../lib/http";
 import { payoutStatusOf, readPayout } from "../../lib/payout";
-import {
-  hasPayoutEmail,
-  listEvents,
-  listLiveEvents,
-  listLiveVaults,
-  listVaults,
-  readPayoutEmail,
-} from "../../lib/api";
+import { hasPayoutEmail, readPayoutEmail } from "../../lib/api";
 import {
   listFreelancerEvents,
   listFreelancerVaults,
@@ -40,10 +35,7 @@ import {
   FAILURE_REASON,
   HOLD_DAYS,
   HONOR_DAYS,
-  holdsFrom,
   payoutsFrom,
-  receiptsFrom,
-  type Hold,
   type Payout,
   type PayoutProfile,
   type Receipt,
@@ -167,28 +159,6 @@ function withPayoutStatus(vaults: FreelancerVault[], events: FreelancerEvent[]):
     if (v.uiStatus === "unlocked") return { ...v, payoutStatus: "pending" as const };
     return v;
   });
-}
-
-/** GET /api/me/receipts */
-export async function listReceipts(): Promise<Receipt[]> {
-  if (!isDemoMode()) {
-    const [vaults, events] = await Promise.all([listLiveVaults(), listLiveEvents()]);
-    return receiptsFrom(vaults, events);
-  }
-  const [vaults, events] = await Promise.all([listVaults(), listEvents()]);
-  maybeFail();
-  return receiptsFrom(vaults, events);
-}
-
-/** GET /api/me/holds */
-export async function listHolds(): Promise<Hold[]> {
-  if (!isDemoMode()) {
-    const [vaults, events] = await Promise.all([listLiveVaults(), listLiveEvents()]);
-    return holdsFrom(vaults, events);
-  }
-  const [vaults, events] = await Promise.all([listVaults(), listEvents()]);
-  maybeFail();
-  return holdsFrom(vaults, events);
 }
 
 /* ================================================================ writes === */
