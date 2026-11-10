@@ -20,9 +20,13 @@ interface DashDataValue {
   vaults: Vault[];
   events: LedgerEvent[];
   kpis: Kpis | null;
-  loading: boolean;
-  error: ApiError | null;
+  vaultsLoading: boolean;
+  ledgerLoading: boolean;
+  vaultsError: ApiError | null;
+  ledgerError: ApiError | null;
   reload: () => void;
+  reloadVaults: () => void;
+  reloadLedger: () => void;
   putVault: (vault: Vault) => void;
   latestEvent: LedgerEvent | null;
   clearLatest: () => void;
@@ -144,44 +148,72 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [events, setEvents] = useState<LedgerEvent[]>([]);
   const [kpis, setKpis] = useState<Kpis | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ApiError | null>(null);
+  const [vaultsLoading, setVaultsLoading] = useState(true);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [vaultsError, setVaultsError] = useState<ApiError | null>(null);
+  const [ledgerError, setLedgerError] = useState<ApiError | null>(null);
   const [latestEvent, setLatestEvent] = useState<LedgerEvent | null>(null);
-  const [pass, setPass] = useState(0);
+  const [vaultsPass, setVaultsPass] = useState(0);
+  const [ledgerPass, setLedgerPass] = useState(0);
 
-  const haveData = useRef(false);
+  /* one flag per section: a retry of one read must not skeleton the other */
+  const haveVaults = useRef(false);
+  const haveLedger = useRef(false);
   /* the rows the poller last saw, so its timer does not restart on every render */
   const vaultsRef = useRef<Vault[]>([]);
   const readsReal = realOn("vaultsRead");
 
   useEffect(() => {
     let live = true;
-    if (!haveData.current) setLoading(true);
-    setError(null);
+    if (!haveVaults.current) setVaultsLoading(true);
+    setVaultsError(null);
 
-    Promise.all([readsReal ? fetchRealVaults() : fetchLiveVaults(), fetchEvents()])
-      .then(([nextVaults, nextEvents]) => {
+    (readsReal ? fetchRealVaults() : fetchLiveVaults())
+      .then((nextVaults) => {
         if (!live) return;
         vaultsRef.current = nextVaults;
         setVaults(nextVaults);
-        setEvents(nextEvents);
         /* the same cent selectors the Payments page reads, so the three totals
            cannot drift apart */
         setKpis(readsReal ? kpisOf(nextVaults) : calculateKpis(nextVaults));
-        haveData.current = true;
+        haveVaults.current = true;
       })
       .catch((e) => {
         if (!live) return;
-        setError(asApiError(e));
+        setVaultsError(asApiError(e));
       })
       .finally(() => {
-        if (live) setLoading(false);
+        if (live) setVaultsLoading(false);
       });
 
     return () => {
       live = false;
     };
-  }, [pass, readsReal]);
+  }, [vaultsPass, readsReal]);
+
+  useEffect(() => {
+    let live = true;
+    if (!haveLedger.current) setLedgerLoading(true);
+    setLedgerError(null);
+
+    fetchEvents()
+      .then((nextEvents) => {
+        if (!live) return;
+        setEvents(nextEvents);
+        haveLedger.current = true;
+      })
+      .catch((e) => {
+        if (!live) return;
+        setLedgerError(asApiError(e));
+      })
+      .finally(() => {
+        if (live) setLedgerLoading(false);
+      });
+
+    return () => {
+      live = false;
+    };
+  }, [ledgerPass]);
 
   /* Slice 5: a visible page refreshes every 5s while something is still moving,
      backing off to 15s after three failures in a row. A hidden tab, or a page
@@ -232,14 +264,27 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
       subscribe((event) => {
         setLatestEvent(event);
         setEvents((prev) => (prev.some((e) => e.id === event.id) ? prev : [event, ...prev]));
-        setPass((n) => n + 1);
+        setVaultsPass((n) => n + 1);
+        setLedgerPass((n) => n + 1);
       }),
     []
   );
 
   const reload = useCallback(() => {
-    haveData.current = false;
-    setPass((n) => n + 1);
+    haveVaults.current = false;
+    haveLedger.current = false;
+    setVaultsPass((n) => n + 1);
+    setLedgerPass((n) => n + 1);
+  }, []);
+
+  const reloadVaults = useCallback(() => {
+    haveVaults.current = false;
+    setVaultsPass((n) => n + 1);
+  }, []);
+
+  const reloadLedger = useCallback(() => {
+    haveLedger.current = false;
+    setLedgerPass((n) => n + 1);
   }, []);
 
   const putVault = useCallback((vault: Vault) => {
@@ -250,14 +295,45 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
       return next;
     });
     // Also trigger a reload from the backend so KPIs and ledger sync
-    setTimeout(() => setPass((n) => n + 1), 500);
+    setTimeout(() => {
+      setVaultsPass((n) => n + 1);
+      setLedgerPass((n) => n + 1);
+    }, 500);
   }, [readsReal]);
 
   const clearLatest = useCallback(() => setLatestEvent(null), []);
 
   const value = useMemo<DashDataValue>(
-    () => ({ vaults, events, kpis, loading, error, reload, putVault, latestEvent, clearLatest }),
-    [vaults, events, kpis, loading, error, reload, putVault, latestEvent, clearLatest]
+    () => ({
+      vaults,
+      events,
+      kpis,
+      vaultsLoading,
+      ledgerLoading,
+      vaultsError,
+      ledgerError,
+      reload,
+      reloadVaults,
+      reloadLedger,
+      putVault,
+      latestEvent,
+      clearLatest,
+    }),
+    [
+      vaults,
+      events,
+      kpis,
+      vaultsLoading,
+      ledgerLoading,
+      vaultsError,
+      ledgerError,
+      reload,
+      reloadVaults,
+      reloadLedger,
+      putVault,
+      latestEvent,
+      clearLatest,
+    ]
   );
 
   return <DashDataContext.Provider value={value}>{children}</DashDataContext.Provider>;

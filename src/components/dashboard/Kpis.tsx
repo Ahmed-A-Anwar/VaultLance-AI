@@ -16,7 +16,7 @@ const usd = new Intl.NumberFormat("en-US", {
 const int = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 export function Kpis() {
-  const { kpis, loading, error } = useDashData();
+  const { kpis, vaultsLoading, vaultsError } = useDashData();
   const [summary, setSummary] = useState("");
   const announced = useRef(false);
 
@@ -32,7 +32,7 @@ export function Kpis() {
     );
   }, [kpis]);
 
-  if (loading && !kpis) {
+  if (vaultsLoading && !kpis) {
     return (
       <div className="dash-kpis" aria-busy="true" aria-label="Loading totals">
         {[0, 1, 2].map((i) => (
@@ -52,7 +52,7 @@ export function Kpis() {
   const review = kpis?.awaitingReview ?? 0;
   const unlocked = kpis?.unlocked ?? 0;
   /* a failed read is not a zero: three zeros would read as "all settled" */
-  const failed = !kpis && !!error;
+  const failed = !kpis && !!vaultsError;
 
   return (
     <>

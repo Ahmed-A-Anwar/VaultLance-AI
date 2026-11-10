@@ -9,7 +9,7 @@ import { useDashData } from "../../components/dashboard/data";
 import { displayName, useSession } from "../../components/dashboard/session";
 
 export default function Overview() {
-  const { kpis, error } = useDashData();
+  const { kpis, vaultsError } = useDashData();
   const { session } = useSession();
   const firstName = session ? displayName(session.email).split(" ")[0] : "there";
 
@@ -19,7 +19,7 @@ export default function Overview() {
         <Greeting
           firstName={firstName}
           audited={kpis ? kpis.awaitingReview : null}
-          failed={!kpis && !!error}
+          failed={!kpis && !!vaultsError}
         />
         <Kpis />
       </div>

@@ -55,7 +55,7 @@ function StatusLine({ status, inline = false }: { status: Status; inline?: boole
 }
 
 export default function Signin() {
-  const { enterSigninCard, registerSigninCard, padEnter, fx, reduced, padFail } = useVaultScene();
+  const { enterSigninCard, registerSigninCard, padEnter, padRelease, fx, reduced, padFail } = useVaultScene();
   const navigate = useNavigate();
 
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -177,6 +177,9 @@ export default function Signin() {
     setStatus("accepted");
     await padEnter();
     if (!alive.current) return;
+    /* stop the keypad's background frame downloads before asking the router for
+       the dashboard bundle; otherwise the bundle can be starved by them */
+    padRelease();
     navigate("/dashboard");
   };
 

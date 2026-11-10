@@ -1,6 +1,7 @@
-/* FreelancerData.tsx — one read, one subscription, one place that knows the
-   loading and error states. Reads are allowed to fail (the mock fails 5% of
-   them on purpose), so the error carries a retry rather than a fallback value. */
+/* FreelancerData.tsx — one provider, one subscription, and separate loading and
+   error state for the vault list and the ledger. Reads are allowed to fail (the
+   mock fails 5% of them on purpose), so each section carries its own retry
+   rather than a fallback value. */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -26,10 +27,14 @@ interface Value {
   vaults: FreelancerVault[];
   events: FreelancerEvent[];
   kpis: FreelancerKpis | null;
-  loading: boolean;
-  error: string | null;
+  vaultsLoading: boolean;
+  ledgerLoading: boolean;
+  vaultsError: string | null;
+  ledgerError: string | null;
   paypalMissing: boolean;
   refresh: () => Promise<void>;
+  refreshVaults: () => Promise<void>;
+  refreshLedger: () => Promise<void>;
   applyVault: (v: FreelancerVault) => void;
   dropVault: (id: string) => void;
   noteEvent: (e: FreelancerEvent) => void;
@@ -41,51 +46,81 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
   const [vaults, setVaults] = useState<FreelancerVault[]>([]);
   const [events, setEvents] = useState<FreelancerEvent[]>([]);
   const [kpis, setKpis] = useState<FreelancerKpis | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [vaultsLoading, setVaultsLoading] = useState(true);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [vaultsError, setVaultsError] = useState<string | null>(null);
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
   const [paypalMissing, setPaypalMissing] = useState(false);
   const alive = useRef(true);
+  const haveVaults = useRef(false);
+  const haveLedger = useRef(false);
+  const vaultsRef = useRef<FreelancerVault[]>([]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refreshVaults = useCallback(async () => {
+    if (!haveVaults.current) setVaultsLoading(true);
+    setVaultsError(null);
+
     try {
       if (isDemoMode()) {
-        const [v, e, k] = await Promise.all([demoVaults(), demoEvents(), demoKpis()]);
+        const [v, k] = await Promise.all([demoVaults(), demoKpis()]);
         if (!alive.current) return;
+        vaultsRef.current = v;
         setVaults(v);
-        setEvents(e);
         setKpis(k);
       } else {
-        /* the server is the source: vaults first, then the ledger rows for
-           those vaults, then the same earnings selectors for the strip */
         const v = await liveVaults();
-        const e = await liveEvents(v);
         if (!alive.current) return;
+        vaultsRef.current = v;
         setVaults(v);
-        setEvents(e);
         setKpis(kpisFor(v));
       }
-      if (!alive.current) return;
-      setError(null);
-      if (isDemoMode()) {
-        setPaypalMissing(!hasPayoutEmail());
-      } else {
-        /* the banner reads the account's stored payout address, the same value
-           Settings and the Payments card read; a failed read leaves it alone */
-        try {
-          const profile = await getPayoutProfile();
-          if (alive.current) setPaypalMissing(!profile.paypalEmail);
-        } catch {
-          /* the vault list still loads; the banner keeps its last answer */
-        }
-      }
+      haveVaults.current = true;
     } catch (err) {
       if (!alive.current) return;
-      setError(err instanceof Error ? err.message : "The vault service didn’t answer.");
+      setVaultsError(err instanceof Error ? err.message : "The vault service didn’t answer.");
     } finally {
-      if (alive.current) setLoading(false);
+      if (alive.current) setVaultsLoading(false);
     }
   }, []);
+
+  const refreshLedger = useCallback(async () => {
+    if (!haveLedger.current) setLedgerLoading(true);
+    setLedgerError(null);
+
+    try {
+      /* a ledger read is scoped to the vaults currently on screen; it never
+         decides whether that list is allowed to appear */
+      const nextEvents = isDemoMode() ? await demoEvents() : await liveEvents(vaultsRef.current);
+      if (!alive.current) return;
+      setEvents(nextEvents);
+      haveLedger.current = true;
+    } catch (err) {
+      if (!alive.current) return;
+      setLedgerError(err instanceof Error ? err.message : "The ledger service didn’t answer.");
+    } finally {
+      if (alive.current) setLedgerLoading(false);
+    }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await refreshVaults();
+    if (!alive.current) return;
+    await refreshLedger();
+    if (!alive.current) return;
+
+    if (isDemoMode()) {
+      setPaypalMissing(!hasPayoutEmail());
+    } else {
+      /* the banner reads the account's stored payout address, the same value
+         Settings and the Payments card read; a failed read leaves it alone */
+      try {
+        const profile = await getPayoutProfile();
+        if (alive.current) setPaypalMissing(!profile.paypalEmail);
+      } catch {
+        /* the vault list still loads; the banner keeps its last answer */
+      }
+    }
+  }, [refreshVaults, refreshLedger]);
 
   useEffect(() => {
     alive.current = true;
@@ -108,11 +143,19 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applyVault = useCallback((v: FreelancerVault) => {
-    setVaults((prev) => prev.map((row) => (row.id === v.id ? v : row)));
+    setVaults((prev) => {
+      const next = prev.map((row) => (row.id === v.id ? v : row));
+      vaultsRef.current = next;
+      return next;
+    });
   }, []);
 
   const dropVault = useCallback((id: string) => {
-    setVaults((prev) => prev.filter((row) => row.id !== id));
+    setVaults((prev) => {
+      const next = prev.filter((row) => row.id !== id);
+      vaultsRef.current = next;
+      return next;
+    });
   }, []);
 
   const noteEvent = useCallback((e: FreelancerEvent) => {
@@ -124,15 +167,34 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
       vaults,
       events,
       kpis,
-      loading,
-      error,
+      vaultsLoading,
+      ledgerLoading,
+      vaultsError,
+      ledgerError,
       paypalMissing,
       refresh,
+      refreshVaults,
+      refreshLedger,
       applyVault,
       dropVault,
       noteEvent,
     }),
-    [vaults, events, kpis, loading, error, paypalMissing, refresh, applyVault, dropVault, noteEvent]
+    [
+      vaults,
+      events,
+      kpis,
+      vaultsLoading,
+      ledgerLoading,
+      vaultsError,
+      ledgerError,
+      paypalMissing,
+      refresh,
+      refreshVaults,
+      refreshLedger,
+      applyVault,
+      dropVault,
+      noteEvent,
+    ]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

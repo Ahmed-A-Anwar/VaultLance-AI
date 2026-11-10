@@ -138,32 +138,115 @@ export class VaultDomainService {
 
   public async getVaultsForUser(userId: string): Promise<VaultDTO[]> {
     if (isSupabaseConfigured() && supabase) {
-      // Find vaults where user is freelancer OR user is a member
-      const { data: ownedVaults } = await supabase
-        .from("vaults")
-        .select("id")
-        .eq("freelancer_id", userId);
+      const client = supabase;
 
-      const { data: memberRows } = await supabase
-        .from("vault_members")
-        .select("vault_id")
-        .eq("user_id", userId);
+      // Resolve the vault IDs from the user's own ownership/membership rows.
+      // Never accept vault IDs from the caller for this list.
+      const [ownedResult, memberResult] = await Promise.all([
+        client.from("vaults").select("id").eq("freelancer_id", userId),
+        client.from("vault_members").select("vault_id").eq("user_id", userId),
+      ]);
 
       const userVaultIds = new Set<string>();
-      (ownedVaults || []).forEach((v) => userVaultIds.add(v.id));
-      (memberRows || []).forEach((m) => userVaultIds.add(m.vault_id));
+      (ownedResult.data || []).forEach((v) => userVaultIds.add(String(v.id)));
+      (memberResult.data || []).forEach((m) => userVaultIds.add(String(m.vault_id)));
+      const vaultIds = Array.from(userVaultIds);
+      if (vaultIds.length === 0) return [];
 
-      const results: VaultDTO[] = [];
-      for (const vaultId of userVaultIds) {
-        try {
-          const dto = await this.getVaultById(userId, vaultId);
-          results.push(dto);
-        } catch {
-          // Skip inaccessible
+      // One read per collection instead of getVaultById() per vault. The old
+      // path issued members, a user query per member, files, captures and
+      // ledger reads for every vault in series, which was the dashboard's
+      // bottleneck.
+      const [vaultResult, memberRowsResult, fileResult, captureResult, ledgerResult] =
+        await Promise.all([
+          client.from("vaults").select("*").in("id", vaultIds),
+          client
+            .from("vault_members")
+            .select("id, vault_id, user_id, role, invitation_status, joined_at, created_at")
+            .in("vault_id", vaultIds),
+          client.from("vault_files").select("*").in("vault_id", vaultIds),
+          client.from("vault_captures").select("*").in("vault_id", vaultIds),
+          client
+            .from("ledger_events")
+            .select("vault_id, metadata, created_at")
+            .in("vault_id", vaultIds)
+            .order("created_at", { ascending: false })
+            .limit(1000),
+        ]);
+
+      const memberRows = (memberRowsResult.data || []) as any[];
+      const memberUserIds = Array.from(
+        new Set(memberRows.map((m) => String(m.user_id)).filter(Boolean))
+      );
+      const { data: userRows } = memberUserIds.length
+        ? await client.from("users").select("id, email, full_name").in("id", memberUserIds)
+        : { data: [] as any[] };
+      const usersById = new Map((userRows || []).map((u: any) => [String(u.id), u]));
+
+      const membersByVault = new Map<string, VaultMemberItem[]>();
+      for (const m of memberRows) {
+        const u = usersById.get(String(m.user_id));
+        const member: VaultMemberItem = {
+          id: m.id,
+          userId: m.user_id,
+          email: u?.email,
+          fullName: u?.full_name,
+          role: m.role,
+          invitationStatus: m.invitation_status,
+          joinedAt: m.joined_at ? new Date(m.joined_at) : undefined,
+          createdAt: new Date(m.created_at),
+        };
+        const list = membersByVault.get(String(m.vault_id)) || [];
+        list.push(member);
+        membersByVault.set(String(m.vault_id), list);
+      }
+
+      const filesByVault = new Map<string, VaultFileItem[]>();
+      for (const f of (fileResult.data || []) as any[]) {
+        const file: VaultFileItem = {
+          id: f.id,
+          fileName: f.file_name,
+          storagePath: f.storage_path,
+          mimeType: f.mime_type,
+          fileSize: Number(f.file_size),
+          sha256Hash: f.sha256_hash,
+          createdAt: new Date(f.created_at),
+        };
+        const list = filesByVault.get(String(f.vault_id)) || [];
+        list.push(file);
+        filesByVault.set(String(f.vault_id), list);
+      }
+
+      const capturesByVault = new Map<string, any>();
+      for (const capture of (captureResult.data || []) as any[]) {
+        const key = String(capture.vault_id);
+        if (!capturesByVault.has(key)) capturesByVault.set(key, capture);
+      }
+
+      // Keep at most the twenty latest events per vault, matching getVaultById.
+      const ledgerByVault = new Map<string, any[]>();
+      for (const event of (ledgerResult.data || []) as any[]) {
+        const key = event.vault_id ? String(event.vault_id) : "";
+        if (!key) continue;
+        const list = ledgerByVault.get(key) || [];
+        if (list.length < 20) {
+          list.push(event);
+          ledgerByVault.set(key, list);
         }
       }
 
-      return results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return ((vaultResult.data || []) as any[])
+        .map((vault) => {
+          const id = String(vault.id);
+          return this.toVaultDto(
+            vault,
+            membersByVault.get(id) || [],
+            filesByVault.get(id) || [],
+            capturesByVault.get(id) || null,
+            ledgerByVault.get(id) || []
+          );
+        })
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
 
     database.store.checkFailure();
@@ -242,10 +325,6 @@ export class VaultDomainService {
           .order("created_at", { ascending: false })
           .limit(20),
       ]);
-      const metas = (moneyEvents || []).map((row: any) => row.metadata || {});
-      const fromLedger = (key: string): string | null =>
-        (metas.find((m: any) => typeof m[key] === "string" && m[key])?.[key] as string) || null;
-
       const files: VaultFileItem[] = (fileRows || []).map((f) => ({
         id: f.id,
         fileName: f.file_name,
@@ -256,38 +335,7 @@ export class VaultDomainService {
         createdAt: new Date(f.created_at),
       }));
 
-      return {
-        id: vault.id,
-        freelancerId: vault.freelancer_id,
-        title: vault.title,
-        description: vault.description,
-        amount: Number(vault.amount),
-        currency: vault.currency,
-        status: vault.status as VaultStatus,
-        expiresAt: vault.expires_at ? new Date(vault.expires_at) : null,
-        createdAt: new Date(vault.created_at),
-        updatedAt: new Date(vault.updated_at),
-        paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
-        paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
-        paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
-        failedChecks: Array.isArray((vault as any).failed_checks) ? (vault as any).failed_checks : [],
-        waivedChecks: Array.isArray((vault as any).waived_checks) ? (vault as any).waived_checks : [],
-        revisionNote: (vault as any).revision_note ?? null,
-        members,
-        files,
-        ...(captureRow
-          ? {
-              fees: {
-                grossCents: Number(captureRow.gross_cents),
-                vaultlanceFeeCents: platformFeeCents(Number(captureRow.gross_cents)),
-                paypalFeeCents: Number(captureRow.paypal_fee_cents),
-                netCents: Number(captureRow.net_cents),
-                payoutCents: Number(captureRow.payout_cents),
-                source: "captured" as const,
-              },
-            }
-          : {}),
-      };
+      return this.toVaultDto(vault, members, files, captureRow, moneyEvents || []);
     }
 
     database.store.checkFailure();
@@ -350,6 +398,54 @@ export class VaultDomainService {
               paypalFeeCents: capture.feeCents,
               netCents: capture.netCents,
               payoutCents: capture.payoutCents,
+              source: "captured" as const,
+            },
+          }
+        : {}),
+    };
+  }
+
+  private toVaultDto(
+    vault: any,
+    members: VaultMemberItem[],
+    files: VaultFileItem[],
+    captureRow: any,
+    moneyEvents: any[]
+  ): VaultDTO {
+    /* the ids a receipt prints: the vault columns can be empty (a row written
+       before the column existed, or a write the database refused), and the
+       ledger metadata records the same ids, so it is the fallback */
+    const metas = (moneyEvents || []).map((row: any) => row.metadata || {});
+    const fromLedger = (key: string): string | null =>
+      (metas.find((m: any) => typeof m[key] === "string" && m[key])?.[key] as string) || null;
+
+    return {
+      id: vault.id,
+      freelancerId: vault.freelancer_id,
+      title: vault.title,
+      description: vault.description,
+      amount: Number(vault.amount),
+      currency: vault.currency,
+      status: vault.status as VaultStatus,
+      expiresAt: vault.expires_at ? new Date(vault.expires_at) : null,
+      createdAt: new Date(vault.created_at),
+      updatedAt: new Date(vault.updated_at),
+      paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
+      paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
+      paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
+      failedChecks: Array.isArray((vault as any).failed_checks) ? (vault as any).failed_checks : [],
+      waivedChecks: Array.isArray((vault as any).waived_checks) ? (vault as any).waived_checks : [],
+      revisionNote: (vault as any).revision_note ?? null,
+      members,
+      files,
+      ...(captureRow
+        ? {
+            fees: {
+              grossCents: Number(captureRow.gross_cents),
+              vaultlanceFeeCents: platformFeeCents(Number(captureRow.gross_cents)),
+              paypalFeeCents: Number(captureRow.paypal_fee_cents),
+              netCents: Number(captureRow.net_cents),
+              payoutCents: Number(captureRow.payout_cents),
               source: "captured" as const,
             },
           }

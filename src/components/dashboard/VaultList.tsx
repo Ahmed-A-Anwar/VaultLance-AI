@@ -31,7 +31,7 @@ const reduceMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
-  const { vaults, loading, error, reload } = useDashData();
+  const { vaults, vaultsLoading, vaultsError, reloadVaults } = useDashData();
   const { query, joinOpen, setJoinOpen } = useDashUi();
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -70,7 +70,7 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
     positions.current = next;
   });
 
-  const empty = !loading && !error && vaults.length === 0;
+  const empty = !vaultsLoading && !vaultsError && vaults.length === 0;
   const Heading = heading;
 
   return (
@@ -101,7 +101,7 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
 
       {(joinOpen || empty) && <JoinRow onDone={() => setJoinOpen(false)} />}
 
-      {loading && vaults.length === 0 && (
+      {vaultsLoading && vaults.length === 0 && (
         <div className="dash-vault-list" aria-busy="true" aria-label="Loading vaults">
           {[0, 1, 2].map((i) => (
             <div key={i} className="dash-vault is-skeleton" style={{ animationDelay: `${i * 0.0618}s` }}>
@@ -113,11 +113,11 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
         </div>
       )}
 
-      {error && vaults.length === 0 && !loading && (
+      {vaultsError && vaults.length === 0 && !vaultsLoading && (
         <div className="dash-error" role="alert">
           <p className="dash-error-h">Could not load your vaults.</p>
-          <p className="dash-mono dim">{error.message}</p>
-          <button type="button" className="dash-btn dash-btn-ghost" onClick={reload}>
+          <p className="dash-mono dim">{vaultsError.message}</p>
+          <button type="button" className="dash-btn dash-btn-ghost" onClick={reloadVaults}>
             <span className="dash-btn-label">Retry</span>
           </button>
         </div>
@@ -151,7 +151,7 @@ export function VaultList({ heading = "h2" }: { heading?: "h1" | "h2" }) {
               }}
             />
           ))}
-          {visible.length === 0 && !loading && !error && (
+          {visible.length === 0 && !vaultsLoading && !vaultsError && (
             <p className="dash-mono dim dash-vault-list-empty">Nothing matches this view.</p>
           )}
         </div>

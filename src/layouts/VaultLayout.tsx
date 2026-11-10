@@ -292,6 +292,18 @@ export default function VaultLayout() {
     await tl;
   }, [makePad, reduced]);
 
+  /* The keypad clip fetches the rest of its frames in the background. Disposing
+     it on the way to the dashboard stops those requests before the router asks
+     for the dashboard chunk; otherwise the chunk can sit behind dozens of frame
+     downloads on a slow connection and the URL changes while the form remains. */
+  const padRelease = useCallback(() => {
+    padArrive.current = null;
+    padPlayer.current?.dispose();
+    padPlayer.current = null;
+    padRole.current = null;
+    fx.current?.setKeypadClipActive(false);
+  }, []);
+
   /* /signup -> /signin: the keys light from frame 0 to K1, then the frame is
      handed to the still so the rest of the page holds it */
   const padWave = useCallback(async () => {
@@ -706,6 +718,7 @@ export default function VaultLayout() {
       registerSignupCard: registerCard,
       registerSigninCard: registerCard,
       padEnter,
+      padRelease,
     }),
     [
       ready,
@@ -718,6 +731,7 @@ export default function VaultLayout() {
       enterCard,
       registerCard,
       padEnter,
+      padRelease,
     ]
   );
 

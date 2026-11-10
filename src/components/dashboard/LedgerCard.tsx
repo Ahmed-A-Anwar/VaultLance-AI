@@ -9,7 +9,7 @@ import { useDashData } from "./data";
 import { useToast } from "../shared/Toasts";
 
 export function LedgerCard({ full = false, heading = "h2" }: { full?: boolean; heading?: "h1" | "h2" }) {
-  const { events, vaults, loading, error, reload, latestEvent } = useDashData();
+  const { events, vaults, ledgerLoading, ledgerError, reloadLedger, latestEvent } = useDashData();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const said = useRef<{ type: string; at: number } | null>(null);
@@ -50,7 +50,7 @@ export function LedgerCard({ full = false, heading = "h2" }: { full?: boolean; h
       </div>
 
       <div id="dash-ledger-body" className="dash-ledger-body-wrap">
-        {loading && events.length === 0 && (
+        {ledgerLoading && events.length === 0 && (
           <div className="dash-ledger-skel" aria-busy="true" aria-label="Loading activity">
             {[0, 1, 2, 3].map((i) => (
               <span key={i} className="dash-skel dash-skel-row" />
@@ -58,17 +58,17 @@ export function LedgerCard({ full = false, heading = "h2" }: { full?: boolean; h
           </div>
         )}
 
-        {error && events.length === 0 && !loading && (
+        {ledgerError && events.length === 0 && !ledgerLoading && (
           <div className="dash-error" role="alert">
             <p className="dash-error-h">Could not load the ledger.</p>
-            <button type="button" className="dash-btn dash-btn-ghost" onClick={reload}>
+            <button type="button" className="dash-btn dash-btn-ghost" onClick={reloadLedger}>
               <span className="dash-btn-label">Retry</span>
             </button>
           </div>
         )}
 
-        {!loading && events.length > 0 && <LedgerGrid full={full} events={events} vaults={vaults} />}
-        {!loading && events.length === 0 && <p className="dash-grid-empty">No events yet.</p>}
+        {!ledgerLoading && events.length > 0 && <LedgerGrid full={full} events={events} vaults={vaults} />}
+        {!ledgerLoading && !ledgerError && events.length === 0 && <p className="dash-grid-empty">No events yet.</p>}
       </div>
     </section>
   );

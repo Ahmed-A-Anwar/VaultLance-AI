@@ -52,6 +52,9 @@ export interface VaultScene {
   /* /signin: play the keypad's code entry (K1 to the last frame) over the held
      still and resolve when it lands, or when the beat is up */
   padEnter: () => Promise<void>;
+  /* /signin: stop the keypad clip and its background frame downloads before a
+     route change, so the next route's bundle is not queued behind them */
+  padRelease: () => void;
 }
 
 export const VaultSceneContext = createContext<VaultScene | null>(null);

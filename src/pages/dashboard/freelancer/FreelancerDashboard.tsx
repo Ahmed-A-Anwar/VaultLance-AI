@@ -88,8 +88,10 @@ interface FreelancerPageCtx {
   vaults: FreelancerVault[];
   events: FreelancerEvent[];
   kpis: FreelancerKpis | null;
-  loading: boolean;
-  error: string | null;
+  vaultsLoading: boolean;
+  ledgerLoading: boolean;
+  vaultsError: string | null;
+  ledgerError: string | null;
   paypalMissing: boolean;
   /** dev panel's skip: false = the banner was manually re-enabled */
   bannerOff: boolean;
@@ -97,6 +99,8 @@ interface FreelancerPageCtx {
   setFilter: (f: Filter) => void;
   busyId: string | null;
   refresh: () => Promise<void>;
+  refreshVaults: () => Promise<void>;
+  refreshLedger: () => Promise<void>;
   act: (action: VaultAction, vault: FreelancerVault) => Promise<void>;
   openDetails: (vault: FreelancerVault) => void;
   openDrawer: () => void;
@@ -112,7 +116,7 @@ function useFreelancerPage(): FreelancerPageCtx {
 
 /* the vault grid Overview and Vaults share: skeletons, cards, empty state */
 function FreelancerList() {
-  const { vaults, loading, filter, act, busyId, openDrawer } = useFreelancerPage();
+  const { vaults, vaultsLoading, vaultsError, filter, act, busyId, openDrawer } = useFreelancerPage();
   const { query } = useDashUi();
   /* the remind label counts down; one tick a minute is enough */
   const [, setMinute] = useState(0);
@@ -133,7 +137,7 @@ function FreelancerList() {
 
   return (
     <div className="fd-list">
-      {loading
+      {vaultsLoading
         ? [0, 1, 2].map((i) => <div key={i} className="fd-skel fd-skel-card" style={{ animationDelay: `${i * 61.8}ms` }} />)
         : visible.map((vault, i) => (
             <VaultCard
@@ -146,7 +150,7 @@ function FreelancerList() {
               onAction={(a, v) => void act(a, v)}
             />
           ))}
-      {!loading && visible.length === 0 && (
+      {!vaultsLoading && !vaultsError && visible.length === 0 && (
         <div className="fd-empty">
           <span className="fd-empty-mark" aria-hidden="true">
             <VaultGlyph width="144" height="144" />
@@ -188,7 +192,21 @@ function FreelancerFilterChips() {
 /* ============================================================ chrome === */
 
 function Chrome({ email, children }: { email: string; children: ReactNode }) {
-  const { vaults, events, kpis, loading, error, paypalMissing, refresh, applyVault, dropVault } = useFreelancerData();
+  const {
+    vaults,
+    events,
+    kpis,
+    vaultsLoading,
+    ledgerLoading,
+    vaultsError,
+    ledgerError,
+    paypalMissing,
+    refresh,
+    refreshVaults,
+    refreshLedger,
+    applyVault,
+    dropVault,
+  } = useFreelancerData();
   const toast = useToast();
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -311,19 +329,41 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
       vaults,
       events,
       kpis,
-      loading,
-      error,
+      vaultsLoading,
+      ledgerLoading,
+      vaultsError,
+      ledgerError,
       paypalMissing,
       filter,
       setFilter,
       busyId,
       bannerOff,
       refresh,
+      refreshVaults,
+      refreshLedger,
       act,
       openDetails: setDetails,
       openDrawer: () => setDrawer({ step: 1 }),
     }),
-    [name, vaults, events, kpis, loading, error, paypalMissing, bannerOff, filter, busyId, refresh, applyVault, dropVault]
+    [
+      name,
+      vaults,
+      events,
+      kpis,
+      vaultsLoading,
+      ledgerLoading,
+      vaultsError,
+      ledgerError,
+      paypalMissing,
+      bannerOff,
+      filter,
+      busyId,
+      refresh,
+      refreshVaults,
+      refreshLedger,
+      applyVault,
+      dropVault,
+    ]
   );
 
   return (
@@ -373,16 +413,31 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
 /* ============================================================== pages === */
 
 export function FOverview() {
-  const { name, vaults, events, kpis, loading, error, paypalMissing, bannerOff, refresh } = useFreelancerPage();
+  const {
+    name,
+    vaults,
+    events,
+    kpis,
+    vaultsLoading,
+    ledgerLoading,
+    vaultsError,
+    ledgerError,
+    paypalMissing,
+    bannerOff,
+    refreshVaults,
+    refreshLedger,
+  } = useFreelancerPage();
 
   const phases = vaults.map(phaseOfVault);
   const failed = phases.filter((p) => p === "payout_failed").length;
   const needFiles = vaults.filter((v) => phaseOfVault(v) === "funded" && v.filesCount === 0).length;
   const waiting = phases.filter((p) => p === "invited" || p === "submitted").length;
 
-  const statusLine = loading
+  const statusLine = vaultsLoading
     ? null
-    : failed > 0
+    : vaultsError
+      ? "VAULT STATUS UNAVAILABLE"
+      : failed > 0
       ? `${failed} PAYOUT FAILED`
       : needFiles > 0
         ? `${needFiles} VAULT${needFiles === 1 ? "" : "S"} NEED YOUR FILES`
@@ -397,7 +452,7 @@ export function FOverview() {
           <h1 className="fd-h1">
             {greetingFor()}, {name}.
           </h1>
-          {loading ? (
+          {vaultsLoading ? (
             <span className="fd-skel fd-skel-line" aria-hidden="true" />
           ) : (
             <p className="dash-eyebrow dash-greeting-line fd-statusline" data-tone={failed ? "danger" : undefined}>
@@ -406,15 +461,15 @@ export function FOverview() {
             </p>
           )}
         </div>
-        <KpiRow kpis={kpis} failed={!kpis && !!error} />
+        <KpiRow kpis={kpis} failed={!kpis && !!vaultsError} />
       </div>
 
       <PayoutBanner show={paypalMissing && !bannerOff} />
 
-      {error && (
+      {vaultsError && (
         <div className="fd-error-bar" role="alert">
-          <span>{error}</span>
-          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
+          <span>{vaultsError}</span>
+          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refreshVaults()}>
             Retry
           </button>
         </div>
@@ -437,7 +492,15 @@ export function FOverview() {
               Earnings
             </h2>
           </div>
-          <FreelancerLedger events={events} loading={loading} />
+          {ledgerError && (
+            <div className="fd-error-bar" role="alert">
+              <span>{ledgerError}</span>
+              <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refreshLedger()}>
+                Retry
+              </button>
+            </div>
+          )}
+          {!ledgerError && <FreelancerLedger events={events} loading={ledgerLoading} />}
         </section>
       </div>
     </div>
@@ -445,17 +508,17 @@ export function FOverview() {
 }
 
 export function FVaults() {
-  const { vaults, error, paypalMissing, bannerOff, refresh } = useFreelancerPage();
+  const { vaults, vaultsError, paypalMissing, bannerOff, refreshVaults } = useFreelancerPage();
 
   return (
     <div className="fd-page" data-view="vaults">
       <h1 className="sr-only">Vaults</h1>
       <PayoutBanner show={paypalMissing && !bannerOff} />
 
-      {error && (
+      {vaultsError && (
         <div className="fd-error-bar" role="alert">
-          <span>{error}</span>
-          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refresh()}>
+          <span>{vaultsError}</span>
+          <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void refreshVaults()}>
             Retry
           </button>
         </div>
@@ -475,16 +538,16 @@ export function FVaults() {
 }
 
 export function FEarnings() {
-  const { vaults, events, loading, error, refresh, openDetails } = useFreelancerPage();
+  const { vaults, events, ledgerLoading, ledgerError, refreshLedger, openDetails } = useFreelancerPage();
 
   return (
     <div className="fd-page" data-view="earnings">
       <EarningsPage
         vaults={vaults}
         events={events}
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
+        loading={ledgerLoading}
+        error={ledgerError}
+        onRetry={() => void refreshLedger()}
         onOpenVault={openDetails}
       />
     </div>
