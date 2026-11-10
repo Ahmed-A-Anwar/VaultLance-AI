@@ -2,7 +2,7 @@
 
 Report date: **2026-11-10**
 Production frontend: `https://vault-lance-ai.vercel.app`
-Production API: `https://vaultlance-ai-1.onrender.com/api` (API revision at measurement: `14fdf70`; frontend entry at measurement: `index-BI5gNv2K.js`)
+Production API: `https://vaultlance-ai-1.onrender.com/api` (API revision at the latest sweep: `e8843e9`; frontend entry: `index-DRjMhQbe.js`)
 Report scope: sign in, sign up, dashboard, vaults, payments, ledger, settings and the audit room.
 
 > **Measurement honesty:** these are production measurements from one machine, not a controlled laboratory experiment. The post-deploy sample ran at a time when the API's network latency was higher than during the pre-deploy sample. The report keeps the earlier numbers for context, but it does not attribute every page-level difference to the code changes.
@@ -220,38 +220,54 @@ Options: `--runs=N` (1–9, default 3), `--json=.tmp/routes.json`, `--app=<url>`
 
 <!-- route-benchmark:start -->
 - **Run:** `npm run benchmark:routes -- --runs=3 --write-report`
-- **Measured:** 2026-11-10T23:04:40.721Z
+- **Measured:** 2026-11-10T23:22:59.324Z
 - **App:** https://vault-lance-ai.vercel.app
-- **API:** https://vaultlance-ai-1.onrender.com/api (revision `14fdf70f11bc921c7b5e0130c2323ba394f44d2c`)
+- **API:** https://vaultlance-ai-1.onrender.com/api (revision `e8843e913216e1c9628c1a94495f33623e073688`)
 - **Account:** client, 16 vaults (4 PAID)
 - **Viewport:** 1440 × 1000, Chromium headless
 - **Errors:** 0 page errors
 
 | Route | Direct median | Direct range | Warm median | Warm range |
 |---|---:|---:|---:|---:|
-| **Sign in** `/signin` | 1,701 ms | 1,563–1,718 ms | — | — |
-| **Sign up** `/signup` | 1,699 ms | 1,667–1,942 ms | — | — |
-| **Dashboard** `/dashboard` | 4,613 ms | 4,182–5,786 ms | 505 ms | 489–549 ms |
-| **Vaults** `/dashboard/vaults` | 4,228 ms | 4,122–4,635 ms | 467 ms | 456–526 ms |
-| **Payments** `/dashboard/payments` | 9,246 ms | 7,791–43,770 ms | 4,370 ms | 4,044–4,420 ms |
-| **Ledger** `/dashboard/ledger` | 3,301 ms | 3,107–4,904 ms | 413 ms | 369–517 ms |
-| **Settings** `/dashboard/settings` | 3,704 ms | 3,639–3,907 ms | 1,496 ms | 1,402–2,036 ms |
-| **Audit room** `/vault/:id` | 4,723 ms | 4,660–5,036 ms | — | — |
+| **Sign in** `/signin` | 1,653 ms | 1,520–2,043 ms | — | — |
+| **Sign up** `/signup` | 2,623 ms | 1,726–3,618 ms | — | — |
+| **Dashboard** `/dashboard` | 6,183 ms | 6,157–6,989 ms | 501 ms | 438–585 ms |
+| **Vaults** `/dashboard/vaults` | 6,636 ms | 6,018–6,736 ms | 453 ms | 385–517 ms |
+| **Payments** `/dashboard/payments` | 5,016 ms | 4,416–5,067 ms | 234 ms | 188–557 ms |
+| **Ledger** `/dashboard/ledger` | 3,846 ms | 3,135–5,635 ms | 229 ms | 214–832 ms |
+| **Settings** `/dashboard/settings` | 3,208 ms | 3,108–3,338 ms | 1,504 ms | 997–2,037 ms |
+| **Audit room** `/vault/:id` | 4,287 ms | 4,164–5,832 ms | — | — |
 
 Warm runs are in-app rail transitions in one signed-in tab; direct runs are fresh contexts. The sign-in rows measure the page load only.
 
 | Sign-in handoff | Median | Range |
 |---|---:|---:|
-| Submit → `/dashboard` URL | 5,050 ms | 4,975–5,368 ms |
-| URL → dashboard shell | 50 ms | 30–52 ms |
-| URL → sign-in form gone | 53 ms | 35–55 ms |
-| URL → all vault cards | 2,282 ms | 2,282–2,299 ms |
+| Submit → `/dashboard` URL | 5,289 ms | 5,062–5,834 ms |
+| URL → dashboard shell | 40 ms | 38–52 ms |
+| URL → sign-in form gone | 43 ms | 40–54 ms |
+| URL → all vault cards | 2,641 ms | 2,321–3,539 ms |
 
 | Vault-list probe | Server-Timing |
 |---|---|
-| First read | `vault-list;desc="direct";dur=362` |
-| Second read (800 ms later) | `vault-list;desc="cache";dur=186` |
+| First read | `vault-list;desc="cache";dur=545` |
+| Second read (800 ms later) | `vault-list;desc="cache";dur=177` |
 <!-- route-benchmark:end -->
+
+### Post-deploy change: Settings and audit room
+
+The Settings and audit-room optimizations were deployed as `eaadb76` (API revision `e8843e9`, frontend entry `index-DRjMhQbe.js`). Compared with the 23:04 sweep on the previous build:
+
+| Measurement | Before (`14fdf70`) | After (`e8843e9`) | Change |
+|---|---:|---:|---:|
+| Settings direct | 3,704 ms | 3,208 ms | −496 ms / −13.4% |
+| Settings warm | 1,496 ms | 1,504 ms | +8 ms / flat |
+| Audit room direct | 4,723 ms | 4,287 ms | −436 ms / −9.2% |
+
+Both pages were measured three times with the same fresh-context definition. The network was not faster in the after sample — Dashboard (4,613 → 6,183 ms) and Vaults (4,228 → 6,636 ms) were materially slower — so these two pages moved against the environment, but this is still not a controlled A/B. The audit-room range widened to 4,164–5,832 ms because one run carried a cold/API outlier.
+
+The audit room now reads files, the locked manifest and the conversation in one parallel phase, and takes the failure report, waivers, revision note and question count from the vault row it already selected instead of four more queries; the response carries `Server-Timing: vault, reads, checks, total`. Settings starts its payout lookup beside `/auth/me`. A direct Settings or audit-room entry also prefetches its route chunk, which is why the direct loads moved while the warm Settings transition stayed flat.
+
+Payments changed in the same release for a separate reason: holds and receipts now come from the dashboard's existing vault and ledger reads instead of two extra pairs. Its warm transition fell from 4,370 ms to 234 ms and its direct load from 9,246 ms to 5,016 ms, though that sample also carries the shared bundle change.
 
 ## Supporting measurements
 
