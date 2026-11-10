@@ -420,7 +420,9 @@ export function RoomProvider({ id, children }: { id: string; children: ReactNode
         );
         setQuestionsUsed((n) => res.questionsUsed ?? n + 1);
       } catch (e) {
-        const message = e instanceof ApiError ? e.message : "The agent did not answer.";
+        /* a timeout or a server refusal carries the reason worth showing;
+           only an unknown throw falls back to the old copy */
+        const message = e instanceof Error && e.message ? e.message : "The agent did not answer.";
         setMessages((prev) =>
           prev.map((m) =>
             m.id === answerId ? { ...m, typing: false, streaming: false, failed: true, text: message } : m

@@ -1051,6 +1051,11 @@ export async function askAI(
       ? await request<{ text?: string; sources?: SourceChip[]; cached?: boolean; questionsUsed?: number }>(`/vaults/${id}/chat`, {
           method: "POST",
           body: { question },
+          /* The first question in a room runs the deterministic checks and then
+             the whole Azure -> Groq -> Gemini chain, which can outlast the 10s
+             default. That abort looked like a failed answer, and the retry only
+             worked because the server had finished and cached it. */
+          timeoutMs: 60_000,
         })
       : await (async () => {
           const res = await fetch(`${API_BASE}/api/vaults/${id}/chat`, {
