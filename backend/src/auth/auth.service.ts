@@ -422,38 +422,46 @@ export class AuthService {
   /* ------------------------------------------------------------------ */
   public async validateTokenAndSession(token: string): Promise<AuthenticatedUser> {
     const payload = verifyToken(token);
-    const session = await sessionStore.getSession(payload.sessionId);
-
-
-    /* A signature proves we minted the token; it does not prove the session is
-       live. A missing row is a 401 and is never recreated here: recreating it
-       from the payload is what let a token signed with the repository's old
-       fallback secret log in as a user that never existed. getSession already
-       treats revoked and expired rows as absent. */
-    if (!session) {
-      throw new UnauthorizedError(
-        "Session has been revoked or expired.",
-        "SESSION_REVOKED"
-      );
-    }
-
-    if (session.userId !== payload.userId) {
-      throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
-    }
-
-    /* the row keeps the exact token it issued, so a rewritten payload under the
-       same session id is rejected even if it verifies */
-    if (session.token && session.token !== token) {
-      throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
-    }
 
     // ── Supabase path ──────────────────────────────────────────────
     if (isSupabaseConfigured() && supabase) {
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("id, email, full_name, avatar_url, account_status, role, is_playground")
-        .eq("id", payload.userId)
-        .single();
+      const client = supabase;
+
+      /* Session validation and the profile read do not depend on each other
+         once the JWT signature is verified. Run them together so an
+         authenticated dashboard request pays one Supabase round trip, not two. */
+      const [session, profileResult] = await Promise.all([
+        sessionStore.getSession(payload.sessionId),
+        client
+          .from("users")
+          .select("id, email, full_name, avatar_url, account_status, role, is_playground")
+          .eq("id", payload.userId)
+          .single(),
+      ]);
+
+      /* A signature proves we minted the token; it does not prove the session is
+         live. A missing row is a 401 and is never recreated here: recreating it
+         from the payload is what let a token signed with the repository's old
+         fallback secret log in as a user that never existed. getSession already
+         treats revoked and expired rows as absent. */
+      if (!session) {
+        throw new UnauthorizedError(
+          "Session has been revoked or expired.",
+          "SESSION_REVOKED"
+        );
+      }
+
+      if (session.userId !== payload.userId) {
+        throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
+      }
+
+      /* the row keeps the exact token it issued, so a rewritten payload under the
+         same session id is rejected even if it verifies */
+      if (session.token && session.token !== token) {
+        throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
+      }
+
+      const { data: profile, error } = profileResult;
 
       if (error || !profile) {
         throw new UnauthorizedError(
@@ -488,6 +496,23 @@ export class AuthService {
     }
 
     // ── In-memory fallback ─────────────────────────────────────────
+    const session = await sessionStore.getSession(payload.sessionId);
+
+    if (!session) {
+      throw new UnauthorizedError(
+        "Session has been revoked or expired.",
+        "SESSION_REVOKED"
+      );
+    }
+
+    if (session.userId !== payload.userId) {
+      throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
+    }
+
+    if (session.token && session.token !== token) {
+      throw new UnauthorizedError("Invalid authentication token.", "INVALID_TOKEN");
+    }
+
     database.store.checkFailure();
     const user = database.store.users.get(payload.userId);
     if (!user || user.account_status !== "ACTIVE") {
