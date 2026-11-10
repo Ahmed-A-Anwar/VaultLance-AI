@@ -1240,12 +1240,32 @@
 
 .fd-drawer-foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 13px;
   padding: 21px 34px calc(21px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--fd-hair);
 }
 .fd-drawer-foot .fd-btn { height: 55px; padding: 0 21px; }
+
+/* Creating a vault is several server calls, not one: the status line spans the
+   footer above the buttons so a slow upload reads as work in progress rather
+   than a dead button. */
+.fd-create-wait {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--hero-ink);
+}
+.fd-create-wait .fd-dim {
+  margin-left: auto;
+  font-size: 12px;
+}
 
 /* ---- success ---- */
 .fd-success { display: flex; flex-direction: column; align-items: center; gap: 13px; padding-top: 34px; text-align: center; }

@@ -83,6 +83,7 @@ export function NewVaultDrawer({
 
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const cents = useMemo(() => Math.round(Number(amount) * 100), [amount]);
@@ -188,6 +189,7 @@ export function NewVaultDrawer({
     let vaultId = existing?.id ?? "";
 
     if (!vaultId) {
+      setStage("Creating the vault…");
       /* FX.real.vaultsWrite sends this through the http client and the vault
          adapter; with the flag off the shipped apiClient path is untouched */
       if (realOn("vaultsWrite")) {
@@ -213,6 +215,7 @@ export function NewVaultDrawer({
     let serverManifest: string | undefined;
 
     if (mode === "zip" && file) {
+      setStage("Uploading and hashing the delivery…");
       if (realOn("uploads")) {
         /* upload, build, re-verify — each step's own failure stops the run */
         await uploadArchive(vaultId, file);
@@ -250,6 +253,7 @@ export function NewVaultDrawer({
 
     let invited = false;
     if (!draft) {
+      setStage("Sending the client invite…");
       const invite = await apiClient.vaults.invite(vaultId, email.trim());
       invited = invite.success;
       if (!invite.success) {
@@ -288,6 +292,7 @@ export function NewVaultDrawer({
       return;
     }
     setBusy(true);
+    setStage(draft ? "Saving your draft…" : "Creating your vault…");
     try {
       /* a demo vault (a v_… id from the mock store) keeps the mock path even
          with an API configured, so "Add files" never mints a duplicate vault */
@@ -330,6 +335,7 @@ export function NewVaultDrawer({
       });
     } finally {
       setBusy(false);
+      setStage(null);
     }
   };
 
@@ -379,6 +385,7 @@ export function NewVaultDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="fd-drawer-h"
+        aria-busy={busy || undefined}
         ref={panel}
         tabIndex={-1}
       >
@@ -619,6 +626,13 @@ export function NewVaultDrawer({
         </div>
 
         <footer className="fd-drawer-foot">
+          {busy && (
+            <p className="fd-create-wait" role="status" aria-live="polite">
+              <span className="fd-spin" aria-hidden="true" />
+              <span>{stage ?? "Working…"}</span>
+              <span className="fd-dim">Please keep this window open.</span>
+            </p>
+          )}
           {done ? (
             <>
               <button type="button" className="fd-btn fd-btn-primary" onClick={onClose}>
@@ -651,12 +665,13 @@ export function NewVaultDrawer({
                 type="button"
                 className="fd-btn fd-btn-secondary"
                 onClick={() => (step === 1 ? onClose() : setStep((s) => (s - 1) as Step))}
+                disabled={busy}
               >
                 {step === 1 ? "Cancel" : "Back"}
               </button>
               {step === 1 && (
                 <button type="button" className="fd-btn fd-btn-ghost" onClick={() => void submit(true)} disabled={busy}>
-                  Save draft
+                  {busy ? "Saving draft…" : "Save draft"}
                 </button>
               )}
               {step < 3 ? (
@@ -673,8 +688,14 @@ export function NewVaultDrawer({
                   Next
                 </button>
               ) : (
-                <button type="button" className="fd-btn fd-btn-primary" onClick={() => void submit(false)} disabled={busy}>
-                  Create &amp; invite client
+                <button
+                  type="button"
+                  className="fd-btn fd-btn-primary"
+                  onClick={() => void submit(false)}
+                  disabled={busy}
+                  aria-busy={busy || undefined}
+                >
+                  {busy ? "Creating vault…" : "Create & invite client"}
                 </button>
               )}
             </>
