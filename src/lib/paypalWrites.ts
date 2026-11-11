@@ -15,6 +15,8 @@ import { realOn } from "../config/fx";
 
 export interface PaypalOrder {
   orderId: string;
+  /** PayPal's browser checkout link, used when its SDK cannot render a button */
+  approvalUrl?: string;
   /** set when PayPal already holds an approval for this vault and the server
       recorded it instead of minting a second order */
   claimed?: boolean;
@@ -42,8 +44,16 @@ export async function createPaypalOrder(vaultId: string): Promise<PaypalOrder> {
   const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
   if (!orderId) throw new Error("PayPal did not return an order id.");
 
+  const links = Array.isArray(raw?.links) ? (raw.links as Array<Record<string, unknown>>) : [];
+  const approval = links.find((link) => {
+    const rel = String(link?.rel ?? "");
+    return rel === "approve" || rel === "payer-action";
+  });
+  const approvalUrl = typeof approval?.href === "string" ? approval.href : "";
+
   return {
     orderId,
+    ...(approvalUrl ? { approvalUrl } : {}),
     ...(raw?.claimed === true ? { claimed: true } : {}),
     ...(typeof raw?.status === "string" ? { status: raw.status } : {}),
     ...(typeof raw?.authorizationId === "string" ? { authorizationId: raw.authorizationId } : {}),

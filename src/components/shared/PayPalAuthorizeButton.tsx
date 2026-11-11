@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   destroySDKScript,
   getScriptID,
@@ -9,6 +9,7 @@ import {
 import { useToast } from "../shared/Toasts";
 import { API_BASE_URL, apiClient } from "../../lib/apiClient";
 import { authorizePaypalOrder, createPaypalOrder, reconcilePaypalOrder } from "../../lib/paypalWrites";
+import { rememberApprovedOrder } from "../../lib/paypalReturn";
 import { realOn } from "../../config/fx";
 
 interface PayPalAuthorizeButtonProps {
@@ -18,6 +19,8 @@ interface PayPalAuthorizeButtonProps {
   onError?: (err: any) => void;
   disabled?: boolean;
 }
+
+type ButtonPhase = "waiting" | "ready" | "failed";
 
 export function PayPalAuthorizeButton({
   vaultId,
@@ -72,7 +75,11 @@ function PayPalButtonMount({
 }: PayPalAuthorizeButtonProps & { onRetry: () => void }) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [{ isPending, isRejected }] = usePayPalScriptReducer();
+  const [opening, setOpening] = useState(false);
+  const [phase, setPhase] = useState<ButtonPhase>("waiting");
+  const [slow, setSlow] = useState(false);
+  const [{ isPending, isRejected, isResolved }] = usePayPalScriptReducer();
+  const stage = useRef<HTMLDivElement>(null);
   /* set when the hold was already at PayPal and this click recorded it: the
      SDK call is then aborted on purpose, so its error toast must stay silent */
   const healed = useRef(false);
@@ -83,28 +90,76 @@ function PayPalButtonMount({
      different account than the one the room is showing */
   const getToken = () => apiClient.getToken() || "";
 
-  if (isRejected) {
-    return (
-      <div className="paypal-btn-status" data-state="error" role="alert">
-        <span>PayPal didn’t load.</span>
-        <button type="button" className="paypal-btn-retry" onClick={onRetry}>
-          Retry
-        </button>
-      </div>
-    );
+  /* A script request can hang without rejecting, leaving the card on a spinner
+     forever. After ten seconds offer the direct checkout path as well. */
+  useEffect(() => {
+    if (!isPending) {
+      setSlow(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlow(true), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [isPending]);
+
+  /* The provider resolving only means the SDK script arrived. PayPal's own
+     button can still be ineligible or fail to mount, so wait for a visible
+     iframe before removing the loading state. */
+  useEffect(() => {
+    if (!isResolved) return;
+    const started = Date.now();
+    let lastSeen = 0;
+
+    const timer = window.setInterval(() => {
+      const frame = stage.current?.querySelector("iframe");
+      const visible = frame instanceof HTMLElement && frame.getBoundingClientRect().height > 0;
+      if (visible) {
+        lastSeen = Date.now();
+        setPhase((current) => (current === "ready" ? current : "ready"));
+        return;
+      }
+      const since = lastSeen || started;
+      const limit = lastSeen ? 2_500 : 8_000;
+      if (Date.now() - since > limit) {
+        setPhase((current) => (current === "failed" ? current : "failed"));
+      }
+    }, 500);
+
+    return () => window.clearInterval(timer);
+  }, [isResolved]);
+
+  async function openCheckout() {
+    if (opening) return;
+    setOpening(true);
+    try {
+      const order = await createPaypalOrder(vaultId);
+      if (order.claimed) {
+        toast({ message: `Already approved at PayPal — $${amountUSD} is held in escrow.`, tone: "success" });
+        onSuccess({ claimed: true, status: order.status, authorizationId: order.authorizationId });
+        return;
+      }
+      if (!order.approvalUrl) throw new Error("PayPal did not return a checkout link.");
+
+      const checkout = new URL(order.approvalUrl);
+      const allowed = new Set(["paypal.com", "www.paypal.com", "sandbox.paypal.com", "www.sandbox.paypal.com"]);
+      if (!allowed.has(checkout.hostname)) throw new Error("PayPal returned an unexpected checkout link.");
+
+      rememberApprovedOrder(vaultId, order.orderId);
+      window.location.assign(checkout.toString());
+    } catch (err: any) {
+      toast({ message: err.message || "Could not open PayPal checkout.", tone: "error" });
+      onError?.(err);
+    } finally {
+      setOpening(false);
+    }
   }
 
-  if (isPending) {
-    return (
-      <div className="paypal-btn-status" data-state="loading" role="status" aria-live="polite">
-        <span className="dash-spin" aria-hidden="true" />
-        <span>Loading PayPal…</span>
-      </div>
-    );
-  }
+  const unavailable = isRejected || phase === "failed" || (isPending && slow);
+  const message = isPending && slow ? "PayPal is taking too long." : "PayPal didn’t load.";
 
   return (
-    <PayPalButtons
+    <div className="paypal-btn-stage" ref={stage}>
+      {isResolved && (
+        <PayPalButtons
           disabled={disabled || loading}
           style={{ layout: "horizontal", height: 40, tagline: false, shape: "rect", color: "gold" }}
           createOrder={async () => {
@@ -133,6 +188,7 @@ function PayPalButtonMount({
                   onSuccess({ claimed: true, status: order.status, authorizationId: order.authorizationId });
                   throw new Error("HOLD_ALREADY_RECORDED");
                 }
+                rememberApprovedOrder(vaultId, order.orderId);
                 return order.orderId;
               }
               const res = await fetch(`${apiBase}/api/vaults/${vaultId}/payment/order`, {
@@ -200,6 +256,7 @@ function PayPalButtonMount({
           }}
           onError={(err) => {
             setLoading(false);
+            setPhase("failed");
             if (healed.current) {
               /* the popup was aborted because the hold was already recorded */
               healed.current = false;
@@ -209,7 +266,35 @@ function PayPalButtonMount({
             toast({ message: "PayPal encountered an error. Please try again.", tone: "error" });
             onError?.(err);
           }}
-    />
+        />
+      )}
+
+      {(!isResolved || phase !== "ready") && (
+        <div
+          className="paypal-btn-overlay"
+          data-state={unavailable ? "error" : "loading"}
+          role={unavailable ? "alert" : "status"}
+          aria-live="polite"
+        >
+          {unavailable ? (
+            <>
+              <span>{message}</span>
+              <button type="button" className="paypal-btn-direct" onClick={() => void openCheckout()} disabled={opening}>
+                {opening ? "Opening…" : "Open PayPal"}
+              </button>
+              <button type="button" className="paypal-btn-retry" onClick={onRetry}>
+                Retry
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="dash-spin" aria-hidden="true" />
+              <span>{isPending ? "Loading PayPal…" : "Opening PayPal…"}</span>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
