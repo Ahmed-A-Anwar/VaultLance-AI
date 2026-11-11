@@ -376,7 +376,6 @@
 
 html .dash {
   --dash-strip: 64px;
-  --dash-pad: 28px;
 }
 
 .dash .dash-strip {
@@ -421,9 +420,9 @@ html .dash {
   border-radius: 10px;
 }
 
-/* A labelled rail on wide screens: recognition beats recall. It stays 89px
-   between 1024 and 1279, where the content needs the room. */
-@media (min-width: 1280px) {
+/* A labelled rail on wide desktops: recognition beats recall. Laptops keep
+   the compact icon rail, where the content needs the room. */
+@media (min-width: 1440px) {
   html .dash {
     --dash-rail: 210px;
   }

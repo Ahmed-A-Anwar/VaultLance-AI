@@ -5,8 +5,8 @@
    0.618 / 1.618 / 1 across 34px of page padding and 21px of gap. */
 
 .room {
-  --room-pad: 34px;
-  --room-gap: 21px;
+  --room-pad: clamp(21px, 2.5vw, 34px);
+  --room-gap: clamp(13px, 1.55vw, 21px);
   --room-r: 13px;
   --room-glass: rgba(255, 255, 255, 0.35);
   --room-glass-strong: rgba(255, 255, 255, 0.55);
@@ -120,13 +120,17 @@
 }
 .room-title {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   font-family: var(--room-display);
   font-variation-settings: normal;
-  font-size: 26px;
+  font-size: clamp(21px, 2vw, 26px);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .room-sub {
   margin: 0;
@@ -1469,7 +1473,7 @@
   min-width: 0;
 }
 .room-decision-row .room-amount {
-  font-size: 42px;
+  font-size: clamp(34px, 3vw, 42px);
   line-height: 0.95;
 }
 .room-decision-row .room-fees {
@@ -1832,6 +1836,17 @@
 }
 
 /* -------------------------------------------------------------- responsive */
+
+/* 1280–1399: reclaim the gutters and give the chat more of the room */
+@media (min-width: 1280px) and (max-width: 1399px) {
+  .room {
+    --room-pad: 21px;
+    --room-gap: 13px;
+  }
+  .room-main {
+    grid-template-columns: minmax(0, 0.55fr) minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+}
 
 /* 1024 to 1279: files ride above as a strip, chat and checks side by side */
 @media (max-width: 1279px) {
