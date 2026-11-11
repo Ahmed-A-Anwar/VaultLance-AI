@@ -36,6 +36,21 @@ describe("paypalWrites", () => {
     expect(init.headers).toMatchObject({ Authorization: "Bearer tok-123" });
   });
 
+  it("keeps PayPal's payer checkout link for the direct fallback", async () => {
+    const href = "https://www.sandbox.paypal.com/checkoutnow?token=ORDER-1";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        reply(201, {
+          success: true,
+          data: { orderId: "ORDER-1", links: [{ rel: "payer-action", href }] },
+        })
+      )
+    );
+
+    await expect(createPaypalOrder(ID)).resolves.toEqual({ orderId: "ORDER-1", approvalUrl: href });
+  });
+
   it("refuses an order answer with no id", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => reply(201, { success: true, data: {} })));
     await expect(createPaypalOrder(ID)).rejects.toThrow(/order id/);
