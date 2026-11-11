@@ -14,6 +14,7 @@ import {
 import { API_BASE_URL, apiClient, isDemoMode } from "../../lib/apiClient";
 import { listEvents as listLocalEvents, listVaults as listLocalVaults } from "../../lib/api";
 import { fetchVaults as fetchRealVaults, kpisOf, pollDelay, shouldPoll } from "../../lib/reads";
+import { useToast } from "../shared/Toasts";
 import { realOn } from "../../config/fx";
 
 interface DashDataValue {
@@ -144,7 +145,18 @@ function calculateKpis(vList: Vault[]): Kpis {
   };
 }
 
+/* One quiet line for the poller's additions. A full list refresh can carry
+   several invitations at once, so say the count rather than naming one. */
+function newVaultNotice(previous: Vault[], next: Vault[]): string | null {
+  const known = new Set(previous.map((v) => v.id));
+  const added = next.filter((v) => !known.has(v.id));
+  if (added.length === 0) return null;
+  if (added.length === 1) return `New vault: ${added[0].project}.`;
+  return `${added.length} new vaults were added.`;
+}
+
 export function DashDataProvider({ children }: { children: ReactNode }) {
+  const toast = useToast();
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [events, setEvents] = useState<LedgerEvent[]>([]);
   const [kpis, setKpis] = useState<Kpis | null>(null);
@@ -215,9 +227,10 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
     };
   }, [ledgerPass]);
 
-  /* Slice 5: a visible page refreshes every 5s while something is still moving,
-     backing off to 15s after three failures in a row. A hidden tab, or a page
-     whose vaults are all terminal, stops asking. */
+  /* A visible page refreshes every 5s while something is still moving. An idle
+     page still checks every 15s for a newly invited vault: membership can change
+     on another device, so stopping here would require a reload to see it. The
+     poll backs off after failures and refreshes immediately on visibility. */
   useEffect(() => {
     if (!readsReal) return;
     let timer = 0;
@@ -226,15 +239,22 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
 
     const schedule = () => {
       if (stopped) return;
-      timer = window.setTimeout(tick, pollDelay(errors));
+      timer = window.setTimeout(tick, pollDelay(errors, shouldPoll(vaultsRef.current)));
     };
 
     const tick = async () => {
       if (stopped || document.visibilityState !== "visible") return;
-      if (!shouldPoll(vaultsRef.current)) return;
+      /* Only a poll that started after the initial read can announce an
+         addition: otherwise the first paint would toast every existing vault. */
+      const primed = haveVaults.current;
+      const previous = vaultsRef.current;
       try {
         const next = await fetchRealVaults();
         errors = 0;
+        if (primed) {
+          const notice = newVaultNotice(previous, next);
+          if (notice) toast({ message: notice, tone: "info" });
+        }
         vaultsRef.current = next;
         setVaults(next);
         setKpis(kpisOf(next));
@@ -244,20 +264,22 @@ export function DashDataProvider({ children }: { children: ReactNode }) {
       schedule();
     };
 
-    const onVisible = () => {
+    const refreshNow = () => {
       if (stopped || document.visibilityState !== "visible") return;
       window.clearTimeout(timer);
-      schedule();
+      void tick();
     };
 
     schedule();
-    document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("visibilitychange", refreshNow);
+    window.addEventListener("focus", refreshNow);
     return () => {
       stopped = true;
       window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("visibilitychange", refreshNow);
+      window.removeEventListener("focus", refreshNow);
     };
-  }, [readsReal]);
+  }, [readsReal, toast]);
 
   useEffect(
     () =>
