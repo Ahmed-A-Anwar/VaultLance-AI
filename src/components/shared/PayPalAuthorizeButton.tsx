@@ -1,5 +1,11 @@
 import { useRef, useState } from "react";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import {
+  destroySDKScript,
+  getScriptID,
+  PayPalButtons,
+  PayPalScriptProvider,
+  usePayPalScriptReducer,
+} from "@paypal/react-paypal-js";
 import { useToast } from "../shared/Toasts";
 import { API_BASE_URL, apiClient } from "../../lib/apiClient";
 import { authorizePaypalOrder, createPaypalOrder, reconcilePaypalOrder } from "../../lib/paypalWrites";
@@ -20,30 +26,85 @@ export function PayPalAuthorizeButton({
   onError,
   disabled = false,
 }: PayPalAuthorizeButtonProps) {
+  const [attempt, setAttempt] = useState(0);
+  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "BAA4Q0lxKMe-eEttZJdGKUOoM2AqGcE73TwoR1SPtbb_ofvrc1P1hwjp6UTUbO0l8E3jQo5deQixmDqI50";
+  const options = {
+    clientId,
+    intent: "authorize" as const,
+    currency: "USD",
+    components: "buttons",
+  };
+
+  /* A failed SDK script stays in the document. Remove it before remounting the
+     provider, or the retry would find the same rejected script and fail again. */
+  const retry = () => {
+    try {
+      destroySDKScript(getScriptID(options));
+    } catch {
+      /* the script was never inserted, so there is nothing to remove */
+    }
+    setAttempt((n) => n + 1);
+  };
+
+  return (
+    <div className="paypal-btn-wrapper" style={{ marginTop: "12px", minHeight: "45px" }}>
+      <PayPalScriptProvider key={attempt} options={options}>
+        <PayPalButtonMount
+          vaultId={vaultId}
+          amountUSD={amountUSD}
+          onSuccess={onSuccess}
+          onError={onError}
+          disabled={disabled}
+          onRetry={retry}
+        />
+      </PayPalScriptProvider>
+    </div>
+  );
+}
+
+function PayPalButtonMount({
+  vaultId,
+  amountUSD,
+  onSuccess,
+  onError,
+  disabled,
+  onRetry,
+}: PayPalAuthorizeButtonProps & { onRetry: () => void }) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const [{ isPending, isRejected }] = usePayPalScriptReducer();
   /* set when the hold was already at PayPal and this click recorded it: the
      SDK call is then aborted on purpose, so its error toast must stay silent */
   const healed = useRef(false);
 
-  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "BAA4Q0lxKMe-eEttZJdGKUOoM2AqGcE73TwoR1SPtbb_ofvrc1P1hwjp6UTUbO0l8E3jQo5deQixmDqI50";
   const apiBase = API_BASE_URL.replace(/\/api$/, "");
 
   /* the same token the rest of the app sends, so funding cannot run as a
      different account than the one the room is showing */
   const getToken = () => apiClient.getToken() || "";
 
+  if (isRejected) {
+    return (
+      <div className="paypal-btn-status" data-state="error" role="alert">
+        <span>PayPal didn’t load.</span>
+        <button type="button" className="paypal-btn-retry" onClick={onRetry}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <div className="paypal-btn-status" data-state="loading" role="status" aria-live="polite">
+        <span className="dash-spin" aria-hidden="true" />
+        <span>Loading PayPal…</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="paypal-btn-wrapper" style={{ marginTop: "12px", minHeight: "45px" }}>
-      <PayPalScriptProvider
-        options={{
-          clientId: clientId,
-          intent: "authorize",
-          currency: "USD",
-          components: "buttons",
-        }}
-      >
-        <PayPalButtons
+    <PayPalButtons
           disabled={disabled || loading}
           style={{ layout: "horizontal", height: 40, tagline: false, shape: "rect", color: "gold" }}
           createOrder={async () => {
@@ -148,9 +209,7 @@ export function PayPalAuthorizeButton({
             toast({ message: "PayPal encountered an error. Please try again.", tone: "error" });
             onError?.(err);
           }}
-        />
-      </PayPalScriptProvider>
-    </div>
+    />
   );
 }
 
