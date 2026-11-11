@@ -1,0 +1,1405 @@
+{
+  "info": {
+    "name": "VaultLance API (real routes)",
+    "description": "Generated from scripts/gen-api-docs.mjs. Covers the Express surface: auth, vaults, the money loop (PayPal sandbox order → authorize → capture/void), files, manifests, audit, ledger and playground. Set baseUrl and run Auth → Register/Login first; the collection captures the token and ids.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"freelancer@example.com\",\n  \"password\": \"CorrectHorse9!\",\n  \"fullName\": \"Ada Lovelace\",\n  \"role\": \"FREELANCER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json(); if (body?.data?.token) pm.collectionVariables.set(\"token\", body.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"freelancer@example.com\",\n  \"password\": \"CorrectHorse9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json(); if (body?.data?.token) pm.collectionVariables.set(\"token\", body.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /auth/password-reset/request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"freelancer@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-reset",
+                "request"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /auth/password-reset/{token}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/{{resetToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-reset",
+                "{{resetToken}}"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /auth/password-reset/confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"a1b2c3\",\n  \"password\": \"AnotherPass9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "password-reset",
+                "confirm"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "PATCH /auth/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ada L.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /auth/me/password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"CorrectHorse9!\",\n  \"newPassword\": \"AnotherPass9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                "password"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /auth/me/export",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                "export"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /auth/me/payout-profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/payout-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                "payout-profile"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "PUT /auth/me/payout-profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payoutEmail\": \"freelancer@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/payout-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                "payout-profile"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "DELETE /auth/me",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"CorrectHorse9!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Vaults",
+      "item": [
+        {
+          "name": "GET /vaults",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Landing page rebuild\",\n  \"amount\": 250,\n  \"currency\": \"USD\",\n  \"clientEmail\": \"client@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json(); if (body?.data?.id) pm.collectionVariables.set(\"vaultId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /vaults/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "PATCH /vaults/{id}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Landing page rebuild v2\",\n  \"amount\": 300\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/invite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientEmail\": \"client@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "invite"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/accept",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "accept"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/submit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/authorize",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/authorize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "authorize"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "approve"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/revision",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Please fix the footer links.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/revision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "revision"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Not the agreed scope.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "reject"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "POST /vaults/{id}/audit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "audit"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /vaults/{id}/audit-detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/audit-detail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "audit-detail"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/checks/run",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/checks/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "checks",
+                "run"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Which checks failed?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "chat"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Invites",
+      "item": [
+        {
+          "name": "POST /vaults/{id}/invite-code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/invite-code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "invite-code"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/join",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"VL-8F2K\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "join"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/join",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"VL-8F2K\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "join"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "POST /vaults/{vaultId}/payment/order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"returnUrl\": \"https://vault-lance-ai.vercel.app/vault/{id}\",\n  \"cancelUrl\": \"https://vault-lance-ai.vercel.app/dashboard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/payment/order",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "payment",
+                "order"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json(); if (body?.data?.orderId) pm.collectionVariables.set(\"orderId\", body.data.orderId);",
+                  "const link = (pm.response.json()?.data?.links || []).find((l) => l.rel === \"approve\" || l.rel === \"payer-action\"); if (link) pm.collectionVariables.set(\"approveUrl\", link.href);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /vaults/{vaultId}/payment/authorize",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"ORDER-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/payment/authorize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "payment",
+                "authorize"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{vaultId}/payment/reconcile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"ORDER-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/payment/reconcile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "payment",
+                "reconcile"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/capture",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/capture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "capture"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/void",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorizationId\": \"AUTH-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/void",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "void"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /vaults/{id}/payout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/payout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "payout"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /vaults/{id}/payout/retry",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/payout/retry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "payout",
+                "retry"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "POST /uploads/{vaultId}",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/{{vaultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "uploads",
+                "{{vaultId}}"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /uploads/download/{fileId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/download/{{fileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "uploads",
+                "download",
+                "{{fileId}}"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /uploads/vault/{vaultId}/files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/vault/{{vaultId}}/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "uploads",
+                "vault",
+                "{{vaultId}}",
+                "files"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "GET /vaults/{id}/files/{fileId}/download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vaults/{{vaultId}}/files/{{fileId}}/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vaults",
+                "{{vaultId}}",
+                "files",
+                "{{fileId}}",
+                "download"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Manifests",
+      "item": [
+        {
+          "name": "GET /manifests/{vaultId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/manifests/{{vaultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "manifests",
+                "{{vaultId}}"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /manifests/{vaultId}/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"manifest\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/manifests/{{vaultId}}/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "manifests",
+                "{{vaultId}}",
+                "verify"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Ledger",
+      "item": [
+        {
+          "name": "GET /ledger",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ledger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ledger"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Playground",
+      "item": [
+        {
+          "name": "POST /playground/start",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/playground/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "playground",
+                "start"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /playground/sample",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"zip\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/playground/sample",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "playground",
+                "sample"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /playground/reset",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/playground/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "playground",
+                "reset"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "item": [
+        {
+          "name": "GET /ai/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai",
+                "health"
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "POST /webhooks/paypal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/paypal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "paypal"
+              ]
+            }
+          },
+          "event": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "vaultId",
+      "value": ""
+    },
+    {
+      "key": "fileId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "approveUrl",
+      "value": ""
+    },
+    {
+      "key": "resetToken",
+      "value": ""
+    }
+  ]
+}
