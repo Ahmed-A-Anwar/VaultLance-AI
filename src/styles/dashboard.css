@@ -1563,6 +1563,24 @@
     --dash-pad: 21px;
     --dash-gap: 13px;
   }
+  /* The compact rail is not a drawer on laptops: hover or keyboard focus must
+     not widen it over the dashboard. */
+  .dash-rail:hover,
+  .dash-rail:focus-within {
+    width: var(--dash-rail);
+    background: rgba(255, 255, 255, 0.42);
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+    backdrop-filter: blur(12px) saturate(1.05);
+    box-shadow: none;
+  }
+  .dash-rail:hover .dash-wordmark-text,
+  .dash-rail:focus-within .dash-wordmark-text,
+  .dash-rail:hover .dash-nav-label,
+  .dash-rail:focus-within .dash-nav-label,
+  .dash-rail:hover .dash-user-meta,
+  .dash-rail:focus-within .dash-user-meta {
+    opacity: 0;
+  }
   .dash-upper {
     grid-template-columns: minmax(0, 1fr);
     gap: 21px;
