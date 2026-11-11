@@ -7,7 +7,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from "react";
 import { hasPayoutEmail } from "../../lib/api";
 import { getPayoutProfile } from "../payments/paymentsApi";
-import { isDemoMode } from "../../lib/apiClient";
+import { apiClient, isDemoMode } from "../../lib/apiClient";
+import { pollDelay } from "../../lib/reads";
 import {
   getFreelancerKpis as demoKpis,
   listFreelancerEvents as demoEvents,
@@ -21,6 +22,7 @@ import {
   kpisFor,
   listFreelancerEvents as liveEvents,
   listFreelancerVaults as liveVaults,
+  uiStatusOf,
 } from "./liveApi";
 
 interface Value {
@@ -122,6 +124,42 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshVaults, refreshLedger]);
 
+  /* A payment lands in another tab or on another device, so the list cannot
+     wait for an action here. One /vaults read per tick carries the status; the
+     heavier record (files, fees, payout, events) is fetched once, only when a
+     status actually moved. */
+  const pollStatuses = useCallback(async () => {
+    const res = await apiClient.vaults.list();
+    if (!res.success || !Array.isArray(res.data)) {
+      throw new Error(res.message || "The vault service didn’t answer.");
+    }
+
+    const rows = new Map(res.data.map((row: any) => [String(row.id), row]));
+    const prev = vaultsRef.current;
+    const next = prev.map((vault) => {
+      const row = rows.get(vault.id) as any;
+      if (!row) return vault;
+      const status = uiStatusOf(String(row.status ?? ""));
+      if (status === vault.uiStatus) return vault;
+      const capture = row.paypal_capture_id || row.paypalCaptureId;
+      return { ...vault, uiStatus: status, ...(capture ? { captureId: String(capture) } : {}) };
+    });
+    const statusChanged = next.some((vault, i) => vault.uiStatus !== prev[i].uiStatus);
+    const membershipChanged =
+      prev.length !== rows.size || prev.some((vault) => !rows.has(vault.id));
+
+    /* an unchanged tick must not re-render every card */
+    if (!statusChanged && !membershipChanged) return;
+
+    vaultsRef.current = next;
+    setVaults(next);
+
+    if (statusChanged || membershipChanged) {
+      await refreshVaults();
+      if (alive.current) await refreshLedger();
+    }
+  }, [refreshVaults, refreshLedger]);
+
   useEffect(() => {
     alive.current = true;
     void refresh();
@@ -129,6 +167,50 @@ export function FreelancerDataProvider({ children }: { children: ReactNode }) {
       alive.current = false;
     };
   }, [refresh]);
+
+  /* Poll only while something can still move, and only in a visible tab. An
+     idle dashboard costs one request every five seconds; three failures in a
+     row back that off to fifteen. */
+  const moving = vaults.some((vault) => vault.uiStatus !== "unlocked" && vault.uiStatus !== "voided");
+
+  useEffect(() => {
+    if (isDemoMode() || !moving) return;
+
+    let timer = 0;
+    let errors = 0;
+    let stopped = false;
+
+    const schedule = () => {
+      if (stopped) return;
+      timer = window.setTimeout(tick, pollDelay(errors));
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+      if (document.visibilityState !== "visible") return;
+      try {
+        await pollStatuses();
+        errors = 0;
+      } catch {
+        errors += 1;
+      }
+      schedule();
+    };
+
+    const onVisible = () => {
+      if (stopped || document.visibilityState !== "visible") return;
+      window.clearTimeout(timer);
+      void tick();
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [moving, pollStatuses]);
 
   useEffect(() => {
     /* the demo store fans out locally; the server has no stream yet, so a real

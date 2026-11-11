@@ -23,7 +23,7 @@ import type {
 } from "./mockApi";
 
 /* the backend's lifecycle, folded onto the five statuses the UI knows */
-function uiStatusOf(raw: string): UiStatus {
+export function uiStatusOf(raw: string): UiStatus {
   const s = (raw || "").toUpperCase();
   if (["DRAFT", "AWAITING_CLIENT", "AWAITING_AUTHORIZATION"].includes(s)) return "awaiting_payment";
   if (["AUTHORIZED", "FUNDS_HELD", "IN_PROGRESS"].includes(s)) return "held";

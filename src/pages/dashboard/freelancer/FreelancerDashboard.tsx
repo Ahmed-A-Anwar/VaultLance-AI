@@ -213,6 +213,12 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
   const [drawer, setDrawer] = useState<{ step?: 1 | 2; vault?: FreelancerVault } | null>(null);
   const [details, setDetails] = useState<FreelancerVault | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  /* the list is the source of truth: keep an open details drawer on the same
+     record when a background poll moves its phase */
+  useEffect(() => {
+    setDetails((current) => (current ? vaults.find((v) => v.id === current.id) ?? current : current));
+  }, [vaults]);
   const [dev, setDev] = useState(false);
   const [bannerOff, setBannerOff] = useState(false);
 
