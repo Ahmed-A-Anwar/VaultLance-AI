@@ -42,7 +42,7 @@
 .fd-h1 {
   font-family: var(--hero-font-display);
   font-weight: 600;
-  font-size: 42px;
+  font-size: clamp(34px, 3vw, 42px);
   line-height: 1.08;
   letter-spacing: 0;
   font-optical-sizing: none;
@@ -76,7 +76,7 @@
 /* Below 1280 the golden-ratio split leaves the KPI row under 374px, so three
    cards collapse to 66px and their labels clip to a sliver. The band stacks
    instead; the ratio returns as soon as both columns fit. */
-@media (max-width: 1279px) {
+@media (max-width: 1399px) {
   .fd-band { grid-template-columns: minmax(0, 1fr); height: auto; }
 }
 .fd-greet {
@@ -248,7 +248,7 @@
   /* the client card's own geometry: content left, a 233px rail for the
      actions, 13px/21px padding, 144px tall */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 233px;
+  grid-template-columns: minmax(0, 1fr) clamp(160px, 17vw, 233px);
   gap: 13px;
   height: 144px;
   container-type: inline-size;
@@ -1358,8 +1358,8 @@
   .fd-earn-total { margin-top: 13px; }
 }
 
-/* ---- 1024–1359: the ledger drops below ---- */
-@media (max-width: 1359px) {
+/* ---- below 1400: the ledger drops below the vault list ---- */
+@media (max-width: 1399px) {
   .fd-lower { grid-template-columns: 1fr; }
   .fd-ledger { position: static; height: auto; max-height: none; }
   .fd-grid { flex: none; height: 377px; }

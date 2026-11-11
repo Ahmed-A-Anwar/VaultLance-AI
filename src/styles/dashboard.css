@@ -6,11 +6,11 @@
    not in the tokens or in the dashboard spec. */
 
 .dash {
-  --dash-rail: 89px;
+  --dash-rail: clamp(72px, 6.5vw, 89px);
   --dash-rail-open: 233px;
   --dash-strip: 55px;
-  --dash-pad: 34px;
-  --dash-gap: 21px;
+  --dash-pad: clamp(21px, 2.4vw, 34px);
+  --dash-gap: clamp(13px, 1.55vw, 21px);
   --dash-r: 13px;
   --dash-glass: rgba(255, 255, 255, 0.35);
   --dash-glass-strong: rgba(255, 255, 255, 0.55);
@@ -70,7 +70,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--dash-gap);
-  padding: 34px 13px;
+  padding: clamp(21px, 2.4vw, 34px) 13px;
   background: rgba(255, 255, 255, 0.42);
   -webkit-backdrop-filter: blur(12px) saturate(1.05);
   backdrop-filter: blur(12px) saturate(1.05);
@@ -356,7 +356,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  width: 233px;
+  width: clamp(170px, 17vw, 233px);
 }
 .dash-search-icon {
   position: absolute;
@@ -566,7 +566,7 @@
   font-family: var(--hero-font-display);
   font-variation-settings: normal;
   font-weight: 600;
-  font-size: 42px;
+  font-size: clamp(30px, 3.1vw, 42px);
   line-height: 1.05;
   letter-spacing: -0.01em;
   font-variant-ligatures: none;
@@ -1556,8 +1556,31 @@
 
 /* ============================================================== responsive */
 
-/* 1024–1279: the ledger drops under the vault cards, bands relax */
-@media (max-width: 1279px) {
+/* 1200–1399: a compact rail and gutter keep three columns usable on a laptop */
+@media (max-width: 1399px) {
+  .dash {
+    --dash-rail: 72px;
+    --dash-pad: 21px;
+    --dash-gap: 13px;
+  }
+  .dash-upper {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 21px;
+    min-height: 0;
+    align-content: start;
+    align-items: start;
+  }
+  .dash-bands {
+    grid-template-rows: auto auto;
+    min-height: 0;
+  }
+  .dash-lower {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+}
+
+/* under 1200: the ledger drops under the vault cards, bands relax */
+@media (max-width: 1199px) {
   .dash-lower {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
