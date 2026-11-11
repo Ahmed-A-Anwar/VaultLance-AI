@@ -37,14 +37,20 @@ export function kpisOf(vaults: Vault[]): Kpis {
 
 /* ----------------------------------------------------------------- polling ---
    A page refreshes every 5s while it is visible and something is still moving.
-   Three failures in a row back it off to 15s so a dead API is not hammered. */
+   A page with nothing left to move still checks, more slowly: a client can be
+   invited to a new vault at any time and must not need a reload to see it.
+   Three failures in a row back the moving poll off to 15s so a dead API is not
+   hammered. */
 
 export const POLL_MS = 5_000;
+export const POLL_IDLE_MS = 15_000;
 export const POLL_BACKOFF_MS = 15_000;
 export const POLL_BACKOFF_AFTER = 3;
 
-/** How long to wait before the next refresh. */
-export function pollDelay(consecutiveErrors: number): number {
+/** How long to wait before the next refresh. `moving` is false when every vault
+    on screen is terminal, but membership can still change on the server. */
+export function pollDelay(consecutiveErrors: number, moving = true): number {
+  if (!moving) return POLL_IDLE_MS;
   return consecutiveErrors >= POLL_BACKOFF_AFTER ? POLL_BACKOFF_MS : POLL_MS;
 }
 
