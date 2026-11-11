@@ -29,8 +29,8 @@ const CLIENT_EMAIL = (process.env.PLAYGROUND_CLIENT_EMAIL || "playground.client@
   .toLowerCase();
 
 const SPECS: Array<{ role: UserRole; email: string; fullName: string }> = [
-  { role: "FREELANCER", email: FREELANCER_EMAIL, fullName: "Ada — playground freelancer" },
-  { role: "CLIENT", email: CLIENT_EMAIL, fullName: "Grace — playground client" },
+  { role: "FREELANCER", email: FREELANCER_EMAIL, fullName: "playground freelancer" },
+  { role: "CLIENT", email: CLIENT_EMAIL, fullName: "playground client" },
 ];
 
 export const playgroundEmails = () => ({ freelancer: FREELANCER_EMAIL, client: CLIENT_EMAIL });
