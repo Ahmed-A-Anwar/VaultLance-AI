@@ -54,18 +54,26 @@ export interface ClipPlayer {
 type Frame = ImageBitmap | HTMLImageElement;
 
 const frameName = (i: number) => `ezgif-frame-${String(i).padStart(3, "0")}.webp`;
-/* how far around the playhead to ask for frames it does not have yet, in frames */
-const AHEAD = 8;
-const BEHIND = 3;
-const REVERSE_AHEAD = 3;
-const REVERSE_BEHIND = 8;
+/* How far around the playhead to ask for frames it does not have yet, in frames.
+   Eight was enough while nothing else competed for the CPU; with a recorder
+   attached a frame takes long enough to decode that the playhead outran the
+   window, skipped the tail of the turn and then froze waiting for the last
+   frame. A second of content ahead keeps decode off the critical path. */
+const AHEAD = 28;
+const BEHIND = 6;
+const REVERSE_AHEAD = 10;
+const REVERSE_BEHIND = 12;
+/* phones carry hundreds of megabytes of decoded pixels badly, so the wider
+   window is desktop-only; the phone keeps the old, tighter one */
+const tight = () => typeof window !== "undefined" && window.innerWidth <= 767;
 const FADE = 0.236;
 /* frames kept decoded around the playhead. A 1920x1080 frame is ~8MB of pixels,
    so a phone that plays a whole clip and keeps every frame would carry hundreds
    of megabytes and be killed for it; outside the window the bitmap is closed and
    re-decoded only if the playhead comes back to it. */
 const KEEP_BEHIND = 6;
-const KEEP_AHEAD = 12;
+/* must cover AHEAD, or trim() closes the frames the window just decoded */
+const KEEP_AHEAD = 34;
 /* how long a worker gets to announce itself: a module that fails to load (a
    blocked script URL, a stale deploy, a syntax error) never posts anything, and
    waiting on a promise nobody settles would hold the entry gate on zero frames */
@@ -227,16 +235,18 @@ export function createClipPlayer({
 
   /* keep just enough decoded in the direction the clip is travelling */
   const warm = (center: number, bias: number) => {
-    const ahead = bias < 0 ? REVERSE_AHEAD : AHEAD;
-    const behind = bias < 0 ? REVERSE_BEHIND : BEHIND;
+    const scale = tight() ? 0.3 : 1;
+    const ahead = Math.max(4, Math.round((bias < 0 ? REVERSE_AHEAD : AHEAD) * scale));
+    const behind = Math.max(3, Math.round((bias < 0 ? REVERSE_BEHIND : BEHIND) * scale));
     for (let i = center - behind; i <= center + ahead; i++) decodeAt(i);
     trim(center);
   };
 
   /* drop the frames the playhead has left behind, and close their pixels */
   const trim = (center: number) => {
+    const keep = tight() ? 12 : KEEP_AHEAD;
     for (const [i, frame] of frames) {
-      if (i < center - KEEP_BEHIND || i > center + KEEP_AHEAD) {
+      if (i < center - KEEP_BEHIND || i > center + keep) {
         closeFrame(frame);
         frames.delete(i);
       }

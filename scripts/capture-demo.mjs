@@ -450,12 +450,17 @@ async function record(shot) {
       console.log(`recorded ${path.basename(target)} (${(fs.statSync(target).size / 1e6).toFixed(1)} MB)`);
       if (has("convert")) {
         const mp4 = path.join(HANDOFF, `${shot.file.replace(/_(.*)$/, "_$1")}.mp4`);
+        /* the take opens on the warm-up (frame fetches, then a reload that flashes
+           the page white). TRIM_START is where the page first paints for real, so
+           the shipped clip starts there; -ss after -i keeps the seek frame-exact. */
+        const trim = mark ? Math.max(0, (mark - started) / 1000) : 0;
         execFileSync("ffmpeg", [
           "-y", "-i", target,
+          ...(trim > 0 ? ["-ss", trim.toFixed(2)] : []),
           "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", "30",
           "-movflags", "+faststart", mp4,
         ], { stdio: "inherit" });
-        console.log(`converted ${path.basename(mp4)}`);
+        console.log(`converted ${path.basename(mp4)} (trimmed ${trim.toFixed(2)}s)`);
       }
     }
     await browser.close();
