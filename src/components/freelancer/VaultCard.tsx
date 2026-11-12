@@ -30,7 +30,9 @@ export type VaultAction =
   | "receipt"
   | "details";
 
-const REVISION_HINT = "The client sent it back. Add the fixes and resubmit.";
+/* the hint is clamped to one line beside two stacked buttons, so it has to end
+   inside that width: the rest is in the tooltip */
+const REVISION_HINT = "The client sent it back";
 
 const HINT: Record<Phase, string> = {
   draft: "Finish setup and invite your client.",
