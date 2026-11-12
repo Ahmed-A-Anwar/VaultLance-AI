@@ -129,7 +129,7 @@ try {
   await dialog.getByLabel("Client email").fill(clientEmail);
   await dialog.getByLabel("Amount in USD").fill("5.00");
   await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByLabel("Choose a zip archive").setInputFiles({ name: "e2e-probe.zip", mimeType: "application/zip", buffer: makeZip() });
+  await dialog.getByLabel("Choose files to deliver").setInputFiles({ name: "e2e-probe.zip", mimeType: "application/zip", buffer: makeZip() });
   await dialog.locator('.fd-scan li[data-state="pass"]').first().waitFor({ state: "visible", timeout: 30_000 });
   await sleep(2000);
   const passRows = await dialog.locator('.fd-scan li[data-state="pass"]').count();

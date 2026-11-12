@@ -77,6 +77,10 @@ export function NewVaultDrawer({
   const [description, setDescription] = useState(vault?.description ?? "");
 
   const [mode, setMode] = useState<Mode>("zip");
+  /* a delivery is often an archive plus its documents, so the step takes a
+     list: each picked file is scanned, and submit uploads them all before it
+     locks one manifest over the set */
+  const [picked, setPicked] = useState<Array<{ file: File; ok: boolean }>>([]);
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<ProgressRow[]>([]);
   const [scan, setScan] = useState<ScanState>("idle");
@@ -114,8 +118,9 @@ export function NewVaultDrawer({
     return () => trap.release();
   }, [onClose]);
 
-  const files: VaultFile[] = file ? [{ name: file.name, sizeBytes: file.size }] : [];
-  const deliverablesValid = mode === "zip" ? scan === "pass" : !!urlOk;
+  const files: VaultFile[] = picked.map((p) => ({ name: p.file.name, sizeBytes: p.file.size }));
+  const deliverablesValid =
+    mode === "zip" ? picked.length > 0 && picked.every((p) => p.ok) && scan !== "scanning" : !!urlOk;
 
   const startScan = (incoming: File) => {
     const problem = archiveProblem(incoming.name, incoming.size);
@@ -149,7 +154,12 @@ export function NewVaultDrawer({
         const failed = list.some((r) => r.state === "fail");
         setScan(failed ? "fail" : "pass");
         setScanReason(failed ? (list.find((r) => r.state === "fail")?.reason ?? "The archive didn’t pass.") : null);
-        setManifest(failed ? undefined : manifestFor(files.length ? files : [{ name: incoming.name, sizeBytes: incoming.size }]));
+        setManifest(
+          failed
+            ? undefined
+            : manifestFor([{ name: incoming.name, sizeBytes: incoming.size }]),
+        );
+        setPicked((prev) => prev.map((p) => (p.file === incoming ? { ...p, ok: !failed } : p)));
         return;
       }
       list[i].state = "running";
@@ -160,18 +170,22 @@ export function NewVaultDrawer({
     tick();
   };
 
-  const onPick = (incoming: File | null) => {
-    if (!incoming) return;
-    const problem = archiveProblem(incoming.name, incoming.size);
-    if (problem && !incoming.name.toLowerCase().includes("bomb")) {
+  const onPick = (incoming: File | File[] | null) => {
+    const batch = Array.isArray(incoming) ? incoming : incoming ? [incoming] : [];
+    if (!batch.length) return;
+    setPicked((prev) => [...prev, ...batch.map((f) => ({ file: f, ok: false }))]);
+    /* the scan panel shows the latest file; every file's verdict is kept */
+    setFile(batch[batch.length - 1]);
+    startScan(batch[batch.length - 1]);
+  };
+
+  const dropFile = (target: File) => {
+    setPicked((prev) => prev.filter((p) => p.file !== target));
+    if (file === target) {
       setFile(null);
-      setScan("fail");
-      setScanReason(problem);
+      setScan("idle");
       setRows([]);
-      return;
     }
-    setFile(incoming);
-    startScan(incoming);
   };
 
   const checkUrl = async () => {
@@ -221,11 +235,12 @@ export function NewVaultDrawer({
 
     let serverManifest: string | undefined;
 
-    if (mode === "zip" && file) {
+    if (mode === "zip" && picked.length) {
       setStage("Uploading and hashing the delivery…");
       if (realOn("uploads")) {
-        /* upload, build, re-verify — each step's own failure stops the run */
-        await uploadArchive(vaultId, file);
+        /* upload every file, then build one manifest over the set and re-verify
+           it — each step's own failure stops the run */
+        for (const p of picked) await uploadArchive(vaultId, p.file);
         const built = await buildManifest(vaultId);
         if (!built.hash) throw new Error("The manifest could not be built.");
         if (built.totalFiles < 1) {
@@ -238,8 +253,10 @@ export function NewVaultDrawer({
         serverManifest = built.hash;
         setManifest(serverManifest);
       } else {
-        const upload = await apiClient.uploads.uploadFile(vaultId, file);
-        if (!upload.success) throw new Error(upload.message || "The archive could not be uploaded.");
+        for (const p of picked) {
+          const upload = await apiClient.uploads.uploadFile(vaultId, p.file);
+          if (!upload.success) throw new Error(upload.message || "The archive could not be uploaded.");
+        }
 
         const built = await apiClient.manifests.get(vaultId);
         if (!built.success || !built.data?.manifestHash) {
@@ -551,27 +568,29 @@ export function NewVaultDrawer({
 
               {mode === "zip" ? (
                 <>
-                  <label className="fd-drop" data-over={undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onPick(e.dataTransfer.files[0] ?? null); }}>
+                  <label className="fd-drop" data-over={undefined} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onPick(Array.from(e.dataTransfer.files)); }}>
                     <VaultGlyph width="34" height="34" aria-hidden="true" />
-                    <span>Drop a .zip here or browse</span>
+                    <span>Drop the archive and its documents here, or browse</span>
                     <input
                       className="fd-file"
                       type="file"
-                      accept=".zip"
-                      onChange={(e) => onPick(e.target.files?.[0] ?? null)}
-                      aria-label="Choose a zip archive"
+                      multiple
+                      accept=".zip,.md,.txt,.pdf,.json,.png,.jpg,.jpeg,.svg"
+                      onChange={(e) => onPick(Array.from(e.target.files ?? []))}
+                      aria-label="Choose files to deliver"
                     />
                   </label>
 
-                  {file && (
-                    <div className="fd-file-row">
-                      <span className="fd-mono">{file.name}</span>
-                      <span className="fd-dim">{Math.max(1, Math.round(file.size / 1024))} KB</span>
-                      <button type="button" className="fd-icon-btn" aria-label="Remove file" onClick={() => { setFile(null); setScan("idle"); setRows([]); }}>
+                  {picked.map((p) => (
+                    <div className="fd-file-row" key={`${p.file.name}-${p.file.size}-${p.file.lastModified}`}>
+                      <span className="fd-mono">{p.file.name}</span>
+                      <span className="fd-dim">{Math.max(1, Math.round(p.file.size / 1024))} KB</span>
+                      {p.ok && <span className="fd-mono fd-dim">OK</span>}
+                      <button type="button" className="fd-icon-btn" aria-label={`Remove ${p.file.name}`} onClick={() => dropFile(p.file)}>
                         ×
                       </button>
                     </div>
-                  )}
+                  ))}
 
                   {rows.length > 0 && (
                     <ul className="fd-scan" aria-live="polite">
@@ -666,6 +685,7 @@ export function NewVaultDrawer({
                   setAmount("");
                   setDescription("");
                   setFile(null);
+                  setPicked([]);
                   setRows([]);
                   setScan("idle");
                   setUrl("");

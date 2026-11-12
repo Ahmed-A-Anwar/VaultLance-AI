@@ -797,7 +797,7 @@ const handlers = {
     await sleep(1600);
 
     await page
-      .locator('input[type="file"][aria-label="Choose a zip archive"]')
+      .locator('input[type="file"][aria-label="Choose files to deliver"]')
       .setInputFiles(path.resolve("scripts/demo-fixtures/corner-bean-v1.zip"));
     await page.locator(".fd-scan li").first().waitFor({ state: "visible", timeout: 20000 });
     await sleep(3000); // structure, types, size, hash run in front of the camera
@@ -1234,7 +1234,7 @@ const handlers = {
     await sleep(2600); // the drawer says it is adding to the vault, not making one
 
     await drawer
-      .locator('input[type="file"][aria-label="Choose a zip archive"]')
+      .locator('input[type="file"][aria-label="Choose files to deliver"]')
       .setInputFiles(path.resolve("scripts/demo-fixtures/corner-bean-v2.zip"));
     await drawer.locator(".fd-scan li").first().waitFor({ state: "visible", timeout: 30000 });
     await sleep(3400); // structure, types, size, hash run in front of the camera
