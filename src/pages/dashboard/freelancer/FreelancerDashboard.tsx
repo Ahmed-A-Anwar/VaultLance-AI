@@ -257,6 +257,12 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
       setDrawer({ step: 2, vault });
       return;
     }
+    /* the client sent the work back: same drawer, but it uploads onto this
+       vault and resubmits instead of minting a second one */
+    if (action === "revise") {
+      setDrawer({ step: 2, vault });
+      return;
+    }
     if (action === "invite") {
       /* the code is minted server-side (single use, 7 days) and the link opens
          the client's join row with it already filled in */
@@ -380,10 +386,14 @@ function Chrome({ email, children }: { email: string; children: ReactNode }) {
         <NewVaultDrawer
           openAt={drawer.step}
           vault={drawer.vault}
+          revision={Boolean(drawer.vault?.needsRevision)}
           onClose={() => setDrawer(null)}
           onCreated={(_, invited) => {
             void refresh();
-            if (!invited) toast({ message: "Draft saved.", tone: "success" });
+            /* a revision reports itself: "Draft saved" there would be wrong */
+            if (!invited && !drawer.vault?.needsRevision) {
+              toast({ message: "Draft saved.", tone: "success" });
+            }
           }}
         />
       )}

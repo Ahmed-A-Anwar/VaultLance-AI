@@ -25,7 +25,7 @@ import {
 } from "./mockApi";
 import { SCAN_RULES } from "./mockConfig";
 import { apiClient, isDemoMode } from "../../lib/apiClient";
-import { createVaultOnServer } from "../../lib/vaultWrites";
+import { createVaultOnServer, submitVaultOnServer } from "../../lib/vaultWrites";
 import { buildManifest, uploadArchive, verifyManifest } from "../../lib/uploadWrites";
 import { realOn } from "../../config/fx";
 
@@ -52,12 +52,16 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function NewVaultDrawer({
   openAt,
   vault,
+  revision = false,
   onClose,
   onCreated,
 }: {
   openAt?: Step;
   /** an existing draft being continued or a vault being added to */
   vault?: FreelancerVault;
+  /** the client sent this vault back: upload the fix onto it and resubmit, and
+      never invite again or create a second vault */
+  revision?: boolean;
   onClose: () => void;
   onCreated: (vault: FreelancerVault, invited: boolean) => void;
 }) {
@@ -184,7 +188,10 @@ export function NewVaultDrawer({
   /* the server path: create the vault, upload the archive, lock and re-verify
      its manifest, then invite the client — stopping at the first step the server
      refuses, with that step's own message */
-  const createOnServer = async (draft: boolean): Promise<{ created: FreelancerVault; invited: boolean }> => {
+  const createOnServer = async (
+    draft: boolean,
+    opts: { invite?: boolean } = {},
+  ): Promise<{ created: FreelancerVault; invited: boolean }> => {
     const existing = vault && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(vault.id) ? vault : null;
     let vaultId = existing?.id ?? "";
 
@@ -252,7 +259,7 @@ export function NewVaultDrawer({
     }
 
     let invited = false;
-    if (!draft) {
+    if (!draft && opts.invite !== false) {
       setStage("Sending the client invite…");
       const invite = await apiClient.vaults.invite(vaultId, email.trim());
       invited = invite.success;
@@ -298,7 +305,7 @@ export function NewVaultDrawer({
          with an API configured, so "Add files" never mints a duplicate vault */
       const onServer = !isDemoMode() && (!vault || /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(vault.id));
       const { created, invited } = onServer
-        ? await createOnServer(draft)
+        ? await createOnServer(draft, { invite: !revision })
         : {
             created: await createVault(
               {
@@ -317,6 +324,16 @@ export function NewVaultDrawer({
 
       if (draft) {
         toast({ message: "Draft saved.", tone: "success" });
+        onCreated(created, false);
+        onClose();
+        return;
+      }
+      /* a revision is not a new vault: the fix is on the same one, so lock its
+         manifest again and let the client re-run the audit */
+      if (revision) {
+        setStage("Locking the new manifest…");
+        await submitVaultOnServer(created.id);
+        toast({ message: "Revision submitted. Your manifest is locked.", tone: "success" });
         onCreated(created, false);
         onClose();
         return;
@@ -695,7 +712,7 @@ export function NewVaultDrawer({
                   disabled={busy}
                   aria-busy={busy || undefined}
                 >
-                  {busy ? "Creating vault…" : "Create & invite client"}
+                  {busy ? (revision ? "Submitting…" : "Creating vault…") : revision ? "Submit revision" : "Create & invite client"}
                 </button>
               )}
             </>

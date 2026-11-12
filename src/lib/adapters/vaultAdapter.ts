@@ -132,6 +132,7 @@ export function toFreelancerVault(raw: unknown): FreelancerVault | null {
     ...(dto.description ? { description: dto.description } : {}),
     ...(status === "DRAFT" ? {} : createdAt === undefined ? {} : { invitedAt: createdAt }),
     ...(SUBMITTED.includes(status) && updatedAt !== undefined ? { submittedAt: updatedAt } : {}),
+    ...(status === "NEEDS_REVISION" ? { needsRevision: true } : {}),
     filesCount: files.length,
     files,
     createdAt: createdAt ?? 0,

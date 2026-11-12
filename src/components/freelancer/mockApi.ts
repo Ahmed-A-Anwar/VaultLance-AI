@@ -42,6 +42,9 @@ export interface FreelancerVault {
   files: VaultFile[];
   manifestSha256?: string;
   inviteCode?: string;
+  /** the client sent the delivery back: the vault is NEEDS_REVISION, so the
+     freelancer's next move is a fresh upload and a resubmit, not a reminder */
+  needsRevision?: boolean;
   payoutStatus?: PayoutStatus;
   payoutPaypalId?: string;
   /** the sanitized sentence the server allows for a failed payout */

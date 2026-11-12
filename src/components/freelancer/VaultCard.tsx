@@ -23,11 +23,14 @@ export type VaultAction =
   | "upload"
   | "addFiles"
   | "submit"
+  | "revise"
   | "retry"
   | "duplicate"
   | "delete"
   | "receipt"
   | "details";
+
+const REVISION_HINT = "The client sent it back. Add the fixes and resubmit.";
 
 const HINT: Record<Phase, string> = {
   draft: "Finish setup and invite your client.",
@@ -87,12 +90,13 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
 
   const dimmed = phase === "voided";
   const needsFiles = vault.filesCount === 0;
+  const revising = Boolean(vault.needsRevision);
 
   return (
     <article
       className="fd-card"
       data-phase={phase}
-      data-actions={ACTION_COUNT[phase]}
+      data-actions={revising ? 2 : ACTION_COUNT[phase]}
       data-dim={dimmed ? "true" : undefined}
       data-enter="vault"
       style={{ animationDelay: `${index * 61.8}ms` }}
@@ -103,7 +107,13 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
       <div className="fd-card-left">
         <div className="fd-card-head">
           <h3 className="fd-card-project">{vault.project}</h3>
-          <PhaseChip phase={phase} />
+          {revising ? (
+            <span className="fd-chip" data-phase="revision">
+              NEEDS REVISION
+            </span>
+          ) : (
+            <PhaseChip phase={phase} />
+          )}
           {(vault.waivedChecks?.length ?? 0) > 0 && (
             <span className="fd-chip" data-phase="waived">
               WAIVED {vault.waivedChecks!.length}
@@ -132,8 +142,13 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
           <Wheel width="13" height="13" />
         </button>
 
-        <p className="fd-card-hint" data-ellipsis title={HINT[phase]} aria-label={HINT[phase]}>
-          {HINT[phase]}
+        <p
+          className="fd-card-hint"
+          data-ellipsis
+          title={revising ? REVISION_HINT : HINT[phase]}
+          aria-label={revising ? REVISION_HINT : HINT[phase]}
+        >
+          {revising ? REVISION_HINT : HINT[phase]}
         </p>
 
         {phase === "payout_failed" && vault.payoutReason && (
@@ -143,7 +158,31 @@ export function VaultCard({ vault, phase, index, busy, remindLabel, onAction }: 
         )}
 
         <div className="fd-card-actions">
-          {phase === "draft" && (
+          {revising && (
+            <>
+              <button
+                type="button"
+                className="dash-btn dash-btn-primary"
+                disabled={busy}
+                onClick={() => onAction("revise", vault)}
+              >
+                <span className="dash-btn-label">Submit revision</span>
+                <span className="dash-btn-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
+              <button
+                type="button"
+                className="dash-btn dash-btn-ghost fd-btn-mono"
+                disabled={busy || !!remindLabel}
+                onClick={() => onAction("remind", vault)}
+              >
+                {remindLabel ?? "Remind client"}
+              </button>
+            </>
+          )}
+
+          {!revising && phase === "draft" && (
             <>
               <button type="button" className="dash-btn dash-btn-primary" disabled={busy} onClick={() => onAction("setup", vault)}>
                 <span className="dash-btn-label">Continue setup</span>
