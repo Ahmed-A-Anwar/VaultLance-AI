@@ -69,7 +69,7 @@ const SHOTS = [
   { id: "S07C", who: "omar", file: "S07c_docs", seconds: 60, note: "freelancer: README + test log added, resubmitted" },
   { id: "S08", who: "bruce", file: "S08_checks_pass", seconds: 90, note: "re-run, all pass, evidence grid" },
   { id: "S09", who: "bruce", file: "S09_approve", seconds: 120, note: "hold to approve, PAID, unlock, receipt" },
-  { id: "S10", who: "omar", file: "S10_earnings", seconds: 90, note: "payout status, earnings, ledger" },
+  { id: "S10", who: "omar", file: "S10_paid_receipt", seconds: 60, note: "freelancer: paid card, receipt, released files" },
   { id: "S11", who: "bruce", file: "S11_reject", seconds: 15, note: "second vault, reject, voided" },
   { id: "S12", who: "omar", file: "S12_playground", seconds: 20, note: "playground quick run" },
   { id: "S13", who: "bruce", file: "S13_mobile", seconds: 60, note: "390x844 audit + approve" },
@@ -1451,7 +1451,50 @@ const handlers = {
 
     await sleep(3800); // hold on the paid decision panel and the receipt
   },
-  S10: notYet("S10"),
+  /* S10 — the freelancer's side of the capture: the card that reads PAID, the
+     receipt with the fees settled (no EST.), the four deliverables and the
+     timeline. The Earnings page is deliberately not in this beat: it still
+     counts $0.00 (see RESUME), and filming that would be filming a bug. */
+  async S10(page, shot, marks) {
+    const run = loadRun();
+    if (!run.freelancer?.email) throw new Error("S10 needs the freelancer identity: run --shot S02 first");
+
+    await signInAs(page, run.freelancer, marks);
+    page.setDefaultNavigationTimeout(150000);
+    await page.goto(`${FRONTEND}/dashboard/vaults`, { waitUntil: "domcontentloaded", timeout: 150000 });
+
+    const card = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
+    await card.waitFor({ state: "visible", timeout: 120000 });
+    const chip = card.locator(".fd-chip").first();
+    await chip.waitFor({ state: "visible", timeout: 60000 });
+    const chipText = (await chip.innerText()).trim();
+    if (chipText !== "PAID") throw new Error(`the card reads ${chipText}, not PAID`);
+
+    const receipt = card.getByRole("button", { name: /view receipt/i }).first();
+    await receipt.waitFor({ state: "visible", timeout: 60000 });
+    marks.firstFrame = Date.now();
+    await sleep(3400); // the paid card, its five-bolt stepper and "Paid out."
+
+    await receipt.click();
+    const drawer = page.getByRole("dialog").first();
+    await drawer.waitFor({ state: "visible", timeout: 30000 });
+    await drawer.getByText(/^You receive$/i).first().waitFor({ state: "visible", timeout: 30000 }).catch(() => {});
+    await sleep(3600); // MONEY: $200, the 5% fee, the PayPal fee, $178.90 — no EST.
+
+    /* the deliverables and the timeline live below the fold of the drawer */
+    await drawer.locator(".fd-drawer-body").first().evaluate((el) => { el.scrollTop = el.scrollHeight; }).catch(() => {});
+    await sleep(4000); // four files, then the timeline
+
+    const body = (await drawer.innerText()).replace(/\s+/g, " ");
+    const paidNoEst = /YOU RECEIVE[^A-Z]*\$178\.90/.test(body) && !/\(EST\.\)/.test(body);
+    const hasInvoice = /corner-bean-v2\.zip/.test(body);
+    console.log(`S10 receipt: settled ${paidNoEst}, deliverables listed ${hasInvoice}`);
+    if (!paidNoEst) throw new Error("S10: the receipt still prints an estimate");
+    if (!hasInvoice) throw new Error("S10: the deliverables are not in the receipt");
+
+    await sleep(2600); // hold on the drawer foot
+  },
+  S11: notYet("S11"),
   S11: notYet("S11"),
   S12: notYet("S12"),
   S13: notYet("S13"),
