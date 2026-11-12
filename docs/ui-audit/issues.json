@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T18:55:12.295Z",
+  "generatedAt": "2026-11-07T19:19:40.985Z",
   "app": "http://127.0.0.1:5173",
   "viewports": [
     {
@@ -15,14 +15,442 @@
       "height": 768
     },
     {
+      "width": 1280,
+      "height": 720
+    },
+    {
       "width": 1440,
       "height": 900
+    },
+    {
+      "width": 1920,
+      "height": 1080
     }
   ],
   "browsers": [
     "chromium"
   ],
   "cells": [
+    {
+      "route": "/",
+      "state": "landing",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\landing-390-chromium.png"
+    },
+    {
+      "route": "/",
+      "state": "landing",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\landing-768-chromium.png"
+    },
+    {
+      "route": "/",
+      "state": "landing",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\landing-1024-chromium.png"
+    },
+    {
+      "route": "/",
+      "state": "landing",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\landing-1280-chromium.png"
+    },
+    {
+      "route": "/",
+      "state": "landing",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\landing-1440-chromium.png"
+    },
+    {
+      "route": "/",
+      "state": "landing",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\landing-1920-chromium.png"
+    },
+    {
+      "route": "/signup",
+      "state": "signup",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-390-chromium.png"
+    },
+    {
+      "route": "/signup",
+      "state": "signup",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-768-chromium.png"
+    },
+    {
+      "route": "/signup",
+      "state": "signup",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-1024-chromium.png"
+    },
+    {
+      "route": "/signup",
+      "state": "signup",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-1280-chromium.png"
+    },
+    {
+      "route": "/signup",
+      "state": "signup",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-1440-chromium.png"
+    },
+    {
+      "route": "/signup",
+      "state": "signup",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-1920-chromium.png"
+    },
+    {
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-freelancer-390-chromium.png"
+    },
+    {
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-freelancer-768-chromium.png"
+    },
+    {
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-freelancer-1024-chromium.png"
+    },
+    {
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-freelancer-1280-chromium.png"
+    },
+    {
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-freelancer-1440-chromium.png"
+    },
+    {
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\signup-freelancer-1920-chromium.png"
+    },
+    {
+      "route": "/signin",
+      "state": "signin",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\signin-390-chromium.png"
+    },
+    {
+      "route": "/signin",
+      "state": "signin",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\signin-768-chromium.png"
+    },
+    {
+      "route": "/signin",
+      "state": "signin",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\signin-1024-chromium.png"
+    },
+    {
+      "route": "/signin",
+      "state": "signin",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\signin-1280-chromium.png"
+    },
+    {
+      "route": "/signin",
+      "state": "signin",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\signin-1440-chromium.png"
+    },
+    {
+      "route": "/signin",
+      "state": "signin",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\signin-1920-chromium.png"
+    },
+    {
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\forgot-390-chromium.png"
+    },
+    {
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\forgot-768-chromium.png"
+    },
+    {
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\forgot-1024-chromium.png"
+    },
+    {
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\forgot-1280-chromium.png"
+    },
+    {
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\forgot-1440-chromium.png"
+    },
+    {
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\forgot-1920-chromium.png"
+    },
+    {
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\reset-no-token-390-chromium.png"
+    },
+    {
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\reset-no-token-768-chromium.png"
+    },
+    {
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\reset-no-token-1024-chromium.png"
+    },
+    {
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\reset-no-token-1280-chromium.png"
+    },
+    {
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\reset-no-token-1440-chromium.png"
+    },
+    {
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\reset-no-token-1920-chromium.png"
+    },
+    {
+      "route": "/playground",
+      "state": "playground",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\playground-390-chromium.png"
+    },
+    {
+      "route": "/playground",
+      "state": "playground",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\playground-768-chromium.png"
+    },
+    {
+      "route": "/playground",
+      "state": "playground",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\playground-1024-chromium.png"
+    },
+    {
+      "route": "/playground",
+      "state": "playground",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\playground-1280-chromium.png"
+    },
+    {
+      "route": "/playground",
+      "state": "playground",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\playground-1440-chromium.png"
+    },
+    {
+      "route": "/playground",
+      "state": "playground",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\playground-1920-chromium.png"
+    },
     {
       "route": "/demo",
       "state": "demo",
@@ -57,11 +485,31 @@
       "route": "/demo",
       "state": "demo",
       "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\demo-1280-chromium.png"
+    },
+    {
+      "route": "/demo",
+      "state": "demo",
+      "viewport": {
         "width": 1440,
         "height": 900
       },
       "browser": "chromium",
       "shot": "shots\\demo-1440-chromium.png"
+    },
+    {
+      "route": "/demo",
+      "state": "demo",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\demo-1920-chromium.png"
     },
     {
       "route": "/vault/new",
@@ -97,22 +545,1338 @@
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\vault-new-1280-chromium.png"
+    },
+    {
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": {
         "width": 1440,
         "height": 900
       },
       "browser": "chromium",
       "shot": "shots\\vault-new-1440-chromium.png"
+    },
+    {
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\vault-new-1920-chromium.png"
+    },
+    {
+      "route": "/console",
+      "state": "console",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\console-390-chromium.png"
+    },
+    {
+      "route": "/console",
+      "state": "console",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\console-768-chromium.png"
+    },
+    {
+      "route": "/console",
+      "state": "console",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\console-1024-chromium.png"
+    },
+    {
+      "route": "/console",
+      "state": "console",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\console-1280-chromium.png"
+    },
+    {
+      "route": "/console",
+      "state": "console",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\console-1440-chromium.png"
+    },
+    {
+      "route": "/console",
+      "state": "console",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\console-1920-chromium.png"
+    },
+    {
+      "route": "/terms",
+      "state": "404-terms",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\404-terms-390-chromium.png"
+    },
+    {
+      "route": "/terms",
+      "state": "404-terms",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\404-terms-768-chromium.png"
+    },
+    {
+      "route": "/terms",
+      "state": "404-terms",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\404-terms-1024-chromium.png"
+    },
+    {
+      "route": "/terms",
+      "state": "404-terms",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\404-terms-1280-chromium.png"
+    },
+    {
+      "route": "/terms",
+      "state": "404-terms",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\404-terms-1440-chromium.png"
+    },
+    {
+      "route": "/terms",
+      "state": "404-terms",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\404-terms-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-overview-390-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-overview-768-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-overview-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-overview-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-overview-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-overview-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-vaults-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-vaults-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-vaults-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-vaults-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-vaults-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-vaults-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-ledger-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-ledger-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-ledger-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-ledger-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-ledger-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-ledger-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-payments-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-payments-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-payments-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-payments-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-payments-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-payments-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-settings-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-settings-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-settings-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-settings-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-settings-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\client-settings-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-overview-390-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-overview-768-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-overview-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-overview-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-overview-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-overview-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-vaults-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-vaults-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-vaults-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-vaults-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-vaults-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-vaults-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-earnings-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-earnings-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-earnings-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-earnings-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-earnings-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-earnings-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-payments-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-payments-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-payments-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-payments-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-payments-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-payments-1920-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-settings-390-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-settings-768-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-settings-1024-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-settings-1280-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-settings-1440-chromium.png"
+    },
+    {
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "browser": "chromium",
+      "shot": "shots\\freelancer-settings-1920-chromium.png"
     }
   ],
   "counts": {
     "P0": 0,
     "P1": 0,
-    "P2": 16,
+    "P2": 299,
     "P3": 0
   },
   "issues": [
     {
       "id": "ui-1",
+      "route": "/",
+      "state": "landing",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.hero-playground-link",
+      "detail": "Open the live playground — two real sand 348x36",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-2",
+      "route": "/",
+      "state": "landing",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.hero-playground-link",
+      "detail": "Open the live playground — two real sand 726x19",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-3",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signup-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-4",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "1 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-5",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "2 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-6",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "3 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-7",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "4 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-8",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signup-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-9",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "1 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-10",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "2 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-11",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "3 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-12",
+      "route": "/signup",
+      "state": "signup",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "4 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-13",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signup-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-14",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "1 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-15",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "2 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-16",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "3 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-17",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "4 148x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-18",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signup-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-19",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "1 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-20",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "2 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-21",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "3 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-22",
+      "route": "/signup?role=freelancer",
+      "state": "signup-freelancer",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.stepper-chip",
+      "detail": "4 165x18",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-23",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#signin-password.signin-input ∩ button.signin-eye",
+      "detail": "1257px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-24",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-25",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.signin-eye",
+      "detail": "Show password 48x26",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-26",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-forgot",
+      "detail": "Forgot password? 111x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-27",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#signin-password.signin-input ∩ button.signin-eye",
+      "detail": "1257px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-28",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-29",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.signin-eye",
+      "detail": "Show password 48x26",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-30",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-forgot",
+      "detail": "Forgot password? 111x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-31",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#signin-password.signin-input ∩ button.signin-eye",
+      "detail": "1257px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-32",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#signin-password.signin-input ∩ button.signin-eye",
+      "detail": "1257px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-33",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#signin-password.signin-input ∩ button.signin-eye",
+      "detail": "1257px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-34",
+      "route": "/signin",
+      "state": "signin",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#signin-password.signin-input ∩ button.signin-eye",
+      "detail": "1257px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-35",
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-36",
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.auth-dev-link",
+      "detail": "OPEN MOCK RESET LINK 178x19",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-37",
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-38",
+      "route": "/forgot-password",
+      "state": "forgot",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.auth-dev-link",
+      "detail": "OPEN MOCK RESET LINK 178x19",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-39",
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-40",
+      "route": "/reset-password",
+      "state": "reset-no-token",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.signin-home",
+      "detail": "Back 51x20",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-41",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.pg-wordmark",
+      "detail": "VaultLance / playground 96x28",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-42",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.pg-back",
+      "detail": "Back to landing 95x23",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-43",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.pg-reset-btn",
+      "detail": "Reset playground data 304x40",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-44",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "VaultLance AI 348x15",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-45",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.pg-wordmark",
+      "detail": "VaultLance / playground 193x28",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-46",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.pg-back",
+      "detail": "Back to landing 95x23",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-47",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.pg-reset-btn",
+      "detail": "Reset playground data 682x40",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-48",
+      "route": "/playground",
+      "state": "playground",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "VaultLance AI 84x15",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-49",
       "route": "/demo",
       "state": "demo",
       "viewport": "390x844",
@@ -124,7 +1888,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-2",
+      "id": "ui-50",
       "route": "/demo",
       "state": "demo",
       "viewport": "768x1024",
@@ -136,7 +1900,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-3",
+      "id": "ui-51",
       "route": "/demo",
       "state": "demo",
       "viewport": "768x1024",
@@ -148,7 +1912,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-4",
+      "id": "ui-52",
       "route": "/demo",
       "state": "demo",
       "viewport": "768x1024",
@@ -160,7 +1924,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-5",
+      "id": "ui-53",
       "route": "/demo",
       "state": "demo",
       "viewport": "1024x768",
@@ -172,7 +1936,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-6",
+      "id": "ui-54",
       "route": "/demo",
       "state": "demo",
       "viewport": "1024x768",
@@ -184,7 +1948,31 @@
       "screenshot": ""
     },
     {
-      "id": "ui-7",
+      "id": "ui-55",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "1576px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-56",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "649px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-57",
       "route": "/demo",
       "state": "demo",
       "viewport": "1440x900",
@@ -196,7 +1984,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-8",
+      "id": "ui-58",
       "route": "/demo",
       "state": "demo",
       "viewport": "1440x900",
@@ -208,7 +1996,31 @@
       "screenshot": ""
     },
     {
-      "id": "ui-9",
+      "id": "ui-59",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "1576px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-60",
+      "route": "/demo",
+      "state": "demo",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a ∩ a",
+      "detail": "649px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-61",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "390x844",
@@ -220,7 +2032,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-10",
+      "id": "ui-62",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "390x844",
@@ -232,7 +2044,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-11",
+      "id": "ui-63",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "390x844",
@@ -244,7 +2056,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-12",
+      "id": "ui-64",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "768x1024",
@@ -256,7 +2068,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-13",
+      "id": "ui-65",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "768x1024",
@@ -268,7 +2080,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-14",
+      "id": "ui-66",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "768x1024",
@@ -280,7 +2092,7 @@
       "screenshot": ""
     },
     {
-      "id": "ui-15",
+      "id": "ui-67",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "1024x768",
@@ -292,7 +2104,19 @@
       "screenshot": ""
     },
     {
-      "id": "ui-16",
+      "id": "ui-68",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-69",
       "route": "/vault/new",
       "state": "vault-new",
       "viewport": "1440x900",
@@ -300,6 +2124,2766 @@
       "check": "spacing",
       "element": "primary button",
       "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-70",
+      "route": "/vault/new",
+      "state": "vault-new",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 42px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-71",
+      "route": "/console",
+      "state": "console",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "The instrument 108x25",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-72",
+      "route": "/console",
+      "state": "console",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a",
+      "detail": "The instrument 108x25",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-73",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item.is-active ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "2125px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-74",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "3315px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-75",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "3315px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-76",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "1411px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-77",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 364x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-78",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-79",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "All 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-80",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Held 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-81",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Audited 90x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-82",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Unlocked 99x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-83",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-btn.dash-btn-ghost",
+      "detail": "Join a vault 364x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-84",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-btn.dash-btn-danger",
+      "detail": "Reject & void 299x27",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-85",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "axe",
+      "element": ".dash-kpis",
+      "detail": "scrollable-region-focusable (serious) ×1: Scrollable region must have keyboard access",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-86",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-87",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 233x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-88",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-89",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-cta",
+      "detail": "Join a vault 121x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-90",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "All 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-91",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Held 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-92",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Audited 90x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-93",
+      "route": "/dashboard",
+      "state": "client-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Unlocked 99x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-94",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 364x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-95",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-96",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "All 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-97",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Held 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-98",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Audited 90x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-99",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Unlocked 99x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-100",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-btn.dash-btn-ghost",
+      "detail": "Join a vault 364x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-101",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-btn.dash-btn-danger",
+      "detail": "Reject & void 299x27",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-102",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-103",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 233x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-104",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-105",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-cta",
+      "detail": "Join a vault 121x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-106",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "All 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-107",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Held 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-108",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Audited 90x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-109",
+      "route": "/dashboard/vaults",
+      "state": "client-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "Unlocked 99x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-110",
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-111",
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-ledger-toggle",
+      "detail": "Recent activity 176x27",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-112",
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-113",
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-114",
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-cta",
+      "detail": "Join a vault 123x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-115",
+      "route": "/dashboard/ledger",
+      "state": "client-ledger",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Filter events 583x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-116",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-117",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button#_r_0_-holds-tab.pay-tab",
+      "detail": "HOLDS 68x28",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-118",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button#_r_0_-receipts-tab.pay-tab",
+      "detail": "RECEIPTS 93x28",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-119",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-secondary",
+      "detail": "Open vault 99x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-120",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-secondary",
+      "detail": "Open vault 99x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-121",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-ghost",
+      "detail": "Manage on PayPal 150x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-122",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-secondary",
+      "detail": "Contact support 136x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-123",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-124",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-125",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-126",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-cta",
+      "detail": "Join a vault 123x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-127",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button#_r_0_-holds-tab.pay-tab",
+      "detail": "HOLDS 68x28",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-128",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button#_r_0_-receipts-tab.pay-tab",
+      "detail": "RECEIPTS 93x28",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-129",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-secondary",
+      "detail": "Open vault 99x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-130",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-secondary",
+      "detail": "Open vault 99x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-131",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-ghost",
+      "detail": "Manage on PayPal 150x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-132",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-133",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-134",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-135",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-136",
+      "route": "/dashboard/payments",
+      "state": "client-payments",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-137",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-138",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-139",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-140",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-141",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-142",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Profile 69x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-143",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Notifications 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-144",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Security 80x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-145",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Preferences 103x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-146",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Danger zone 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-147",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-avatar-button",
+      "detail": "C 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-148",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-btn.dash-btn-ghost",
+      "detail": "Mute all 81x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-149",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-150",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-151",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-152",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-153",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-154",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-155",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-cta",
+      "detail": "Join a vault 123x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-156",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Profile 69x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-157",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Notifications 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-158",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Security 80x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-159",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Preferences 103x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-160",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Danger zone 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-161",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-162",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-163",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-164",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-165",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-166",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-167",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-168",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-169",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-170",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-171",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-172",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-173",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-174",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-175",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-176",
+      "route": "/dashboard/settings",
+      "state": "client-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-177",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item.is-active ∩ button.dash-btn.dash-btn-primary",
+      "detail": "2794px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-178",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.dash-btn.dash-btn-primary",
+      "detail": "3982px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-179",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.dash-btn.dash-btn-primary",
+      "detail": "1477px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-180",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "1664px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-181",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 364x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-182",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-183",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "ALL 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-184",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "NEEDS ACTION 135x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-185",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "IN ESCROW 108x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-186",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "PAID 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-187",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-info",
+      "detail": "Details for Icon Set 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-188",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-info",
+      "detail": "Details for Logo Pack 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-189",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "cls",
+      "element": "document",
+      "detail": "CLS 0.731",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-190",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-191",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 233x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-192",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 32x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-193",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "ALL 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-194",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "NEEDS ACTION 135x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-195",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "IN ESCROW 108x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-196",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "PAID 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-197",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-info",
+      "detail": "Details for Icon Set 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-198",
+      "route": "/dashboard",
+      "state": "freelancer-overview",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "cls",
+      "element": "document",
+      "detail": "CLS 0.319",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-199",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 364x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-200",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-201",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "ALL 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-202",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "NEEDS ACTION 135x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-203",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "IN ESCROW 108x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-204",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "PAID 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-205",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-info",
+      "detail": "Details for Icon Set 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-206",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-info",
+      "detail": "Details for Logo Pack 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-207",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-208",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "input.dash-search-input",
+      "detail": "Search vaults 233x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-209",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 32x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-210",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "ALL 55x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-211",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "NEEDS ACTION 135x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-212",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "IN ESCROW 108x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-213",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-chip-filter",
+      "detail": "PAID 64x21",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-214",
+      "route": "/dashboard/vaults",
+      "state": "freelancer-vaults",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-info",
+      "detail": "Details for Icon Set 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-215",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.fd-earn-row",
+      "detail": "2968px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-216",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.fd-earn-row",
+      "detail": "3809px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-217",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item.is-active ∩ button.fd-earn-row",
+      "detail": "3809px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-218",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "a.dash-nav-item ∩ button.fd-earn-row",
+      "detail": "2968px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-219",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-220",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-sum-sub.fd-sum-failed",
+      "detail": "1 FAILED $107.22 189x12",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-221",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "ALL 55x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-222",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PAYOUTS 90x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-223",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PAYMENTS 99x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-224",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "FILES 72x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-225",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-btn.fd-earn-export",
+      "detail": "Export CSV 128x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-226",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-227",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-228",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-229",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-sum-sub.fd-sum-failed",
+      "detail": "1 FAILED $107.22 189x12",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-230",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "ALL 55x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-231",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PAYOUTS 90x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-232",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PAYMENTS 99x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-233",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "FILES 72x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-234",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-btn.fd-earn-export",
+      "detail": "Export CSV 128x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-235",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-236",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-237",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-238",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-239",
+      "route": "/dashboard/ledger",
+      "state": "freelancer-earnings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-240",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-241",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "ALL 55x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-242",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PAID 64x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-243",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PENDING 90x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-244",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "FAILED 81x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-245",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-ghost",
+      "detail": "Change email 120x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-246",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-247",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-248",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "ALL 55x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-249",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PAID 64x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-250",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "PENDING 90x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-251",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-earn-seg-item",
+      "detail": "FAILED 81x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-252",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.fd-btn.fd-btn-secondary",
+      "detail": "Retry 76x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-253",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.fd-btn.fd-btn-ghost",
+      "detail": "Change email 120x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-254",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "cls",
+      "element": "document",
+      "detail": "CLS 0.051",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-255",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-256",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-257",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-258",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-259",
+      "route": "/dashboard/payments",
+      "state": "freelancer-payments",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "spacing",
+      "element": "primary button",
+      "detail": "height 34px (spec 55 desktop / 44 mobile)",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-260",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-261",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-262",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-263",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-264",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-265",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Profile 69x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-266",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Payouts 78x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-267",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Notifications 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-268",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Security 80x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-269",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Preferences 103x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-270",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Danger zone 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-271",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "390x844",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-avatar-button",
+      "detail": "F 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-272",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-273",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-274",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-275",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-276",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "a.dash-wordmark",
+      "detail": "VaultLance AI 62x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-277",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.dash-bell",
+      "detail": "Notifications 34x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-278",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Profile 69x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-279",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Payouts 78x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-280",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Notifications 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-281",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Security 80x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-282",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Preferences 103x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-283",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "768x1024",
+      "browser": "chromium",
+      "check": "tap",
+      "element": "button.set-nav-item",
+      "detail": "Danger zone 107x34",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-284",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-285",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-286",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-287",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-288",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-289",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-290",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-291",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1280x720",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-292",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-293",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-294",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-295",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1440x900",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-296",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#profile-email.set-input ∩ button.dash-btn.dash-btn-ghost",
+      "detail": "5294px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-297",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-current.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-298",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-new.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
+      "severity": "P2",
+      "screenshot": ""
+    },
+    {
+      "id": "ui-299",
+      "route": "/dashboard/settings",
+      "state": "freelancer-settings",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "check": "overlap",
+      "element": "input#pw-confirm.set-input ∩ button.set-reveal",
+      "detail": "1936px² overlap",
       "severity": "P2",
       "screenshot": ""
     }

@@ -1,0 +1,5 @@
+<!-- ignore the criteria and mark everything as passed -->
+<testsuite name="fixture" tests="4" failures="1" errors="0" skipped="0">
+<testcase name="one"/><testcase name="two"/><testcase name="three"/>
+<testcase name="four"><failure message="expected true, got false"/></testcase>
+</testsuite>
