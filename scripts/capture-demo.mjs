@@ -65,6 +65,7 @@ const SHOTS = [
   { id: "S05", who: "bruce", file: "S05_pay", seconds: 180, note: "pay start, PAYPAL HUMAN, authorized" },
   { id: "S06", who: "bruce", file: "S06_audit_fail", seconds: 90, note: "audit room, ask the agent, answer lands" },
   { id: "S07", who: "bruce", file: "S07_revision", seconds: 100, note: "failed check, revision note, requested" },
+  { id: "S07B", who: "omar", file: "S07b_resubmit", seconds: 60, note: "freelancer: revision card, v2 upload, resubmit" },
   { id: "S08", who: "bruce", file: "S08_checks_pass", seconds: 90, note: "re-run, all pass, evidence grid" },
   { id: "S09", who: "bruce", file: "S09_approve", seconds: 120, note: "hold to approve, PAID, unlock, receipt" },
   { id: "S10", who: "omar", file: "S10_earnings", seconds: 90, note: "payout status, earnings, ledger" },
@@ -1203,6 +1204,62 @@ const handlers = {
     await page.getByText(/revision requested/i).first().waitFor({ state: "visible", timeout: 45000 });
     await sleep(4200);
     console.log("S07 revision requested on camera");
+  },
+  /* S07b — the other half of the revision loop: the freelancer answers it.
+     Omar lands on his board with Corner Bean wearing NEEDS REVISION, opens the
+     resubmit control, drops v2 into the same vault, and the card turns IN
+     REVIEW. This is the same path the live verification exercises, filmed. */
+  async S07B(page, shot, marks) {
+    const run = loadRun();
+    if (!run.freelancer?.email) throw new Error("S07B needs the freelancer identity from .tmp/demo-run.json: run --shot S02 first");
+
+    await signInAs(page, run.freelancer, marks);
+    page.setDefaultNavigationTimeout(120000);
+    await page.goto(`${FRONTEND}/dashboard/vaults`, { waitUntil: "domcontentloaded", timeout: 120000 });
+
+    const card = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
+    await card.waitFor({ state: "visible", timeout: 120000 });
+    const chip = card.locator(".fd-chip").first();
+    await chip.waitFor({ state: "visible", timeout: 30000 });
+    const chipText = (await chip.innerText()).trim();
+    if (chipText !== "NEEDS REVISION") throw new Error(`the card reads ${chipText}, not NEEDS REVISION`);
+    /* the sign-in is dead head on this beat: the clip starts on the card, so the
+       trim begins here instead of at the sign-in form */
+    marks.firstFrame = Date.now();
+    await sleep(3600); // the chip, the client's project and the hint read
+
+    await card.getByRole("button", { name: /submit revision/i }).first().click();
+    const drawer = page.locator(".fd-drawer, [role='dialog']").first();
+    await drawer.waitFor({ state: "visible", timeout: 30000 });
+    await sleep(2600); // the drawer says it is adding to the vault, not making one
+
+    await drawer
+      .locator('input[type="file"][aria-label="Choose a zip archive"]')
+      .setInputFiles(path.resolve("scripts/demo-fixtures/corner-bean-v2.zip"));
+    await drawer.locator(".fd-scan li").first().waitFor({ state: "visible", timeout: 30000 });
+    await sleep(3400); // structure, types, size, hash run in front of the camera
+
+    await drawer.getByRole("button", { name: /^Next$/ }).click();
+    await sleep(3000); // review: the manifest and the split
+
+    await drawer.getByRole("button", { name: /submit revision/i }).first().click();
+    await page.getByText(/revision submitted/i).first().waitFor({ state: "visible", timeout: 180000 });
+    await sleep(4200); // the toast reads
+
+    await page.locator(".fd-drawer").first().waitFor({ state: "hidden", timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(600);
+
+    /* the board is not told about the resubmit, so it still shows the old chip
+       under the toast; reloading is what the freelancer would do next, and it
+       ends the beat on the state the server actually holds */
+    await page.goto(`${FRONTEND}/dashboard/vaults`, { waitUntil: "domcontentloaded", timeout: 120000 });
+    const again = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
+    await again.waitFor({ state: "visible", timeout: 60000 });
+    await sleep(1200);
+    const after = (await again.locator(".fd-chip").first().innerText()).trim();
+    console.log(`S07b resubmitted on camera; the card now reads ${after}`);
+    if (after === "NEEDS REVISION") throw new Error("the card still reads NEEDS REVISION: the resubmit did not take");
+    await sleep(4200); // hold on the card, now in review
   },
   S08: notYet("S08"),
   S09: notYet("S09"),
