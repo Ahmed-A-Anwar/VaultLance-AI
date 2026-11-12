@@ -526,10 +526,14 @@ const STEP_LABELS: Record<ScanStepId, string> = {
 /** Why a name is refused, or null. The one place the naming rules live. */
 export function archiveProblem(name: string, sizeBytes: number): string | null {
   const lower = name.toLowerCase();
-  if (!lower.endsWith(".zip")) return "Only .zip archives are accepted.";
-  if (sizeBytes > SCAN_RULES.maxCompressedBytes) return "That archive is over the 100 MB limit.";
+  const dot = lower.lastIndexOf(".");
+  const ext = dot === -1 ? "" : lower.slice(dot);
+  if (!(SCAN_RULES.allowedExtensions as readonly string[]).includes(ext)) {
+    return "That file type isn’t accepted.";
+  }
+  if (sizeBytes > SCAN_RULES.maxCompressedBytes) return "That delivery is over the 100 MB limit.";
   if (SCAN_RULES.forbiddenNameFragments.some((f) => lower.includes(f))) {
-    return "That archive failed the scan: its name is on the blocked list.";
+    return "That file failed the scan: its name is on the blocked list.";
   }
   if (SCAN_RULES.forbiddenExtensions.some((e) => lower.endsWith(e))) {
     return "That file type isn’t accepted.";

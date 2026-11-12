@@ -21,8 +21,9 @@ export const SCAN_RULES = {
   maxUncompressedBytes: 200 * 1024 * 1024,
   /** and no entry may expand more than 100:1 */
   maxCompressionRatio: 100,
-  /** what the backend's allowlist accepts; the zip itself is the only entry point */
-  allowedExtensions: [".zip"] as const,
+  /** what the backend's allowlist accepts: the archive and the documents that
+      travel with it */
+  allowedExtensions: [".zip", ".pdf", ".png", ".jpg", ".jpeg", ".svg", ".txt", ".md", ".json"] as const,
   /** names the scan refuses outright, both for the reason and for the demo */
   forbiddenNameFragments: ["bomb"] as const,
   /** extensions that fail even inside a zip's name */

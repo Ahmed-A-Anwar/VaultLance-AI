@@ -1271,6 +1271,74 @@ const handlers = {
     if (after === "NEEDS REVISION") throw new Error("the card still reads NEEDS REVISION: the resubmit did not take");
     await sleep(5000); // hold on the card, now in review
   },
+  /* S07c — the insert between the freelancer's resubmit and the client's
+     checks: the two items the note asked for, added as their own files. The
+     drawer takes a batch, scans each file, and locks one manifest over them. */
+  async S07C(page, shot, marks) {
+    const run = loadRun();
+    if (!run.freelancer?.email) throw new Error("S07C needs the freelancer identity from .tmp/demo-run.json: run --shot S02 first");
+
+    await signInAs(page, run.freelancer, marks);
+    page.setDefaultNavigationTimeout(150000);
+    await page.goto(`${FRONTEND}/dashboard/vaults`, { waitUntil: "domcontentloaded", timeout: 150000 });
+
+    const card = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
+    await card.waitFor({ state: "visible", timeout: 120000 });
+    const chip = card.locator(".fd-chip").first();
+    await chip.waitFor({ state: "visible", timeout: 30000 });
+    const chipText = (await chip.innerText()).trim();
+    if (chipText !== "NEEDS REVISION") throw new Error(`the card reads ${chipText}, not NEEDS REVISION`);
+    marks.firstFrame = Date.now();
+    await sleep(3200);
+
+    await card.getByRole("button", { name: /submit revision/i }).first().click();
+    const drawer = page.locator(".fd-drawer, [role='dialog']").first();
+    await drawer.waitFor({ state: "visible", timeout: 30000 });
+    await sleep(2200);
+
+    await drawer.locator('input[type="file"][aria-label="Choose files to deliver"]').setInputFiles([
+      path.resolve("scripts/demo-fixtures/delivery/README.md"),
+      path.resolve("scripts/demo-fixtures/delivery/test-log.txt"),
+    ]);
+    await drawer.locator(".fd-scan li").first().waitFor({ state: "visible", timeout: 30000 });
+
+    /* both files have to finish their scan: the review step will not open on a
+       file that has not passed */
+    const scanBy = Date.now() + 60000;
+    let okRows = false;
+    while (Date.now() < scanBy) {
+      const states = await drawer.locator(".fd-scan li").evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-state") || ""));
+      const fileRows = await drawer.locator(".fd-file-row").count();
+      okRows = states.length > 0 && states.every((s) => s === "pass") && fileRows >= 2;
+      if (okRows) break;
+      await sleep(400);
+    }
+    if (!okRows) throw new Error("S07C: the two documents did not both pass the scan");
+    await sleep(2600);
+
+    await drawer.getByRole("button", { name: /^Next$/ }).click();
+    await sleep(3000); // review: two files and the fee split
+
+    await drawer.getByRole("button", { name: /submit revision/i }).first().click();
+    await page.getByText(/revision submitted/i).first().waitFor({ state: "visible", timeout: 180000 });
+    await sleep(2600);
+
+    await page.getByRole("link", { name: /^Overview$/ }).first().click();
+    await sleep(1300);
+    await page.getByRole("link", { name: /^Vaults$/ }).first().click();
+    const again = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
+    await again.waitFor({ state: "visible", timeout: 60000 });
+    let after = "";
+    for (let i = 0; i < 10; i += 1) {
+      after = (await again.locator(".fd-chip").first().innerText()).trim();
+      if (after !== "NEEDS REVISION") break;
+      await sleep(1000);
+    }
+    console.log(`S07C documents resubmitted; the card now reads ${after}`);
+    if (after === "NEEDS REVISION") throw new Error("the card still reads NEEDS REVISION: the resubmit did not take");
+    await sleep(4200);
+  },
+
   /* S08 — the v2 delivery passes. Bruce opens the room, re-runs the checks and
      every one of them lands PASS: documentation, the JUnit test log, the locked
      manifest and both archives. The clip ends on the finished list with Hold to

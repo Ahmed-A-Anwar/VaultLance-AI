@@ -127,7 +127,7 @@ export function NewVaultDrawer({
   const scanFile = async (incoming: File): Promise<boolean> => {
     const problem = archiveProblem(incoming.name, incoming.size);
     const list: ProgressRow[] = [
-      { id: "structure", label: "Archive structure", state: "queued" },
+      { id: "structure", label: "File structure", state: "queued" },
       { id: "types", label: "File types", state: "queued" },
       { id: "size", label: "Size limits", state: "queued" },
       { id: "hash", label: "Manifest hash", state: "queued" },
