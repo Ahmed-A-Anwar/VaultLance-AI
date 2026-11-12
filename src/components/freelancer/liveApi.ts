@@ -117,6 +117,9 @@ async function toVault(raw: any): Promise<FreelancerVault> {
         }
       : {}),
     ...(payoutStatus ? { payoutStatus } : {}),
+    /* the id PayPal returned for the transfer: the receipt prints it under the
+       money block, and it is the only place the freelancer can see it */
+    ...(payout?.payoutItemId ? { payoutPaypalId: String(payout.payoutItemId) } : {}),
     ...(payout?.failure?.message ? { payoutReason: String(payout.failure.message) } : {}),
     waivedChecks: Array.isArray(raw.waivedChecks)
       ? raw.waivedChecks.map((w: any) => ({
