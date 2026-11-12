@@ -33,3 +33,11 @@ docs/ui-audit/evidence/
 
 docs/ux-audit/shots/
 docs/ux-audit/evidence/
+
+# demo capture output
+/demo-assets/
+/.traces/
+/trace-*.zip
+
+# demo credentials (never commit)
+/backend/demo.env
