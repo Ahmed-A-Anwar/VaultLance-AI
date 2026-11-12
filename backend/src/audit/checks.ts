@@ -307,6 +307,72 @@ async function readFile(file: AuditFile): Promise<Buffer | null> {
   }
 }
 
+/* A delivery is often one archive that carries its own README and test log, so
+   the two content checks read the archive's entries as well as the delivered
+   file names. Everything here is bounded: an entry count, a text size and a
+   total, so a hostile archive cannot turn the audit into an unzip loop. */
+const MAX_ARCHIVE_ENTRIES = 500;
+const MAX_ENTRY_TEXT_BYTES = 2_000_000;
+const MAX_ARCHIVE_SCAN_BYTES = 25_000_000;
+const DOC_RE = /readme|\.(md|pdf|docx)$/i;
+
+const isDocName = (name: string): boolean => DOC_RE.test(name);
+const isTestEntryName = (name: string): boolean => TEST_LOG_RE.test(name) && TEXT_RE.test(name);
+const isArchive = (file: AuditFile): boolean => /\.zip$/i.test(file.name) || file.mimeType.includes("zip");
+
+interface ArchiveEntry {
+  /** the delivered archive it came from */
+  inside: string;
+  /** the entry's path within the archive */
+  name: string;
+  /** the entry's text, when it could be read as text at a sane size */
+  text: string | null;
+}
+
+async function readArchiveEntries(
+  files: AuditFile[],
+  read: (file: AuditFile) => Promise<Buffer | null>
+): Promise<ArchiveEntry[]> {
+  const found: ArchiveEntry[] = [];
+
+  for (const file of files.filter(isArchive)) {
+    const buffer = await read(file);
+    if (!buffer) continue;
+
+    let entries: AdmZip.IZipEntry[];
+    try {
+      entries = new AdmZip(buffer).getEntries();
+    } catch {
+      continue; // corrupt archives are the zip check's finding, not this one's
+    }
+
+    let budget = MAX_ARCHIVE_SCAN_BYTES;
+    for (const entry of entries.slice(0, MAX_ARCHIVE_ENTRIES)) {
+      if (entry.isDirectory) continue;
+      if (((entry.header.attr >>> 16) & 0o170000) === 0o120000) continue; // symlink
+
+      const name = entry.entryName;
+      const head = name.slice(name.lastIndexOf("/") + 1);
+      if (isDocName(head)) {
+        found.push({ inside: file.name, name, text: null });
+        continue;
+      }
+      if (!isTestEntryName(head)) continue;
+      if (entry.header.size > MAX_ENTRY_TEXT_BYTES || entry.header.size > budget) continue;
+
+      try {
+        const text = entry.getData().toString("utf8");
+        budget -= entry.header.size;
+        found.push({ inside: file.name, name, text });
+      } catch {
+        /* an entry that will not inflate is skipped, never retried */
+      }
+    }
+  }
+
+  return found;
+}
+
 async function imageCheck(file: AuditFile, buffer: Buffer): Promise<AuditCheck> {
   try {
     const meta = await sharp(buffer).metadata();
@@ -416,9 +482,28 @@ export async function runDeterministicChecks(context: AuditContext): Promise<Aud
     )
   );
 
-  const docs = files.filter(
-    (f) => /readme/i.test(f.name) || /\.(md|pdf|docx)$/i.test(f.name)
-  );
+  /* one read per file, shared by the content checks below */
+  const cache = new Map<string, Buffer | null>();
+  const read = async (file: AuditFile): Promise<Buffer | null> => {
+    if (!cache.has(file.id)) cache.set(file.id, await readFile(file));
+    return cache.get(file.id) ?? null;
+  };
+
+  const inside = await readArchiveEntries(files, read);
+  const innerDocs = inside.filter((e) => isDocName(e.name.slice(e.name.lastIndexOf("/") + 1)));
+  /* the same README inside two archives is one document, not three: the first
+     place it was seen wins, and the row still says where that was */
+  const docs: Array<{ label: string; inside: string }> = [];
+  const seenDocs = new Set<string>();
+  for (const d of [
+    ...files.filter((f) => isDocName(f.name)).map((f) => ({ label: f.name, inside: "" })),
+    ...innerDocs.map((e) => ({ label: e.name, inside: e.inside })),
+  ]) {
+    const key = d.label.slice(d.label.lastIndexOf("/") + 1).toLowerCase();
+    if (seenDocs.has(key)) continue;
+    seenDocs.add(key);
+    docs.push(d);
+  }
   checks.push(
     check(
       "chk_docs",
@@ -426,7 +511,12 @@ export async function runDeterministicChecks(context: AuditContext): Promise<Aud
       docs.length ? `${docs.length} documentation file(s)` : "No README or document included",
       "FILE INDEX",
       docs.length ? "pass" : "fail",
-      [{ label: "documents", value: docs.map((f) => f.name).join(", ") || "none" }]
+      [
+        {
+          label: "documents",
+          value: docs.map((d) => (d.inside ? `${d.inside}: ${d.label}` : d.label)).join(", ") || "none",
+        },
+      ]
     )
   );
 
@@ -454,11 +544,29 @@ export async function runDeterministicChecks(context: AuditContext): Promise<Aud
 
   const testFiles = files.filter(isTestLog);
   let testSummary: TestSummary | null = null;
+  let testSource = "";
+  let testSourceInside = false;
   for (const file of testFiles) {
-    const buffer = await readFile(file);
+    const buffer = await read(file);
     if (!buffer || !isText(file)) continue;
     testSummary = parseTestSummary(buffer.toString("utf8"));
-    if (testSummary) break;
+    if (testSummary) {
+      testSource = file.name;
+      break;
+    }
+  }
+  /* no summary on the outside: the delivery's own archive may carry the log */
+  if (!testSummary) {
+    for (const entry of inside.filter((e) => isTestEntryName(e.name.slice(e.name.lastIndexOf("/") + 1)))) {
+      if (!entry.text) continue;
+      const parsed = parseTestSummary(entry.text);
+      if (parsed) {
+        testSummary = parsed;
+        testSource = `${entry.inside}: ${entry.name}`;
+        testSourceInside = true;
+        break;
+      }
+    }
   }
   checks.push(
     check(
@@ -476,6 +584,7 @@ export async function runDeterministicChecks(context: AuditContext): Promise<Aud
         { label: "passed", value: String(testSummary?.passed ?? 0) },
         { label: "failed", value: String(testSummary?.failed ?? 0) },
         { label: "skipped", value: String(testSummary?.skipped ?? 0) },
+        ...(testSourceInside && testSource ? [{ label: "source", value: testSource }] : []),
       ]
     )
   );
