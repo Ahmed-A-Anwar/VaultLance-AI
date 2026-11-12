@@ -165,7 +165,7 @@ export class VaultDomainService {
       if (direct) {
         return this.cacheVaultList(
           userId,
-          this.toVaultList(direct.vaults, direct.captures),
+          this.toVaultList(direct.vaults, direct.captures, direct.payouts),
           readGeneration
         );
       }

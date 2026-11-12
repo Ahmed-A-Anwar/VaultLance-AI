@@ -4,6 +4,7 @@ import { logger } from "../shared/logger.js";
 export interface VaultListData {
   vaults: any[];
   captures: any[];
+  payouts: any[];
 }
 
 export type VaultListSource = "direct" | "fallback" | "cache";
@@ -53,7 +54,10 @@ const LIST_SQL = `
     )), '[]'::jsonb) as vaults,
     (select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb)
      from vault_captures c
-     where c.vault_id in (select id::text from accessible)) as captures
+     where c.vault_id in (select id::text from accessible)) as captures,
+    (select coalesce(jsonb_agg(to_jsonb(p)), '[]'::jsonb)
+     from vault_payouts p
+     where p.vault_id in (select id::text from accessible)) as payouts
   from accessible a
   left join members m on m.vault_id = a.id
   left join files f on f.vault_id = a.id
@@ -138,7 +142,11 @@ export async function readVaultList(
       return null;
     }
     onSource?.("direct");
-    return { vaults: row.vaults, captures: row.captures };
+    return {
+      vaults: row.vaults,
+      captures: row.captures,
+      payouts: Array.isArray(row.payouts) ? row.payouts : [],
+    };
   } catch (error) {
     const code = (error as { code?: string }).code ?? "UNKNOWN";
     const now = Date.now();
