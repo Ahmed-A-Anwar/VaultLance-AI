@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="corner-bean-site" tests="6" failures="0" errors="0" skipped="0">
+  <testcase name="index.html is present"/>
+  <testcase name="menu.html is present"/>
+  <testcase name="about.html is present"/>
+  <testcase name="gallery.html is present"/>
+  <testcase name="stylesheet is present"/>
+  <testcase name="contact.html is present"></testcase>
+</testsuite>

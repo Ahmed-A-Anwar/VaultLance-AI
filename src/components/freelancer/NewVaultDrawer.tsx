@@ -122,7 +122,9 @@ export function NewVaultDrawer({
   const deliverablesValid =
     mode === "zip" ? picked.length > 0 && picked.every((p) => p.ok) && scan !== "scanning" : !!urlOk;
 
-  const startScan = (incoming: File) => {
+  /* one file at a time, so a batch shows each file's own four rows and every
+     picked file ends with a verdict it earned */
+  const scanFile = async (incoming: File): Promise<boolean> => {
     const problem = archiveProblem(incoming.name, incoming.size);
     const list: ProgressRow[] = [
       { id: "structure", label: "Archive structure", state: "queued" },
@@ -139,44 +141,36 @@ export function NewVaultDrawer({
       structure: incoming.name.toLowerCase().includes("bomb") ? "Expands past the 100:1 ratio limit." : null,
       types: problem && !incoming.name.toLowerCase().includes("bomb") ? problem : null,
       size: incoming.size > SCAN_RULES.maxCompressedBytes ? "Over the 100 MB compressed limit." : null,
-      hash: problem ? "No manifest: the archive did not pass." : null,
+      hash: problem ? "No manifest: the delivery did not pass." : null,
     };
 
-    let i = 0;
-    const tick = () => {
-      if (i > 0) {
-        const prev = list[i - 1];
-        prev.state = verdicts[prev.id] ? "fail" : "pass";
-        prev.reason = verdicts[prev.id] ?? undefined;
-        setRows(list.map((r) => ({ ...r })));
-      }
-      if (i === list.length) {
-        const failed = list.some((r) => r.state === "fail");
-        setScan(failed ? "fail" : "pass");
-        setScanReason(failed ? (list.find((r) => r.state === "fail")?.reason ?? "The archive didn’t pass.") : null);
-        setManifest(
-          failed
-            ? undefined
-            : manifestFor([{ name: incoming.name, sizeBytes: incoming.size }]),
-        );
-        setPicked((prev) => prev.map((p) => (p.file === incoming ? { ...p, ok: !failed } : p)));
-        return;
-      }
-      list[i].state = "running";
+    let failed = false;
+    for (const row of list) {
+      row.state = "running";
       setRows(list.map((r) => ({ ...r })));
-      i += 1;
-      window.setTimeout(tick, 382);
-    };
-    tick();
+      await new Promise((r) => window.setTimeout(r, 382));
+      const verdict = verdicts[row.id];
+      row.state = verdict ? "fail" : "pass";
+      row.reason = verdict ?? undefined;
+      if (verdict) failed = true;
+      setRows(list.map((r) => ({ ...r })));
+    }
+
+    setScan(failed ? "fail" : "pass");
+    setScanReason(failed ? (list.find((r) => r.state === "fail")?.reason ?? "The delivery didn’t pass.") : null);
+    setManifest(failed ? undefined : manifestFor([{ name: incoming.name, sizeBytes: incoming.size }]));
+    setPicked((prev) => prev.map((p) => (p.file === incoming ? { ...p, ok: !failed } : p)));
+    return !failed;
   };
 
   const onPick = (incoming: File | File[] | null) => {
     const batch = Array.isArray(incoming) ? incoming : incoming ? [incoming] : [];
     if (!batch.length) return;
     setPicked((prev) => [...prev, ...batch.map((f) => ({ file: f, ok: false }))]);
-    /* the scan panel shows the latest file; every file's verdict is kept */
     setFile(batch[batch.length - 1]);
-    startScan(batch[batch.length - 1]);
+    void (async () => {
+      for (const f of batch) await scanFile(f);
+    })();
   };
 
   const dropFile = (target: File) => {

@@ -66,6 +66,7 @@ const SHOTS = [
   { id: "S06", who: "bruce", file: "S06_audit_fail", seconds: 90, note: "audit room, ask the agent, answer lands" },
   { id: "S07", who: "bruce", file: "S07_revision", seconds: 100, note: "failed check, revision note, requested" },
   { id: "S07B", who: "omar", file: "S07b_resubmit", seconds: 60, note: "freelancer: revision card, v2 upload, resubmit" },
+  { id: "S07C", who: "omar", file: "S07c_docs", seconds: 60, note: "freelancer: README + test log added, resubmitted" },
   { id: "S08", who: "bruce", file: "S08_checks_pass", seconds: 90, note: "re-run, all pass, evidence grid" },
   { id: "S09", who: "bruce", file: "S09_approve", seconds: 120, note: "hold to approve, PAID, unlock, receipt" },
   { id: "S10", who: "omar", file: "S10_earnings", seconds: 90, note: "payout status, earnings, ledger" },
@@ -1337,7 +1338,44 @@ const handlers = {
     }
     await sleep(3400); // hold on the finished summary, all-pass list and Hold to approve
   },
-  S09: notYet("S09"),
+  /* S09 — the client pays. Bruce holds the decision button for its 1.6 s, the
+     capture goes through PayPal's sandbox, and the room turns PAID: files
+     released, receipt on the panel. */
+  async S09(page, shot, marks) {
+    const run = loadRun();
+    if (!run.client?.email) throw new Error("S09 needs S02's client identity: run --shot S02 first");
+    if (!run.vaultId) throw new Error("S09 needs the vault from S03: run --shot S03 first");
+
+    await signInAs(page, run.client, marks);
+    page.setDefaultNavigationTimeout(150000);
+    await page.goto(`${FRONTEND}/vault/${run.vaultId}`, { waitUntil: "domcontentloaded", timeout: 150000 });
+
+    const hold = page.locator(".room-hold").first();
+    await hold.waitFor({ state: "visible", timeout: 120000 });
+    await page.getByText(/^\$200$/).first().waitFor({ state: "visible", timeout: 120000 }).catch(() => {});
+    marks.firstFrame = Date.now();
+    await sleep(3200); // the checks passed, the $200 and the fee split read
+
+    /* the control is a real press-and-hold: pointer down, the ring closes for
+       1.618 s, pointer up after it fires */
+    await hold.hover();
+    await sleep(400);
+    await page.mouse.down();
+    await sleep(2300);
+    await page.mouse.up();
+    console.log("S09 hold released, waiting for the capture");
+
+    await page.getByText(/^PAID$/).first().waitFor({ state: "visible", timeout: 180000 });
+    await sleep(3600); // the coin lands, the receipt and the released files
+
+    const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+    const paid = /PAID/.test(body);
+    const unlocked = /UNLOCKED/.test(body);
+    console.log(`S09 room after capture: PAID ${paid}, UNLOCKED ${unlocked}`);
+    if (!paid) throw new Error("S09 never reached PAID");
+
+    await sleep(3800); // hold on the paid decision panel and the receipt
+  },
   S10: notYet("S10"),
   S11: notYet("S11"),
   S12: notYet("S12"),
