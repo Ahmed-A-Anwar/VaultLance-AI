@@ -70,7 +70,7 @@ const SHOTS = [
   { id: "S08", who: "bruce", file: "S08_checks_pass", seconds: 90, note: "re-run, all pass, evidence grid" },
   { id: "S09", who: "bruce", file: "S09_approve", seconds: 120, note: "hold to approve, PAID, unlock, receipt" },
   { id: "S10", who: "omar", file: "S10_paid_receipt", seconds: 60, note: "freelancer: paid card, receipt, released files" },
-  { id: "S11", who: "bruce", file: "S11_reject", seconds: 15, note: "second vault, reject, voided" },
+  { id: "S11", who: "omar", file: "S11_payout_record", seconds: 45, note: "freelancer: receipt with PayPal's payout item id" },
   { id: "S12", who: "omar", file: "S12_playground", seconds: 20, note: "playground quick run" },
   { id: "S13", who: "bruce", file: "S13_mobile", seconds: 60, note: "390x844 audit + approve" },
   { id: "S14", who: "omar", file: "S14_grids", seconds: 30, note: "ledger + evidence grid close-ups" },
@@ -1494,8 +1494,43 @@ const handlers = {
 
     await sleep(2600); // hold on the drawer foot
   },
-  S11: notYet("S11"),
-  S11: notYet("S11"),
+  /* S11 — the payout record itself. The receipt prints the PayPal payout item
+     id under the settled money block; that id only reaches the drawer once the
+     live mapper carries it, so the handler waits for it rather than for a
+     fixed delay. */
+  async S11(page, shot, marks) {
+    const run = loadRun();
+    if (!run.freelancer?.email) throw new Error("S11 needs the freelancer identity: run --shot S02 first");
+
+    await signInAs(page, run.freelancer, marks);
+    page.setDefaultNavigationTimeout(150000);
+    await page.goto(`${FRONTEND}/dashboard/vaults`, { waitUntil: "domcontentloaded", timeout: 150000 });
+
+    const card = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
+    await card.waitFor({ state: "visible", timeout: 120000 });
+    const chip = card.locator(".fd-chip").first();
+    await chip.waitFor({ state: "visible", timeout: 60000 });
+    if ((await chip.innerText()).trim() !== "PAID") throw new Error("S11 needs the paid vault");
+
+    await card.getByRole("button", { name: /view receipt/i }).first().click();
+    const drawer = page.getByRole("dialog").first();
+    await drawer.waitFor({ state: "visible", timeout: 60000 });
+
+    const payoutLine = drawer.locator(".fd-mono", { hasText: /^PAYPAL U/i }).first();
+    await payoutLine.waitFor({ state: "visible", timeout: 60000 });
+    const payoutId = (await payoutLine.innerText()).replace(/\s+/g, " ").trim();
+    const body = (await drawer.innerText()).replace(/\s+/g, " ");
+    if (!/YOU RECEIVE[^A-Z]*\$178\.90/.test(body)) throw new Error("S11: the settled money block is not on screen");
+    if (!/^PAYPAL U[A-Z0-9]{8,}$/.test(payoutId)) throw new Error(`S11: the payout line reads ${payoutId}`);
+    console.log(`S11 payout line: ${payoutId}`);
+
+    marks.firstFrame = Date.now();
+    await sleep(7400); // the settled fees and the transfer id, read twice over
+
+    await drawer.getByRole("button", { name: /^Close$/ }).first().click({ timeout: 15000 }).catch(() => {});
+    await drawer.waitFor({ state: "hidden", timeout: 20000 }).catch(() => {});
+    await sleep(3200); // the paid card behind it
+  },
   S12: notYet("S12"),
   S13: notYet("S13"),
   S14: notYet("S14"),
