@@ -83,7 +83,7 @@ Values never live in this repository; see `docs/deploy-secrets.md` and
   `PAYPAL_WEBHOOK_ID`, `PAYPAL_BASE_URL`, `AI_SERVICE_URL`, `INTERNAL_API_KEY`,
   `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`
 - **AI engine** (`vaultpay_m3_ai_engine/.env.example`): `SECRET_KEY`,
-  `ALLOWED_ORIGINS`, `DATABASE_URL`, `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`,
+  `ALLOWED_ORIGINS`, `DATABASE_URL`, `ANTHROPIC_API_KEY`, `azure gpt5 min_MODEL`,
   `PAYPAL_MODE`, `ELASTICSEARCH_URL`, `REDIS_URL`
 
 `JWT_SECRET` must be 32+ characters in production; the API refuses to start
