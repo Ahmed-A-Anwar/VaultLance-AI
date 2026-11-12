@@ -24,6 +24,7 @@ import {
   type VaultKind,
 } from "./mockApi";
 import { SCAN_RULES } from "./mockConfig";
+import { addFiles, deliveryReady, markScanned, removeFile, type Picked } from "./delivery";
 import { apiClient, isDemoMode } from "../../lib/apiClient";
 import { createVaultOnServer, submitVaultOnServer } from "../../lib/vaultWrites";
 import { buildManifest, uploadArchive, verifyManifest } from "../../lib/uploadWrites";
@@ -80,7 +81,7 @@ export function NewVaultDrawer({
   /* a delivery is often an archive plus its documents, so the step takes a
      list: each picked file is scanned, and submit uploads them all before it
      locks one manifest over the set */
-  const [picked, setPicked] = useState<Array<{ file: File; ok: boolean }>>([]);
+  const [picked, setPicked] = useState<Picked<File>[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<ProgressRow[]>([]);
   const [scan, setScan] = useState<ScanState>("idle");
@@ -119,8 +120,7 @@ export function NewVaultDrawer({
   }, [onClose]);
 
   const files: VaultFile[] = picked.map((p) => ({ name: p.file.name, sizeBytes: p.file.size }));
-  const deliverablesValid =
-    mode === "zip" ? picked.length > 0 && picked.every((p) => p.ok) && scan !== "scanning" : !!urlOk;
+  const deliverablesValid = mode === "zip" ? deliveryReady(picked, scan === "scanning") : !!urlOk;
 
   /* one file at a time, so a batch shows each file's own four rows and every
      picked file ends with a verdict it earned */
@@ -159,14 +159,14 @@ export function NewVaultDrawer({
     setScan(failed ? "fail" : "pass");
     setScanReason(failed ? (list.find((r) => r.state === "fail")?.reason ?? "The delivery didn’t pass.") : null);
     setManifest(failed ? undefined : manifestFor([{ name: incoming.name, sizeBytes: incoming.size }]));
-    setPicked((prev) => prev.map((p) => (p.file === incoming ? { ...p, ok: !failed } : p)));
+    setPicked((prev) => markScanned(prev, incoming, !failed));
     return !failed;
   };
 
   const onPick = (incoming: File | File[] | null) => {
     const batch = Array.isArray(incoming) ? incoming : incoming ? [incoming] : [];
     if (!batch.length) return;
-    setPicked((prev) => [...prev, ...batch.map((f) => ({ file: f, ok: false }))]);
+    setPicked((prev) => addFiles(prev, batch));
     setFile(batch[batch.length - 1]);
     void (async () => {
       for (const f of batch) await scanFile(f);
@@ -174,7 +174,7 @@ export function NewVaultDrawer({
   };
 
   const dropFile = (target: File) => {
-    setPicked((prev) => prev.filter((p) => p.file !== target));
+    setPicked((prev) => removeFile(prev, target));
     if (file === target) {
       setFile(null);
       setScan("idle");
