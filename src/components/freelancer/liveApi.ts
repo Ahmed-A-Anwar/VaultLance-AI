@@ -27,13 +27,16 @@ export function uiStatusOf(raw: string): UiStatus {
   const s = (raw || "").toUpperCase();
   if (["DRAFT", "AWAITING_CLIENT", "AWAITING_AUTHORIZATION"].includes(s)) return "awaiting_payment";
   if (["AUTHORIZED", "FUNDS_HELD", "IN_PROGRESS"].includes(s)) return "held";
-  if (["AWAITING_APPROVAL", "SUBMITTED", "VERIFYING"].includes(s)) return "audited";
+  /* a vault the client sent back is still work under review, exactly as the
+     statusMap beside the adapter says; it used to fall to "held" and read as
+     FUNDED with "Deliver your files" */
+  if (["AWAITING_APPROVAL", "SUBMITTED", "VERIFYING", "NEEDS_REVISION"].includes(s)) return "audited";
   if (["PAID", "CAPTURE_PENDING", "COMPLETED", "UNLOCKED"].includes(s)) return "unlocked";
   if (["CANCELLED", "EXPIRED", "VOIDED"].includes(s)) return "voided";
   return "held";
 }
 
-const SUBMITTED_STATUSES = ["SUBMITTED", "VERIFYING", "AWAITING_APPROVAL"];
+const SUBMITTED_STATUSES = ["SUBMITTED", "VERIFYING", "AWAITING_APPROVAL", "NEEDS_REVISION"];
 
 const EVENT_TYPE: Record<string, FreelancerEventType> = {
   FUNDS_AUTHORIZED: "PAYMENT.AUTHORIZED",
@@ -96,6 +99,7 @@ async function toVault(raw: any): Promise<FreelancerVault> {
     ...(SUBMITTED_STATUSES.includes(status.toUpperCase())
       ? { submittedAt: ms(raw.updatedAt ?? raw.updated_at, createdAt) }
       : {}),
+    ...(status.toUpperCase() === "NEEDS_REVISION" ? { needsRevision: true } : {}),
     filesCount: files.length,
     files,
     createdAt,
