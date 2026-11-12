@@ -1270,7 +1270,73 @@ const handlers = {
     if (after === "NEEDS REVISION") throw new Error("the card still reads NEEDS REVISION: the resubmit did not take");
     await sleep(5000); // hold on the card, now in review
   },
-  S08: notYet("S08"),
+  /* S08 — the v2 delivery passes. Bruce opens the room, re-runs the checks and
+     every one of them lands PASS: documentation, the JUnit test log, the locked
+     manifest and both archives. The clip ends on the finished list with Hold to
+     approve waiting, which is S09's first frame. */
+  async S08(page, shot, marks) {
+    const run = loadRun();
+    if (!run.client?.email) throw new Error("S08 needs S02's client identity: run --shot S02 first");
+    if (!run.vaultId) throw new Error("S08 needs the vault from S03: run --shot S03 first");
+
+    await signInAs(page, run.client, marks);
+    page.setDefaultNavigationTimeout(150000);
+    await page.goto(`${FRONTEND}/vault/${run.vaultId}`, { waitUntil: "domcontentloaded", timeout: 150000 });
+
+    const checksPanel = page.locator(".room-checks").first();
+    await checksPanel.waitFor({ state: "visible", timeout: 120000 });
+    /* the panel paints before its rows do, and the deliverable list arrives last:
+       waiting for both keeps the loading skeletons out of the clip */
+    await page.locator(".room-check").first().waitFor({ state: "visible", timeout: 120000 });
+    await page.getByText("Hold to approve & pay").first().waitFor({ state: "visible", timeout: 120000 });
+    await sleep(600);
+    marks.firstFrame = Date.now();
+    await sleep(3400); // the seven results and the delivery they describe
+
+    const runBtn = checksPanel.locator(".room-run").first();
+    await runBtn.waitFor({ state: "visible", timeout: 30000 });
+    const label = (await runBtn.innerText()).replace(/\s+/g, " ").trim();
+    console.log(`S08 checks button reads "${label}"`);
+    await runBtn.click();
+    await sleep(900); // it turns Running… before the first row moves
+
+    /* every row has to come to rest on a terminal state; a fail/warn is a take
+       that cannot ship, not something to hold through */
+    const deadline = Date.now() + 150000;
+    let states = [];
+    while (Date.now() < deadline) {
+      states = await page.locator(".room-check").evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-state") || ""));
+      if (states.length && states.every((s) => ["pass", "warn", "fail"].includes(s))) break;
+      await sleep(500);
+    }
+    const passed = states.filter((s) => s === "pass").length;
+    const failed = states.filter((s) => s === "fail").length;
+    const warned = states.filter((s) => s === "warn").length;
+    console.log(`S08 ${passed} pass, ${warned} warn, ${failed} fail of ${states.length}`);
+    if (failed) throw new Error(`S08 has ${failed} failed check(s); the delivery is not clean`);
+
+    await page.getByText(/audit complete/i).first().waitFor({ state: "visible", timeout: 30000 }).catch(() => {});
+    await sleep(2600); // the finished list
+
+    /* open one check so its evidence rows read on camera */
+    await page.locator(".room-check button").first().click({ timeout: 8000 }).catch(() => {});
+    await sleep(2600);
+    await page.locator(".room-check button").first().click({ timeout: 8000 }).catch(() => {});
+
+    /* the room writes its own audit summary above the checks, and it streams:
+       waiting for the page text to stop growing is what keeps the clip from
+       ending mid-sentence */
+    let last = "";
+    let stable = 0;
+    const settleBy = Date.now() + 40000;
+    while (Date.now() < settleBy && stable < 3) {
+      const now = await page.locator("body").innerText();
+      stable = now === last ? stable + 1 : 0;
+      last = now;
+      await sleep(900);
+    }
+    await sleep(3400); // hold on the finished summary, all-pass list and Hold to approve
+  },
   S09: notYet("S09"),
   S10: notYet("S10"),
   S11: notYet("S11"),
