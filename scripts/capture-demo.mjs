@@ -1244,22 +1244,31 @@ const handlers = {
 
     await drawer.getByRole("button", { name: /submit revision/i }).first().click();
     await page.getByText(/revision submitted/i).first().waitFor({ state: "visible", timeout: 180000 });
-    await sleep(4200); // the toast reads
+    await sleep(2600); // the toast reads before the board is asked again
 
     await page.locator(".fd-drawer").first().waitFor({ state: "hidden", timeout: 30000 }).catch(() => {});
     await page.waitForTimeout(600);
 
     /* the board is not told about the resubmit, so it still shows the old chip
-       under the toast; reloading is what the freelancer would do next, and it
-       ends the beat on the state the server actually holds */
-    await page.goto(`${FRONTEND}/dashboard/vaults`, { waitUntil: "domcontentloaded", timeout: 120000 });
+       under the toast. Reloading the page would flash a blank "Loading..." on
+       camera, so the beat walks the sidebar instead: Overview, then back to
+       Vaults, which refetches with the chrome still on screen. The server's list
+       cache is 2 s, so one round trip is enough. */
+    await page.getByRole("link", { name: /^Overview$/ }).first().click();
+    await sleep(1300);
+    await page.getByRole("link", { name: /^Vaults$/ }).first().click();
+
     const again = page.locator("article.fd-card", { hasText: "Corner Bean" }).first();
     await again.waitFor({ state: "visible", timeout: 60000 });
-    await sleep(1200);
-    const after = (await again.locator(".fd-chip").first().innerText()).trim();
+    let after = "";
+    for (let i = 0; i < 10; i += 1) {
+      after = (await again.locator(".fd-chip").first().innerText()).trim();
+      if (after !== "NEEDS REVISION") break;
+      await sleep(1000);
+    }
     console.log(`S07b resubmitted on camera; the card now reads ${after}`);
     if (after === "NEEDS REVISION") throw new Error("the card still reads NEEDS REVISION: the resubmit did not take");
-    await sleep(4200); // hold on the card, now in review
+    await sleep(5000); // hold on the card, now in review
   },
   S08: notYet("S08"),
   S09: notYet("S09"),
