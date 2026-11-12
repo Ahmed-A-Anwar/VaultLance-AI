@@ -63,8 +63,8 @@ const SHOTS = [
   { id: "S03", who: "omar", file: "S03_vault_v1", seconds: 120, note: "new vault, upload v1, invite code" },
   { id: "S04", who: "bruce", file: "S04_join", seconds: 45, note: "sign up, join by code" },
   { id: "S05", who: "bruce", file: "S05_pay", seconds: 180, note: "pay start, PAYPAL HUMAN, authorized" },
-  { id: "S06", who: "bruce", file: "S06_audit_fail", seconds: 120, note: "audit room, run checks, failure" },
-  { id: "S07", who: "bruce", file: "S07_revision", seconds: 150, note: "revision note, v2 resubmit" },
+  { id: "S06", who: "bruce", file: "S06_audit_fail", seconds: 90, note: "audit room, ask the agent, answer lands" },
+  { id: "S07", who: "bruce", file: "S07_revision", seconds: 100, note: "failed check, revision note, requested" },
   { id: "S08", who: "bruce", file: "S08_checks_pass", seconds: 90, note: "re-run, all pass, evidence grid" },
   { id: "S09", who: "bruce", file: "S09_approve", seconds: 120, note: "hold to approve, PAID, unlock, receipt" },
   { id: "S10", who: "omar", file: "S10_earnings", seconds: 90, note: "payout status, earnings, ledger" },
@@ -192,10 +192,19 @@ const generatedPassword = () => `Vl${crypto.randomBytes(9).toString("base64url")
    empty-state button) and the drawer state lives in the shell, so a click that
    lands during a data refresh can be lost. Open it until it is actually there. */
 async function openDrawer(page) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     const dialog = page.getByRole("dialog");
     if (await dialog.count()) {
-      if ((await page.locator('[role="dialog"] input').count()) >= 3) return dialog;
+      if ((await page.locator('[role="dialog"] input').count()) >= 3) {
+        /* a dialog that is still there after the dashboard's next refresh is the
+           one to type into: returning the first mount handed back a node that
+           was replaced a moment later, and the form then died mid-typing */
+        await sleep(1500);
+        const stillOpen =
+          (await page.getByRole("dialog").count()) > 0 &&
+          (await page.locator('[role="dialog"] input').count()) >= 3;
+        if (stillOpen) return page.getByRole("dialog");
+      }
     }
     /* not anchored: once a vault exists the empty-state button is gone and the
        only trigger is the header's "+ New vault" */
@@ -443,6 +452,12 @@ async function record(shot) {
       }
     }
     await context.close();
+    const popupSrc = await marks.popupVideo?.path().catch(() => null);
+    if (popupSrc) {
+      const popupTarget = path.join(RAW, `${shot.file}_paypal.webm`);
+      fs.copyFileSync(popupSrc, popupTarget);
+      console.log(`recorded ${path.basename(popupTarget)} (${(fs.statSync(popupTarget).size / 1e6).toFixed(1)} MB)`);
+    }
     const src = await video?.path();
     if (src) {
       const target = path.join(RAW, `${shot.file}.webm`);
@@ -792,7 +807,20 @@ const handlers = {
     await page.getByRole("button", { name: /Create & invite client/i }).click();
     /* the toast says "Vault created." too, so target the panel heading */
     await page.locator(".fd-success-h").waitFor({ state: "visible", timeout: 120000 });
-    await sleep(5000); // the invite code is the last beat of the shot
+    await sleep(4000);
+    /* The code only exists when the invite actually went out (the client has to
+       have an account). When it does, hold on it and copy the link on camera so
+       the beat reads as "here is the code", rather than ending on a panel that
+       silently has none. */
+    if (await page.locator(".fd-code").count()) {
+      await sleep(1500);
+      await page
+        .getByRole("button", { name: /copy invite link/i })
+        .first()
+        .click({ timeout: 8000 })
+        .catch(() => {});
+      await sleep(3200);
+    }
 
     const inviteCode = (await page.locator(".fd-code").first().innerText().catch(() => "")).trim();
     saveRun({ inviteCode });
@@ -809,8 +837,45 @@ const handlers = {
       console.log(`vault id lookup failed: ${err.message}`);
     }
 
-    await page.getByRole("button", { name: /^Done$/ }).first().click().catch(() => {});
-    await sleep(1200);
+    /* Close the drawer before the invite beat: Done sits at the bottom of the
+       success panel and a click that lands while a toast covers it leaves the
+       drawer open, which ended the previous take on a static panel. Try Done,
+       then the header close, then Escape, and only move on once it is gone. */
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if ((await page.getByRole("dialog").count()) === 0) break;
+      await page.getByRole("button", { name: /^Done$/ }).first().click({ timeout: 5000 }).catch(() => {});
+      await sleep(900);
+      if ((await page.getByRole("dialog").count()) === 0) break;
+      await page
+        .locator('[role="dialog"] button[aria-label*="lose" i]')
+        .first()
+        .click({ timeout: 3000 })
+        .catch(() => {});
+      await sleep(900);
+      if ((await page.getByRole("dialog").count()) === 0) break;
+      await page.keyboard.press("Escape").catch(() => {});
+      await sleep(900);
+    }
+    await sleep(2200);
+
+    /* The invite code is minted by the card's "Copy invite link" and reported in a
+       toast: the drawer only renders a code when the invite went out with the
+       create. Clicking it here puts the code on camera either way, and the toast
+       is what carries it. */
+    const invite = page.getByRole("button", { name: /copy invite link/i }).first();
+    if (await invite.count()) {
+      await invite.scrollIntoViewIfNeeded().catch(() => {});
+      await sleep(1200);
+      await invite.click({ timeout: 8000 }).catch(() => {});
+      await sleep(1200);
+      const toastText = (await page.locator(".dash-toast-text").allInnerTexts().catch(() => [])).join(" ");
+      const found = /VL-[A-Z0-9]{4}-[A-Z0-9]{4}/i.exec(toastText);
+      if (found) {
+        saveRun({ inviteCode: found[0].toUpperCase() });
+        console.log(`invite code minted on camera=${Boolean(found[0])}`);
+      }
+      await sleep(4000); // hold while the toast is readable
+    }
   },
 
   /* S04 — Bruce signs up, then joins with the code from S03. */
@@ -967,6 +1032,9 @@ const handlers = {
     if (target) {
       await target.waitForLoadState("domcontentloaded").catch(() => {});
       if (target !== page) {
+        /* the checkout opens as its own window, so the page video never sees it;
+           keep that window's recording and splice it in after the run */
+        marks.popupVideo = target.video();
         await target.bringToFront().catch(() => {});
         await sleep(2500);
       }
@@ -1019,8 +1087,123 @@ const handlers = {
     await page.locator(".room-decision").first().waitFor({ state: "visible", timeout: 60000 }).catch(() => {});
     await sleep(4000);
   },
-  S06: notYet("S06"),
-  S07: notYet("S07"),
+  /* S06 — the audit agent answers. Bruce asks one question in the funded room
+     and the model's reply streams in. Timings measured on this account in a
+     1920x1080 window: typing indicator at 0.2 s, answer text from 9 s, stream
+     complete at 22.8 s. The wait *is* the answer arriving, so the take must not
+     end on the phase line — it ends when the text stops growing. */
+  async S06(page, shot, marks) {
+    const run = loadRun();
+    if (!run.client?.email) throw new Error("S06 needs S02's client identity: run --shot S02 first");
+    if (!run.vaultId) throw new Error("S06 needs the vault from S03: run --shot S03 first");
+
+    /* the two placeholder lines the bubble shows while the model works; neither
+       is an answer, and either one is what a careless take would end on */
+    const PHASE = /checking the deliverables|preparing the audit report/i;
+    const QUESTION = "What was delivered, and is anything missing?";
+
+    await signInAs(page, run.client, marks);
+    page.setDefaultNavigationTimeout(120000);
+    await page.goto(`${FRONTEND}/vault/${run.vaultId}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 120000,
+    });
+    const box = page.locator('[aria-label="Ask the audit agent"]');
+    await box.waitFor({ state: "visible", timeout: 120000 });
+    if (!marks.firstFrame) marks.firstFrame = Date.now();
+    await sleep(2600); // the stepper, deliverables and checks paint before typing
+
+    await typeSlowly(box, QUESTION, 45); // ~5 s at the measured pace
+    await sleep(700);
+    const askedAt = Date.now();
+    await box.press("Enter");
+
+    /* 0.2 s: the phase line appears. Hold it long enough to read, then insist on
+       something that is not it. */
+    await page.getByText(PHASE).first().waitFor({ state: "visible", timeout: 25000 });
+    const indicatorAt = Date.now();
+    await sleep(1300);
+
+    /* 9 s: the answer starts. The standing line is the first AI bubble, so the
+       answer is the last one — and only once it is long enough and no longer
+       the phase text. */
+    const answer = page.locator('.room-msg[data-role="ai"]').last();
+    let text = "";
+    const answerDeadline = Date.now() + 120000;
+    while (Date.now() < answerDeadline) {
+      const bubbles = await page.locator('.room-msg[data-role="ai"]').count().catch(() => 0);
+      if (bubbles >= 2) {
+        text = (await answer.innerText().catch(() => "")).trim();
+        if (text.length > 60 && !PHASE.test(text)) break;
+      }
+      await sleep(250);
+    }
+    if (!text || PHASE.test(text)) {
+      throw new Error("the agent never left the phase line: no answer rendered");
+    }
+    const answerAt = Date.now();
+
+    /* 22.8 s: the stream stops. Wait for the text to stop growing, which is the
+       only reliable end-of-answer signal here, then hold so the finished answer
+       and its source chips read on camera. */
+    let lastLen = -1;
+    let stableSince = Date.now();
+    for (let i = 0; i < 400; i += 1) {
+      const now = (await answer.innerText().catch(() => "")).trim();
+      if (now.length !== lastLen) {
+        lastLen = now.length;
+        stableSince = Date.now();
+      } else if (Date.now() - stableSince > 2600) {
+        break;
+      }
+      await sleep(300);
+    }
+    const doneAt = Date.now();
+    await sleep(3800);
+
+    console.log(
+      `S06 indicator ${((indicatorAt - askedAt) / 1000).toFixed(1)} s, answer ${((answerAt - askedAt) / 1000).toFixed(1)} s, complete ${((doneAt - askedAt) / 1000).toFixed(1)} s (${lastLen} chars)`,
+    );
+  },
+  /* S07 — the client sends the work back. The room has one failed check, Bruce
+     opens the review dialog and writes the note that names what is missing.
+     Only this half is filmable: in a real session the freelancer card offers no
+     upload or resubmit for a vault under review, so the v2 resubmit happens
+     through the API afterwards. */
+  async S07(page, shot, marks) {
+    const run = loadRun();
+    if (!run.client?.email) throw new Error("S07 needs S02's client identity: run --shot S02 first");
+    if (!run.vaultId) throw new Error("S07 needs the vault from S03: run --shot S03 first");
+
+    /* the note field is a single line, so this is short enough to read in full
+       on camera instead of scrolling out of the box */
+    const NOTE = "Add the README and the test log, then resubmit.";
+
+    await signInAs(page, run.client, marks);
+    page.setDefaultNavigationTimeout(120000);
+    await page.goto(`${FRONTEND}/vault/${run.vaultId}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 120000,
+    });
+    const review = page.getByRole("button", { name: /review failed checks/i }).first();
+    await review.waitFor({ state: "visible", timeout: 120000 });
+    if (!marks.firstFrame) marks.firstFrame = Date.now();
+    await sleep(3200); // the failed check, the locked payment and the hint read
+
+    await review.click();
+    const dialog = page.getByRole("dialog").first();
+    await dialog.waitFor({ state: "visible", timeout: 20000 });
+    await sleep(2200); // the waiver row and the note field
+
+    const note = dialog.locator("textarea").first();
+    await typeSlowly(note, NOTE, 26);
+    await sleep(1400);
+
+    await dialog.getByRole("button", { name: /^request a revision$/i }).first().click();
+    await page.getByText(/revision requested/i).first().waitFor({ state: "visible", timeout: 45000 });
+    await sleep(4200);
+    console.log("S07 revision requested on camera");
+  },
   S08: notYet("S08"),
   S09: notYet("S09"),
   S10: notYet("S10"),
