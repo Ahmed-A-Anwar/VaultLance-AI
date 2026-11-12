@@ -1289,7 +1289,7 @@ const handlers = {
     const chipText = (await chip.innerText()).trim();
     if (chipText !== "NEEDS REVISION") throw new Error(`the card reads ${chipText}, not NEEDS REVISION`);
     marks.firstFrame = Date.now();
-    await sleep(3200);
+    await sleep(2600);
 
     await card.getByRole("button", { name: /submit revision/i }).first().click();
     const drawer = page.locator(".fd-drawer, [role='dialog']").first();
@@ -1314,14 +1314,21 @@ const handlers = {
       await sleep(400);
     }
     if (!okRows) throw new Error("S07C: the two documents did not both pass the scan");
-    await sleep(2600);
+    await sleep(3400); // both documents and their four green rows read
 
     await drawer.getByRole("button", { name: /^Next$/ }).click();
-    await sleep(3000); // review: two files and the fee split
+    await sleep(2000); // review: two files, the fee split
 
     await drawer.getByRole("button", { name: /submit revision/i }).first().click();
-    await page.getByText(/revision submitted/i).first().waitFor({ state: "visible", timeout: 180000 });
-    await sleep(2600);
+    /* the toast is the fast path, but the server can be slow enough that the
+       drawer's own confirmation closes first — either one means it went */
+    await Promise.race([
+      page.getByText(/revision submitted/i).first().waitFor({ state: "visible", timeout: 180000 }),
+      drawer.waitFor({ state: "hidden", timeout: 180000 }),
+    ]).catch(() => {});
+    /* the board still holds the pre-submit row for a moment; leaving before it
+       refreshes would show NEEDS REVISION over a submitted delivery */
+    await sleep(5200);
 
     await page.getByRole("link", { name: /^Overview$/ }).first().click();
     await sleep(1300);
