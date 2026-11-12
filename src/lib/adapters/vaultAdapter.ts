@@ -11,6 +11,7 @@ import { amountSchema, centsOf } from "./moneyAdapter";
 import { uiStatusOf, type UiStatus } from "./statusMap";
 import type { Vault as ClientVault } from "../api";
 import type { FreelancerVault, VaultFile as FreelancerFile } from "../../components/freelancer/mockApi";
+import type { PayoutStatus } from "../freelancerPhase";
 
 export const memberSchema = z.object({
   role: z.string(),
@@ -35,6 +36,11 @@ export const vaultSchema = z.object({
   paypalOrderId: z.string().nullish(),
   paypal_capture_id: z.string().nullish(),
   paypalCaptureId: z.string().nullish(),
+  /* the payout that follows a capture, for the freelancer's paid card */
+  payoutStatus: z.string().nullish(),
+  payout_status: z.string().nullish(),
+  payoutPaypalId: z.string().nullish(),
+  payout_item_id: z.string().nullish(),
   /* carried so a paid card can say a failed check was waived */
   waivedChecks: z
     .array(
@@ -120,6 +126,8 @@ export function toFreelancerVault(raw: unknown): FreelancerVault | null {
   const updatedAt = msOf(dto.updatedAt);
   const cents = centsOf(dto.amount);
   const capture = dto.paypal_capture_id ?? dto.paypalCaptureId;
+  const payoutStatus = (dto.payoutStatus ?? dto.payout_status)?.trim().toLowerCase();
+  const payoutId = dto.payoutPaypalId ?? dto.payout_item_id;
 
   return {
     id: dto.id,
@@ -137,7 +145,11 @@ export function toFreelancerVault(raw: unknown): FreelancerVault | null {
     files,
     createdAt: createdAt ?? 0,
     ...(capture ? { captureId: String(capture) } : {}),
-    /* the payout status is not on this DTO: it arrives with the capture
-       response, so the list row leaves it unset rather than guessing */
+    /* the payout row is what turns a paid vault into earnings: without it the
+       card would read "payout pending" long after the money arrived */
+    ...(payoutStatus === "paid" || payoutStatus === "failed" || payoutStatus === "pending"
+      ? { payoutStatus: payoutStatus as PayoutStatus }
+      : {}),
+    ...(payoutId ? { payoutPaypalId: String(payoutId) } : {}),
   };
 }

@@ -175,7 +175,7 @@ export class VaultDomainService {
       // fallback path is also as few round trips as PostgREST allows.
       const vaultSelect =
         "*, vault_members(*, users!vault_members_user_id_fkey(id,email,full_name)), vault_files(*), ledger_events(vault_id, metadata, created_at)";
-      const [memberVaultsResult, ownedVaultsResult, captureResult] = await Promise.all([
+      const [memberVaultsResult, ownedVaultsResult, captureResult, payoutResult] = await Promise.all([
         client
           .from("vault_members")
           .select(`vault_id, vaults!inner(${vaultSelect})`)
@@ -185,6 +185,8 @@ export class VaultDomainService {
         // table, so one parallel unfiltered read is cheaper than a second
         // network round trip; only rows for this user's vaults reach the DTOs.
         client.from("vault_captures").select("*"),
+        // same reasoning as vault_captures: no PostgREST relationship, tiny table
+        client.from("vault_payouts").select("*"),
       ]);
 
       const vaultsById = new Map<string, any>();
@@ -200,7 +202,8 @@ export class VaultDomainService {
         userId,
         this.toVaultList(
           Array.from(vaultsById.values()),
-          (captureResult.data || []) as any[]
+          (captureResult.data || []) as any[],
+          (payoutResult.data || []) as any[]
         ),
         readGeneration
       );
@@ -243,7 +246,7 @@ export class VaultDomainService {
     return vaults;
   }
 
-  private toVaultList(vaults: any[], captureRows: any[]): VaultDTO[] {
+  private toVaultList(vaults: any[], captureRows: any[], payoutRows: any[] = []): VaultDTO[] {
     if (vaults.length === 0) return [];
 
     const membersByVault = new Map<string, VaultMemberItem[]>();
@@ -301,6 +304,12 @@ export class VaultDomainService {
       if (!capturesByVault.has(key)) capturesByVault.set(key, capture);
     }
 
+    const payoutsByVault = new Map<string, any>();
+    for (const payout of payoutRows) {
+      const key = String(payout.vault_id);
+      if (!payoutsByVault.has(key)) payoutsByVault.set(key, payout);
+    }
+
     return vaults
       .map((vault) => {
         const id = String(vault.id);
@@ -309,7 +318,8 @@ export class VaultDomainService {
           membersByVault.get(id) || [],
           filesByVault.get(id) || [],
           capturesByVault.get(id) || null,
-          ledgerByVault.get(id) || []
+          ledgerByVault.get(id) || [],
+          payoutsByVault.get(id) || null
         );
       })
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -354,7 +364,7 @@ export class VaultDomainService {
       /* the ids a receipt prints: the vault columns can be empty (a row written
          before the column existed, or a write the database refused), and the
          ledger metadata records the same ids, so it is the fallback */
-      const [{ data: captureRow }, { data: moneyEvents }] = await Promise.all([
+      const [{ data: captureRow }, { data: moneyEvents }, { data: payoutRow }] = await Promise.all([
         supabase.from("vault_captures").select("*").eq("vault_id", vaultId).maybeSingle(),
         supabase
           .from("ledger_events")
@@ -362,6 +372,7 @@ export class VaultDomainService {
           .eq("vault_id", vaultId)
           .order("created_at", { ascending: false })
           .limit(20),
+        supabase.from("vault_payouts").select("*").eq("vault_id", vaultId).maybeSingle(),
       ]);
       const files: VaultFileItem[] = (fileRows || []).map((f) => ({
         id: f.id,
@@ -373,7 +384,7 @@ export class VaultDomainService {
         createdAt: new Date(f.created_at),
       }));
 
-      return this.toVaultDto(vault, members, files, captureRow, moneyEvents || []);
+      return this.toVaultDto(vault, members, files, captureRow, moneyEvents || [], payoutRow);
     }
 
     database.store.checkFailure();
@@ -448,7 +459,8 @@ export class VaultDomainService {
     members: VaultMemberItem[],
     files: VaultFileItem[],
     captureRow: any,
-    moneyEvents: any[]
+    moneyEvents: any[],
+    payoutRow?: any
   ): VaultDTO {
     /* the ids a receipt prints: the vault columns can be empty (a row written
        before the column existed, or a write the database refused), and the
@@ -471,6 +483,10 @@ export class VaultDomainService {
       paypalOrderId: (vault as any).paypal_order_id || fromLedger("orderId"),
       paypalAuthorizationId: (vault as any).paypal_authorization_id || fromLedger("authorizationId"),
       paypalCaptureId: (vault as any).paypal_capture_id || captureRow?.capture_id || fromLedger("captureId"),
+      /* the payout is the last thing a receipt is missing: without it a paid
+         vault reads as "payout pending" to the freelancer forever */
+      payoutStatus: payoutRow?.status ?? null,
+      payoutPaypalId: payoutRow?.payout_item_id ?? null,
       failedChecks: Array.isArray((vault as any).failed_checks) ? (vault as any).failed_checks : [],
       waivedChecks: Array.isArray((vault as any).waived_checks) ? (vault as any).waived_checks : [],
       revisionNote: (vault as any).revision_note ?? null,

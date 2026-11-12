@@ -52,6 +52,9 @@ export interface VaultDTO {
   paypalOrderId?: string | null;
   paypalAuthorizationId?: string | null;
   paypalCaptureId?: string | null;
+  /* the payout that follows a capture: "paid", "failed", or absent */
+  payoutStatus?: string | null;
+  payoutPaypalId?: string | null;
   fees?: VaultCapturedFees;
   /* the failed report, what was waived at approval, and the revision request */
   failedChecks?: Array<{ id: string; name: string; detail?: string }>;
